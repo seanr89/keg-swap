@@ -1,0 +1,1130 @@
+[
+  {
+    "name": "Amethyst",
+    "brewery": "Amity Brew Co",
+    "location": "Leeds",
+    "abv": "4.6%",
+    "style": "Porter",
+    "description": "Dark, plums, berries, full-bodied"
+  },
+  {
+    "name": "Little Black 'S'",
+    "brewery": "Big Hand",
+    "location": "Wrexham",
+    "abv": "4.2%",
+    "style": "Black IPA",
+    "description": "Hoppy, malty, marmite, stout-leaning"
+  },
+  {
+    "name": "Spectre",
+    "brewery": "Big Hand",
+    "location": "Wrexham",
+    "abv": "4.5%",
+    "style": "Dry Stout",
+    "description": "Espresso, liquorice, toast, berry hints"
+  },
+  {
+    "name": "Set the Controls For the Heart of the Sun",
+    "brewery": "Big Trip",
+    "location": "Manchester",
+    "abv": "3.8%",
+    "style": "DDH IPA",
+    "description": "Pineapple, peach, dry finish, piney"
+  },
+  {
+    "name": "Camper",
+    "brewery": "Boundary",
+    "location": "Belfast",
+    "abv": "4.8%",
+    "style": "WC IPA",
+    "description": "Tangerine, grapefruit, marmalade"
+  },
+  {
+    "name": "Imbongo",
+    "brewery": "Boundary",
+    "location": "Belfast",
+    "abv": "5.5%",
+    "style": "Tropical IPA",
+    "description": "Juicy, tropical, stonefruit"
+  },
+  {
+    "name": "Pillows",
+    "brewery": "Boundary",
+    "location": "Belfast",
+    "abv": "4.3%",
+    "style": "NE Pale",
+    "description": "Citrus, melon, berry"
+  },
+  {
+    "name": "Brehon Blonde",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "4.3%",
+    "style": "Blonde Ale",
+    "description": "Honey-oat, citrusy, spicily bitter"
+  },
+  {
+    "name": "Good Times",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "4.5%",
+    "style": "Hazy Pale",
+    "description": "Drying, tropical fruits"
+  },
+  {
+    "name": "Killanny Red",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "4.5%",
+    "style": "Red Ale",
+    "description": "Biscuity, toasted hazelnut, berries."
+  },
+  {
+    "name": "Shanco Dubh",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "7.7%",
+    "style": "Porter",
+    "description": "Dark chocolate, roasted malt, liquorice"
+  },
+  {
+    "name": "Stony Grey",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "6%",
+    "style": "IPA",
+    "description": "Citrusy, floral pine, bitter"
+  },
+  {
+    "name": "Ulster Black",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "5%",
+    "style": "Oatmeal Stout",
+    "description": "Toasted malt aroma, dark chocolate, coffee"
+  },
+  {
+    "name": "Calmer Chameleon",
+    "brewery": "Brew York",
+    "location": "York",
+    "abv": "3.7%",
+    "style": "Session APA",
+    "description": "Hazy, juicy, resinous"
+  },
+  {
+    "name": "Maris the Otter",
+    "brewery": "Brew York",
+    "location": "York",
+    "abv": "3.9%",
+    "style": "Bitter",
+    "description": "Clean, stone fruit, malt"
+  },
+  {
+    "name": "Protocol: Brewcade PSL",
+    "brewery": "Brew York",
+    "location": "York",
+    "abv": "4.9%",
+    "style": "Pumpkin Stout",
+    "description": "Roasted malt, cinnamon, nutmeg, clove"
+  },
+  {
+    "name": "Low Rider",
+    "brewery": "Bristol Beer Factory",
+    "location": "Bristol",
+    "abv": "3.9%",
+    "style": "IPA",
+    "description": "Citrus, smooth malty base"
+  },
+  {
+    "name": "Green Hop",
+    "brewery": "Burning Sky",
+    "location": "South Downs",
+    "abv": "4.2%",
+    "style": "Pale Ale",
+    "description": "Citrus, spruce, resinous"
+  },
+  {
+    "name": "Plan Bee",
+    "brewery": "Buxton",
+    "location": "Buxton",
+    "abv": "4.8%",
+    "style": "Honey Beer",
+    "description": "Crisp, honeyed, subtle bitter"
+  },
+  {
+    "name": "Black Gold",
+    "brewery": "Castle Rock",
+    "location": "Nottingham",
+    "abv": "3.8%",
+    "style": "Mild",
+    "description": "Full-bodied, bittersweet, hoppy"
+  },
+  {
+    "name": "Coley's Stout",
+    "brewery": "Coley's Brewery",
+    "location": "Manchester",
+    "abv": "4.5%",
+    "style": "Stout",
+    "description": "Dark chocolate, espresso, charred"
+  },
+  {
+    "name": "devils dyke salted caramel",
+    "brewery": "Downlands Brewery",
+    "location": "West Sussex",
+    "abv": "5%",
+    "style": "Caramel Porter",
+    "description": "Salty caramel, chocolate, malty"
+  },
+  {
+    "name": "Theroux the Looking Glass",
+    "brewery": "Electric Bear",
+    "location": "Bath",
+    "abv": "3.8%",
+    "style": "Pale Ale",
+    "description": "Gentle hops, fresh, light"
+  },
+  {
+    "name": "Mile Road Mild",
+    "brewery": "Fell Brewery",
+    "location": "South Cumbria",
+    "abv": "3.8%",
+    "style": "Mild",
+    "description": "Depth, nutty, sweet"
+  },
+  {
+    "name": "Golden Ale",
+    "brewery": "Full Circle",
+    "location": "Newcastle",
+    "abv": "3.8%",
+    "style": "Golden Ale",
+    "description": "Light hops, citrus, slight bitterness"
+  },
+  {
+    "name": "Kora",
+    "brewery": "Hand Brew Co",
+    "location": "Worthing",
+    "abv": "5.8%",
+    "style": "Old Ale",
+    "description": "Treacle, dates, biscuity"
+  },
+  {
+    "name": "Boddington's",
+    "brewery": "JW Lees",
+    "location": "Manchester",
+    "abv": "4%",
+    "style": "Bitter",
+    "description": "Malt, berries and biscuits, by 'eck"
+  },
+  {
+    "name": "Green Giant",
+    "brewery": "Kent Brewery",
+    "location": "Kent",
+    "abv": "6%",
+    "style": "Green Hop Pale",
+    "description": "Citrus, kiwi fruit, pale malt"
+  },
+  {
+    "name": "Stupid & Contagious",
+    "brewery": "Liquid Light Brew Co",
+    "location": "Nottingham",
+    "abv": "5.1%",
+    "style": "IPA",
+    "description": "Mango, pineapple, hint of pine"
+  },
+  {
+    "name": "Andersons",
+    "brewery": "Lough Gill",
+    "location": "Co. Sligo",
+    "abv": "4%",
+    "style": "Red Ale",
+    "description": "Fruity nose, smooth, toasted malt"
+  },
+  {
+    "name": "Blackwave",
+    "brewery": "Lough Gill",
+    "location": "Co. Sligo",
+    "abv": "4.3%",
+    "style": "Stout",
+    "description": "Soft, chocolate, coffee, smoky hints"
+  },
+  {
+    "name": "Northwest Pale Ale",
+    "brewery": "Lough Gill",
+    "location": "Co. Sligo",
+    "abv": "5.6%",
+    "style": "Pale Ale",
+    "description": "Balanced, caramel, fruity, zesty"
+  },
+  {
+    "name": "Evolve",
+    "brewery": "Mad Squirrel Brewery",
+    "location": "Hertfordshire",
+    "abv": "4.1%",
+    "style": "Bitter",
+    "description": "Pine, floral, tropical"
+  },
+  {
+    "name": "KAPA",
+    "brewery": "Moot Brew Co",
+    "location": "Kent",
+    "abv": "4.4%",
+    "style": "American Pale",
+    "description": "Citrus, kveik, oats"
+  },
+  {
+    "name": "Gold",
+    "brewery": "Mourne Mountains",
+    "location": "Warrenpoint",
+    "abv": "4%",
+    "style": "Pale Ale",
+    "description": "Clean, kettle hops, floral"
+  },
+  {
+    "name": "The Joy of Sesh",
+    "brewery": "New Bristol Brewery",
+    "location": "Bristol",
+    "abv": "4.2%",
+    "style": "Session IPA",
+    "description": "Tropical, citrus, stone fruit, oats"
+  },
+  {
+    "name": "Caramel Porter",
+    "brewery": "North Riding Brewery",
+    "location": "Scarborough",
+    "abv": "4.5%",
+    "style": "Porter",
+    "description": "Chocolate raisins, toffee, nutty"
+  },
+  {
+    "name": "Fuggles Green Hop Stout",
+    "brewery": "Northdown Brewery",
+    "location": "Kent",
+    "abv": "4.8%",
+    "style": "Stout",
+    "description": "Earthy, woody, hedgerow fruits"
+  },
+  {
+    "name": "FRESH FROM // SINGLE HOP SERIES // HAREWOOD GREEN HOPS",
+    "brewery": "Northern Monk",
+    "location": "Leeds",
+    "abv": "3.8%",
+    "style": "Green Hop Pale",
+    "description": "Earthy, floral, soft"
+  },
+  {
+    "name": "Motueka & Lime Hazy Pale",
+    "brewery": "Otherworld",
+    "location": "Midlothian",
+    "abv": "4%",
+    "style": "Hazy Pale",
+    "description": "Vanilla, orange, lemongrass"
+  },
+  {
+    "name": "Grianán Gold",
+    "brewery": "Otterbank",
+    "location": "Co. Donegal",
+    "abv": "3.6%",
+    "style": "Session DH IPA",
+    "description": "Hoppy, Belgian malt, Irish oats"
+  },
+  {
+    "name": "Magic Road",
+    "brewery": "Otterbank",
+    "location": "Co. Donegal",
+    "abv": "4.1%",
+    "style": "Sour",
+    "description": "Strawberry, jammy, acidic finish"
+  },
+  {
+    "name": "Attack the Choc",
+    "brewery": "Pentrich",
+    "location": "Derbyshire",
+    "abv": "5.5%",
+    "style": "Chocolate Stout",
+    "description": "Rich, chocolate brownie, sweet"
+  },
+  {
+    "name": "Faithless 171 Smoked Best Bitter",
+    "brewery": "RedWillow Brewery",
+    "location": "Cheshire",
+    "abv": "4.1%",
+    "style": "Smoked Beer",
+    "description": "Smoky, caramel, fruity, chocolate"
+  },
+  {
+    "name": "Rhode Island Red",
+    "brewery": "Rooster's Brewing Co",
+    "location": "Harrogate",
+    "abv": "4.6%",
+    "style": "Rye Pale",
+    "description": "Black pepper, citrus fruit, spice"
+  },
+  {
+    "name": "India Pale Ale",
+    "brewery": "Rough Brothers",
+    "location": "Derry/Londonderry",
+    "abv": "5.6%",
+    "style": "IPA",
+    "description": "Crisp bitterness, grapefruity finish"
+  },
+  {
+    "name": "NEIPA",
+    "brewery": "Rough Brothers",
+    "location": "Derry/Londonderry",
+    "abv": "5%",
+    "style": "NEIPA",
+    "description": "Soft, surprising bitterness"
+  },
+  {
+    "name": "Northern Pale Ale",
+    "brewery": "Rough Brothers",
+    "location": "Derry/Londonderry",
+    "abv": "4.5%",
+    "style": "Pale Ale",
+    "description": "Crisp, biscuity, fruity"
+  },
+  {
+    "name": "Paxton's Hazy IPA",
+    "brewery": "Rough Brothers x Dog & Duck Derry/Londonderry x",
+    "location": "Lisbellaw",
+    "abv": "5.6%",
+    "style": "IPA",
+    "description": "Tangerine, stonefruit, coconut, hazy"
+  },
+  {
+    "name": "Extra Hopped IPA",
+    "brewery": "Rough Brothers x Dopey Dick",
+    "location": "Derry/Londonderry",
+    "abv": "4.5%",
+    "style": "IPA",
+    "description": "Fruity, slightly malty, well-hopped"
+  },
+  {
+    "name": "Reddish Ale – 3rd Birthday",
+    "brewery": "Runaway Brewery",
+    "location": "Manchester",
+    "abv": "5.6%",
+    "style": "American Amber",
+    "description": "Slightly sweet, fruity"
+  },
+  {
+    "name": "Evergreen",
+    "brewery": "Sambrook's",
+    "location": "London",
+    "abv": "4.3%",
+    "style": "WC IPA",
+    "description": "Resin, tropical fruit, dry finish"
+  },
+  {
+    "name": "Tom's Mild",
+    "brewery": "Stancill Brewery",
+    "location": "Sheffield",
+    "abv": "3.4%",
+    "style": "Ruby Miild",
+    "description": "Fruity, nutty biscuits, hop aroma"
+  },
+  {
+    "name": "Treason",
+    "brewery": "Stancill Brewery",
+    "location": "Sheffield",
+    "abv": "4.5%",
+    "style": "Porter",
+    "description": "Ginger, black treacle, roasty toasty"
+  },
+  {
+    "name": "I'm Your Huckleberry",
+    "brewery": "Sureshot Brewing x Steelfish",
+    "location": "Manchester",
+    "abv": "5.5%",
+    "style": "WC IPA",
+    "description": "Malty, grapefruit, pine needles"
+  },
+  {
+    "name": "Rainbow Serpent",
+    "brewery": "Tartarus",
+    "location": "West Yorkshire",
+    "abv": "5.8%",
+    "style": "Milk Stout",
+    "description": "Rocky road in a glass, marshmallow, hazelnut"
+  },
+  {
+    "name": "The Ilkley Alien",
+    "brewery": "Tartarus",
+    "location": "West Yorkshire",
+    "abv": "5.5%",
+    "style": "Oat Pale",
+    "description": "Pillowy, stonefruit, coconut"
+  },
+  {
+    "name": "Yomp!",
+    "brewery": "The Park Brewery",
+    "location": "Kingston-upon-Thames",
+    "abv": "4.1%",
+    "style": "Rye Amber",
+    "description": "Oranges, stone fruits, bitter"
+  },
+  {
+    "name": "Ruby Porter",
+    "brewery": "Three Acre Brewery",
+    "location": "Sussex",
+    "abv": "4.2%",
+    "style": "Ruby Porter",
+    "description": "Coffee and cocoa"
+  },
+  {
+    "name": "NZ PALE:Motueka, Superdelic, Maui Nelson",
+    "brewery": "Three Legs Brewing Company",
+    "location": "East Sussex",
+    "abv": "4.8%",
+    "style": "Pale Ale",
+    "description": "Creamy, tropical, candied fruit, herbal"
+  },
+  {
+    "name": "OATIPA: Azacca and Necatron",
+    "brewery": "Three Legs Brewing Company",
+    "location": "East Sussex",
+    "abv": "6%",
+    "style": "Oat NEIPA",
+    "description": "Passionfruit, melon, tropical oats"
+  },
+  {
+    "name": "Hold Your Colour",
+    "brewery": "Tiny Rebel",
+    "location": "Newport",
+    "abv": "4.3%",
+    "style": "Red IPA",
+    "description": "Smooth, hoppy, caramel"
+  },
+  {
+    "name": "Glyph",
+    "brewery": "Triple Point",
+    "location": "Sheffield",
+    "abv": "4.2%",
+    "style": "Pale Ale",
+    "description": "Tutti-frutti above, pine below"
+  },
+  {
+    "name": "Pupa",
+    "brewery": "Vibrant Forest",
+    "location": "Hampshire",
+    "abv": "4.5%",
+    "style": "Pale Ale",
+    "description": "Hoppy, juicy, citrus, tropical"
+  },
+  {
+    "name": "Sticky Toffee Pudding – Cask Edition",
+    "brewery": "Vocation",
+    "location": "Yorkshire",
+    "abv": "4.5%",
+    "style": "Toffee Stout",
+    "description": "Toffee, caramel, molasses"
+  },
+  {
+    "name": "Hallion Red",
+    "brewery": "Whitewater",
+    "location": "Castlewellan",
+    "abv": "4.2%",
+    "style": "Red Ale",
+    "description": "Malty, caramel, dried fruits, bready"
+  },
+  {
+    "name": "Hoppelhammer",
+    "brewery": "Whitewater",
+    "location": "Castlewellan",
+    "abv": "6%",
+    "style": "IPA",
+    "description": "Triple hopped, rich fruit"
+  },
+  {
+    "name": "Maggies Leap",
+    "brewery": "Whitewater",
+    "location": "Castlewellan",
+    "abv": "4.7%",
+    "style": "IPA",
+    "description": "Hop-forward, tropical aromas"
+  },
+  {
+    "name": "Roll in the Haze",
+    "brewery": "Whitewater",
+    "location": "Castlewellan",
+    "abv": "5%",
+    "style": "Hazy Pale",
+    "description": "Zesty hops, bitter, honey finish"
+  },
+  {
+    "name": "All Good Juice",
+    "brewery": "Beer Hut",
+    "location": "Kilkeel",
+    "abv": "1%",
+    "style": "Low Alcohol Pale",
+    "description": "Citrus, mango, grapefruit, bitter finish"
+  },
+  {
+    "name": "Field & Tide",
+    "brewery": "Beer Hut",
+    "location": "Kilkeel",
+    "abv": "4.1%",
+    "style": "Saison",
+    "description": "Citrus, herbal, earthy, clove hint"
+  },
+  {
+    "name": "Funky Fresh",
+    "brewery": "Beer Hut",
+    "location": "Kilkeel",
+    "abv": "4.1%",
+    "style": "Dry-hopped Sour",
+    "description": "Papaya, passionfruit, tart"
+  },
+  {
+    "name": "Mosaic/Galaxy Milkshake DIPA",
+    "brewery": "Beer Hut",
+    "location": "Kilkeel",
+    "abv": "8%",
+    "style": "MIlkshake DIPA",
+    "description": "Sweet, fruity, pineapple"
+  },
+  {
+    "name": "Black is the Colour",
+    "brewery": "Boundary",
+    "location": "Belfast",
+    "abv": "6.7%",
+    "style": "Black IPA",
+    "description": "Hop-forward, smoky, dank"
+  },
+  {
+    "name": "Shameless",
+    "brewery": "Boundary",
+    "location": "Belfast",
+    "abv": "4.8%",
+    "style": "Lager",
+    "description": "Crisp, Czech hops, German malt"
+  },
+  {
+    "name": "Untitled Release",
+    "brewery": "Boundary x Kernel Belfast x",
+    "location": "London",
+    "abv": "7%",
+    "style": "Export Stout",
+    "description": "Burnt toast, roast coffee, dark fruits, chocolate"
+  },
+  {
+    "name": "The People's Elder",
+    "brewery": "Brehon Brewhouse",
+    "location": "Co. Monaghan",
+    "abv": "5.2%",
+    "style": "Sour",
+    "description": "Turkish Delight, elderflower, yuzu"
+  },
+  {
+    "name": "Dry Hopped Singles Club – Nectaron",
+    "brewery": "Bullhouse",
+    "location": "Belfast",
+    "abv": "6.5%",
+    "style": "NEIPA",
+    "description": "Nectarine, grapefruit, soft"
+  },
+  {
+    "name": "Frank the Dank",
+    "brewery": "Bullhouse",
+    "location": "Belfast",
+    "abv": "5%",
+    "style": "American IPA",
+    "description": "Dank, resinous, piney, bitter"
+  },
+  {
+    "name": "Splooosh",
+    "brewery": "Bullhouse",
+    "location": "Belfast",
+    "abv": "4.5%",
+    "style": "Sour",
+    "description": "Cherries, tart, puckering"
+  },
+  {
+    "name": "Big Nellie",
+    "brewery": "Bullhouse x Lacada Belfast x",
+    "location": "Portrush",
+    "abv": "8.4%",
+    "style": "DIPA",
+    "description": "Fruity, juicy, tropical, thick"
+  },
+  {
+    "name": "Double Pale",
+    "brewery": "Heaney",
+    "location": "Bellaghy",
+    "abv": "5%",
+    "style": "DDH Pale",
+    "description": "Pineapple, mango, grapefruit, oaty"
+  },
+  {
+    "name": "Irish Blonde",
+    "brewery": "Heaney",
+    "location": "Bellaghy",
+    "abv": "4.3%",
+    "style": "Blonde",
+    "description": "Crisp, slight fruit, bittersweet"
+  },
+  {
+    "name": "White",
+    "brewery": "Heaney",
+    "location": "Bellaghy",
+    "abv": "4.8%",
+    "style": "Witbier",
+    "description": "Coriander, orange, drying"
+  },
+  {
+    "name": "Geuzberry",
+    "brewery": "Kinnegar",
+    "location": "Co. Donegal",
+    "abv": "5.1%",
+    "style": "Sour",
+    "description": "Refreshing, tart, gooseberry"
+  },
+  {
+    "name": "Hasenbrot",
+    "brewery": "Kinnegar",
+    "location": "Co. Donegal",
+    "abv": "4.9%",
+    "style": "Hefeweizen",
+    "description": "Wheat, banana, orange peel"
+  },
+  {
+    "name": "Jackrabbit",
+    "brewery": "Kinnegar",
+    "location": "Co. Donegal",
+    "abv": "4%",
+    "style": "Ginger Beer",
+    "description": "Ginger, sweet, refreshing"
+  },
+  {
+    "name": "Low Tide",
+    "brewery": "Kinnegar",
+    "location": "Co. Donegal",
+    "abv": "1%",
+    "style": "Low Alcohol Pale",
+    "description": "Dry hopped, citrusy, crisp"
+  },
+  {
+    "name": "Doppelbock",
+    "brewery": "Lacada",
+    "location": "Portrush",
+    "abv": "7.5%",
+    "style": "Doppelbock",
+    "description": "Caramel, liquorice, rich"
+  },
+  {
+    "name": "Shamrock Pinnacle",
+    "brewery": "Lacada",
+    "location": "Portrush",
+    "abv": "4.6%",
+    "style": "Stout",
+    "description": "Dry, nutty, dark chocolate"
+  },
+  {
+    "name": "Big Beans",
+    "brewery": "Lineman",
+    "location": "Co. Dublin",
+    "abv": "6%",
+    "style": "Brown Ale",
+    "description": "Cold brew coffee, sweet"
+  },
+  {
+    "name": "Disco Devil",
+    "brewery": "Lineman",
+    "location": "Co. Dublin",
+    "abv": "9%",
+    "style": "WC DIPA",
+    "description": "Grapefruit, orange peel, stonefruit, herbal"
+  },
+  {
+    "name": "Coconut Breeze",
+    "brewery": "Lough Gill",
+    "location": "Co. Sligo",
+    "abv": "6.8%",
+    "style": "Pastry Sour",
+    "description": "Coconut, pineapple, tangy, sweet"
+  },
+  {
+    "name": "Warrior",
+    "brewery": "Lough Gill",
+    "location": "Co. Sligo",
+    "abv": "15%",
+    "style": "Imperial Stout",
+    "description": "Laphroaig-barrel aged, peaty, smoky"
+  },
+  {
+    "name": "Chug XPA",
+    "brewery": "Mash Gang",
+    "location": "London",
+    "abv": "0.5%",
+    "style": "Low Alcohol IPA",
+    "description": "Mango, passionfruit, grapefruit, zesty"
+  },
+  {
+    "name": "Invest in Good Packaging Boxes",
+    "brewery": "Modest",
+    "location": "Bangor",
+    "abv": "6.5%",
+    "style": "WC IPA",
+    "description": "Bitter, grapefruit, resinous, dry"
+  },
+  {
+    "name": "Name TBC – Mango/Guava/Lime Sour",
+    "brewery": "Modest",
+    "location": "Bangor",
+    "abv": "5%",
+    "style": "Fruit Sour",
+    "description": "Mango, guava, lime, tart"
+  },
+  {
+    "name": "Big Rock",
+    "brewery": "Mourne Mountains",
+    "location": "Warrenpoint",
+    "abv": "5%",
+    "style": "Wheat Beer",
+    "description": "Fruity, wheaty malt, German hops"
+  },
+  {
+    "name": "Monkey Business",
+    "brewery": "Mourne Mountains",
+    "location": "Warrenpoint",
+    "abv": "5%",
+    "style": "Hazy Pale",
+    "description": "Fruit salad, hint of coconut"
+  },
+  {
+    "name": "08 Kolsch Style",
+    "brewery": "Northbound",
+    "location": "Derry/Londonderry",
+    "abv": "5%",
+    "style": "Kölsch",
+    "description": "Smooth, slight sweetness, light"
+  },
+  {
+    "name": "26 Pale Ale",
+    "brewery": "Northbound",
+    "location": "Derry/Londonderry",
+    "abv": "4.5%",
+    "style": "Pale Ale",
+    "description": "Tangy, balanced, aromatic"
+  },
+  {
+    "name": "70 Magnum IPA",
+    "brewery": "Northbound",
+    "location": "Derry/Londonderry",
+    "abv": "5%",
+    "style": "IPA",
+    "description": "Pine, dry hopped, bitter"
+  },
+  {
+    "name": "Godspeed",
+    "brewery": "Ormeau",
+    "location": "Belfast",
+    "abv": "5.2%",
+    "style": "DDH Pale",
+    "description": "Full-bodied, sweet, resinous, hoppy"
+  },
+  {
+    "name": "No Drama",
+    "brewery": "Ormeau",
+    "location": "Belfast",
+    "abv": "3.8%",
+    "style": "Session IPA",
+    "description": "Melon, grapefruit, light"
+  },
+  {
+    "name": "10 Years Since Paris",
+    "brewery": "Our Brewery",
+    "location": "Randalstown",
+    "abv": "5.2%",
+    "style": "Rotbier",
+    "description": "Malty, caramel, biscuit, toasty"
+  },
+  {
+    "name": "Hang Up Your Hang Ups",
+    "brewery": "Our Brewery",
+    "location": "Randalstown",
+    "abv": "4.2%",
+    "style": "Hazy IPA",
+    "description": "Stonefruit, pillowy, malt sweetness"
+  },
+  {
+    "name": "Prime Time of Your Life",
+    "brewery": "Our Brewery",
+    "location": "Randalstown",
+    "abv": "8%",
+    "style": "Tripel",
+    "description": "Orange, sponge cake, herbs, bitter"
+  },
+  {
+    "name": "Festbier",
+    "brewery": "Out of Office",
+    "location": "Belfast",
+    "abv": "6%",
+    "style": "Oktoberfestbier",
+    "description": "Garibaldi biscuits, gentle bitter"
+  },
+  {
+    "name": "Pencil Pusher",
+    "brewery": "Out of Office",
+    "location": "Belfast",
+    "abv": "4%",
+    "style": "IPA",
+    "description": "Mellow, grapefruit, piney, resinous"
+  },
+  {
+    "name": "Rhubarb Triangle",
+    "brewery": "Rough Brothers",
+    "location": "Derry/Londonderry",
+    "abv": "3.8%",
+    "style": "Sour",
+    "description": "Rhubarb, light, sharp"
+  },
+  {
+    "name": "Caculated Chaos",
+    "brewery": "Tilt & Pour",
+    "location": "Belfast",
+    "abv": "5.5%",
+    "style": "Sour",
+    "description": "Dry hopped, slowly sour"
+  },
+  {
+    "name": "Game Over, Retry? 2025",
+    "brewery": "Tilt & Pour",
+    "location": "Belfast",
+    "abv": "4.2%",
+    "style": "Extra Pale",
+    "description": "Mango, guava, soft"
+  },
+  {
+    "name": "Barrel Aged Black Boar",
+    "brewery": "White Hag",
+    "location": "Co. Sligo",
+    "abv": "10.2%",
+    "style": "Imperial Stout",
+    "description": "Molasses, coffee, vanilla, oak"
+  },
+  {
+    "name": "Cloudless Ice Cold Lager",
+    "brewery": "White Hag",
+    "location": "Co. Sligo",
+    "abv": "4.2%",
+    "style": "Lager",
+    "description": "Light, crisp, subtle malt"
+  },
+  {
+    "name": "Dagda",
+    "brewery": "White Hag",
+    "location": "Co. Sligo",
+    "abv": "4.8%",
+    "style": "Xtra Pale",
+    "description": "Tropical, lime, grapefruit, creamy"
+  },
+  {
+    "name": "Nocturne",
+    "brewery": "White Hag",
+    "location": "Co. Sligo",
+    "abv": "4.5%",
+    "style": "Coffee Stout",
+    "description": "Cola, peach iced tea, oak"
+  },
+  {
+    "name": "Keller Pils",
+    "brewery": "Wide Street",
+    "location": "Co. Longford",
+    "abv": "5.5%",
+    "style": "Pilsner",
+    "description": "Earthy, light, hoppy"
+  },
+  {
+    "name": "Little Nelson",
+    "brewery": "Wide Street",
+    "location": "Co. Longford",
+    "abv": "3.7%",
+    "style": "Saison",
+    "description": "Lychee, mango, grapes"
+  },
+  {
+    "name": "Saison Des Pyrénées",
+    "brewery": "Wide Street",
+    "location": "Co. Longford",
+    "abv": "6%",
+    "style": "Saison",
+    "description": "White peach, pear, honey, mineral finish"
+  },
+  {
+    "name": "Dance Commander",
+    "brewery": "Ascension Cider",
+    "location": "Sussex",
+    "abv": "4%",
+    "style": "Cider",
+    "description": "Cherry, lime, medium"
+  },
+  {
+    "name": "Map Change",
+    "brewery": "Ascension Cider",
+    "location": "Sussex",
+    "abv": "3.4%",
+    "style": "Cider",
+    "description": "Dark maple, spiced, sweet"
+  },
+  {
+    "name": "Mess with the Honk",
+    "brewery": "Ascension Cider",
+    "location": "Sussex",
+    "abv": "4%",
+    "style": "Cider",
+    "description": "Gooseberries, sour, sharp"
+  },
+  {
+    "name": "ABC",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "4%",
+    "style": "Cider",
+    "description": "Apples, berries, cherries"
+  },
+  {
+    "name": "Cha Cha Chai",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "3.4%",
+    "style": "Cider",
+    "description": "Chai spiced"
+  },
+  {
+    "name": "New Tradition",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "5%",
+    "style": "Cider",
+    "description": "Cloudy session cider"
+  },
+  {
+    "name": "Somerset Sahara",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "6%",
+    "style": "Cider",
+    "description": "Cloudy dryish cider"
+  },
+  {
+    "name": "Stick Up Rhubarb Cider",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "3.4%",
+    "style": "Cider",
+    "description": "Tart, smooth, fresh rhubarb"
+  },
+  {
+    "name": "Windfall",
+    "brewery": "Iford Cider",
+    "location": "Wiltshire",
+    "abv": "6%",
+    "style": "Cider",
+    "description": "Juicy, full bodied, bold tannin"
+  },
+  {
+    "name": "Dry",
+    "brewery": "Kilmegan",
+    "location": "Co. Down",
+    "abv": "6.8%",
+    "style": "Cider",
+    "description": "Unpasteurised. Dry"
+  },
+  {
+    "name": "Elderflower",
+    "brewery": "Kilmegan",
+    "location": "Co. Down",
+    "abv": "4%",
+    "style": "Cider",
+    "description": "Elderflower, floral. Medium"
+  },
+  {
+    "name": "Medium",
+    "brewery": "Kilmegan",
+    "location": "Co. Down",
+    "abv": "5.9%",
+    "style": "Cider",
+    "description": "Unpasteurised. Medium"
+  },
+  {
+    "name": "Dry – Keg",
+    "brewery": "Mac Ivors",
+    "location": "Co. Armagh",
+    "abv": "5.6%",
+    "style": "Cider",
+    "description": "Aromatic, delicate. Dry"
+  },
+  {
+    "name": "Dry",
+    "brewery": "Mac's Cider",
+    "location": "Co. Armagh",
+    "abv": "6.5%",
+    "style": "Cider",
+    "description": "Palate cleanser, long aftertaste. Dry"
+  },
+  {
+    "name": "Discovery",
+    "brewery": "Nightingale Cider Company",
+    "location": "Kent",
+    "abv": "6%",
+    "style": "Cider",
+    "description": "Rosé, fruity, medium"
+  },
+  {
+    "name": "Tenterden Cider",
+    "brewery": "Nightingale Cider Company",
+    "location": "Kent",
+    "abv": "5.5%",
+    "style": "Cider",
+    "description": "Bright, floral, medium"
+  },
+  {
+    "name": "Devon Mist",
+    "brewery": "Sandford Orchards",
+    "location": "Devon",
+    "abv": "4.5%",
+    "style": "Cider",
+    "description": "Hazy, unfiltered, medium sweet"
+  },
+  {
+    "name": "Devon Red",
+    "brewery": "Sandford Orchards",
+    "location": "Devon",
+    "abv": "4.5%",
+    "style": "Cider",
+    "description": "Balanced, whole-juice, medium"
+  },
+  {
+    "name": "Cyder Cider",
+    "brewery": "Silly Moo Cider",
+    "location": "Sussex",
+    "abv": "4.2%",
+    "style": "Cider",
+    "description": "Wild yeast, cloudy"
+  },
+  {
+    "name": "Apple Hog",
+    "brewery": "Snails Bank Cider",
+    "location": "Herefordshire",
+    "abv": "4.6%",
+    "style": "Cider",
+    "description": "Medium"
+  },
+  {
+    "name": "Appley Dapply",
+    "brewery": "Snails Bank Cider",
+    "location": "Herefordshire",
+    "abv": "5.2%",
+    "style": "Cider",
+    "description": "Light, lively, sweet"
+  },
+  {
+    "name": "Raspberry Ripple",
+    "brewery": "Snails Bank Cider",
+    "location": "Herefordshire",
+    "abv": "4%",
+    "style": "Cider",
+    "description": "Raspberry"
+  }
+]
