@@ -2,6 +2,10 @@
 
 ![Build Status](https://github.com/seanr89/keg-swap/actions/workflows/build.yml/badge.svg)
 
+<p align="center">
+  <img src="src/assets/dashboard.png" alt="Keg Swap Premium Dashboard View" width="700" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
+
 **Keg Swap** is a premium, high-fidelity web application designed to track, discover, and swap details about local beer & ale events. Whether it's an Imperial Stout & Oyster Night, a Homebrew Exchange, or a Craft IPA Tap Takeover, Keg Swap keeps beer enthusiasts connected with a fluid, modern board interface.
 
 ---
@@ -84,22 +88,26 @@ Each review submitted by users follows this schema:
 
 ## ✨ Features & Functionality
 
-### 1. Event Analytics Dashboard
+### 1. Real-Time Firebase Auth & Firestore Sync
+- **Secure Email Auth:** Clean sign-in and registration pages featuring full name profile creation (First Name + Last Name).
+- **Cloud Firestore Backend:** Real-time data bindings via `onSnapshot` keep all event metrics, registered beers, and review cards updated instantly across all connected screens.
+
+### 2. Event Analytics Dashboard
 The top section features a summary dashboard displaying key metrics:
 - **Total Events** registered.
 - **Upcoming** events planned.
 - **Active Now** events currently ongoing.
 - **Completed** events history.
 
-### 2. Search & Status Filtering
-- **Keyword Search:** Real-time search matching event name and venue location address.
-- **Status Filter Tabs:** Filter events instantly by status segment: *All*, *Upcoming*, *Ongoing*, *Completed*, or *Cancelled*.
-
 ### 3. Native `<dialog>` Modal Creation Form
 - Utilizes the modern native HTML5 `<dialog>` API.
 - Implements declarative light-dismiss (`closedby="any"`) to close the modal when clicking outside, with JavaScript event fallbacks for Safari.
 - Custom styled backdrop blur (`rgba(12, 10, 9, 0.7)` with `blur(8px)`).
-- Full form validation for fields (Event Name, Date, Location, and Status).
+- **Strict Form Validation:** All fields (Event Name, Date, Location, and Status) are required, styled with indicator asterisks (`*`), and validated. Input borders display immediate interactive error-clearing upon field changes.
+
+<p align="center">
+  <img src="src/assets/event_creation.png" alt="Event Creation Form with Field Validation" width="500" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);"/>
+</p>
 
 ### 4. Interactive Event Cards
 - **Click to Inspect Details:** Clicking on an event card/widget transitions the interface smoothly to the Event Detail view.
@@ -108,17 +116,21 @@ The top section features a summary dashboard displaying key metrics:
 - **Desktop Delete:** Single-click trash icon to instantly remove cards.
 - **Mobile Swipe-to-Delete:** Touch-enabled gesture swiping left to reveal the red delete drawer (designed for mobile touch precision).
 
-### 5. Detailed Event screen & Drinks List
+### 5. Detailed Event Screen & Drinks List
 - **Detailed Event Metadata:** Shows status, date, and venue details.
-- **Available Beer/Drink List:** Renders all registered drinks in a premium styled list matching the specific format.
-- **Interactive Review & Star Rating System:**
-  - Displays average star ratings (`★ ★ ★ ★ ☆`) computed dynamically from user reviews.
-  - Expandable reviews drawers showing reviewer names, star ratings, date, and comments.
-  - Inline **Write a Review** form with interactive star buttons (1-5 stars selector) and feedback validator.
-- **Add Beer / Drink Form:** Collapse/expand form container allowing organizers to add new drinks on the fly (Name, Brewery, Location, ABV, Style, Description).
+- **Batch Beer Uploader:** Instantly load a full batch lists of craft beers (matching the `beers.json` format) into the event in a single file-upload action.
+- **Advanced Searching & Filters:** Renders a search input to filter drinks by Name, Brewery, or Style alongside a style/type dropdown selector showing registered item counts (e.g. `IPA (3)`).
+- **Rating Sort Controls:** Dropdown selector to sort drinks by Average Rating (Highest to Lowest, Lowest to Highest) and total review counts (Most Reviewed).
 
-### 6. LocalStorage Data Synchronization
-- Events, custom beers, and custom reviews are persisted automatically under the local storage key `keg_swap_events` so they survive page reloads and browser sessions.
+### 6. Interactive Review Dialog Overlay
+- Displays average star ratings (`★ ★ ★ ★ ☆`) computed dynamically from user reviews.
+- Expandable reviews drawers showing reviewer names, star ratings, date, and comments.
+- **Viewport Dialog Portal:** Submit review forms open in a full backdrop overlay rendered at the root layer to avoid stacking context layouts container clipping. Includes review comment inputs and rating star buttons (1-5 stars selector).
+
+### 7. CI/CD Pipeline (Azure Static Web Apps)
+- Automated deployment workflow on GitHub Actions.
+- Seamlessly compiles project assets preloading environment keys from GitHub Secrets.
+- Automated Pull Request review environment creation and teardown management.
 
 ---
 
