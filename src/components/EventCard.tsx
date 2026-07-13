@@ -103,16 +103,68 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onStatusC
     }
   }, [isRevealed, isSwiping]);
 
-  // Formatting date to a friendly local string
-  const formatFriendlyDate = (dateString: string) => {
-    if (!dateString) return '';
-    const dateObj = new Date(dateString);
-    return dateObj.toLocaleDateString(undefined, {
+  // Formatting date to a friendly local string range
+  const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
+    if (!startDateString) return '';
+    const startObj = new Date(startDateString);
+    
+    if (!endDateString || startDateString === endDateString) {
+      return startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    const endObj = new Date(endDateString);
+    
+    const isSameDay = startObj.getFullYear() === endObj.getFullYear() &&
+                      startObj.getMonth() === endObj.getMonth() &&
+                      startObj.getDate() === endObj.getDate();
+                      
+    if (isSameDay) {
+      return startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    const startYear = startObj.getFullYear();
+    const endYear = endObj.getFullYear();
+
+    const startFormatted = startObj.toLocaleDateString(undefined, {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
     });
+
+    if (startYear !== endYear) {
+      const startFull = startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const endFull = endObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return `${startFull} – ${endFull}`;
+    }
+
+    const endFormatted = endObj.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    const yearFormatted = startObj.getFullYear().toString();
+    
+    return `${startFormatted} – ${endFormatted}, ${yearFormatted}`;
   };
 
   const config = statusConfig[event.status] || statusConfig.Upcoming;
@@ -176,7 +228,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onStatusC
         <div className="event-details">
           <div className="detail-item">
             <Calendar size={15} className="detail-icon" />
-            <time dateTime={event.date}>{formatFriendlyDate(event.date)}</time>
+            <time dateTime={event.date}>{formatFriendlyDate(event.date, event.endDate)}</time>
           </div>
           <div className="detail-item">
             <MapPin size={15} className="detail-icon" />

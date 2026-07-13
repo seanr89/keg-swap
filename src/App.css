@@ -656,6 +656,158 @@
   margin-top: 2px;
 }
 
+/* Segmented Control for Single/Multi-day Event toggle */
+.segmented-control {
+  display: flex;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  margin-top: 6px;
+  position: relative;
+  gap: 4px;
+}
+
+.segmented-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: calc(var(--radius-md) - 2px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+
+.segmented-btn:hover {
+  color: var(--text-primary);
+  background-color: rgba(120, 113, 108, 0.06);
+}
+
+.segmented-btn.active {
+  background-color: var(--bg-card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm), 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Date Pickers Layout */
+.date-pickers-layout {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .date-pickers-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* Custom Styled Date Input Wrapper */
+.date-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.date-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--text-muted);
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
+
+.date-picker-input {
+  padding-left: 40px !important; /* Make room for the calendar icon */
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.date-input-wrapper:focus-within .date-input-icon {
+  color: var(--primary);
+}
+
+/* Customize browser native calendar picker button */
+.date-picker-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 4px;
+  margin-right: -4px;
+  filter: invert(var(--theme-calendar-indicator-invert, 0)) sepia(100%) saturate(800%) hue-rotate(15deg);
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  transform: scale(1.15);
+}
+
+/* Theme helper for webkit calendar picker indicator color styling */
+:root[data-theme='dark'] {
+  --theme-calendar-indicator-invert: 0.8;
+}
+
+/* Duration badge/hint styling */
+.date-duration-hint-container {
+  display: flex;
+  margin-bottom: 12px;
+  margin-top: -4px;
+  animation: fade-in 0.3s ease;
+}
+
+.date-duration-hint {
+  font-size: 13px;
+  background-color: var(--primary-glow);
+  color: var(--primary-hover);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(202, 138, 4, 0.15);
+  font-weight: 500;
+}
+
+:root[data-theme='dark'] .date-duration-hint {
+  color: var(--primary);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* Simple animation styles */
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Custom form selector */
 .form-select-wrapper {
   position: relative;

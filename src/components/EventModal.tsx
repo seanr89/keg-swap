@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { BeerEvent } from '../types';
-import { X } from 'lucide-react';
+import { X, Calendar } from 'lucide-react';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -12,7 +12,9 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
   const dialogRef = useRef<HTMLDialogElement>(null);
   
   const [name, setName] = useState('');
+  const [isMultiDay, setIsMultiDay] = useState(false);
   const [date, setDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [address, setAddress] = useState('');
   const [status, setStatus] = useState<BeerEvent['status']>('Upcoming');
 
@@ -28,7 +30,9 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
         dialog.showModal();
         // Reset form on open
         setName('');
+        setIsMultiDay(false);
         setDate('');
+        setEndDate('');
         setAddress('');
         setStatus('Upcoming');
         setErrors({});
@@ -53,7 +57,6 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
 
     // Fallback for browsers that do not support closedby="any" (e.g. Safari)
     const handleBackdropClick = (event: MouseEvent) => {
-      // Check if browser supports closedBy property on HTMLDialogElement
       if (!('closedBy' in HTMLDialogElement.prototype)) {
         if (event.target !== dialog) return;
 
@@ -101,6 +104,17 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     }
   };
 
+  const handleEndDateChange = (val: string) => {
+    setEndDate(val);
+    if (errors.endDate) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.endDate;
+        return copy;
+      });
+    }
+  };
+
   const handleAddressChange = (val: string) => {
     setAddress(val);
     if (errors.address) {
@@ -115,7 +129,18 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};
     if (!name.trim()) newErrors.name = 'Event name is required';
-    if (!date) newErrors.date = 'Event date is required';
+    if (!date) {
+      newErrors.date = 'Event date is required';
+    }
+    
+    if (isMultiDay) {
+      if (!endDate) {
+        newErrors.endDate = 'End date is required';
+      } else if (date && new Date(endDate) < new Date(date)) {
+        newErrors.endDate = 'End date cannot be before the start date';
+      }
+    }
+    
     if (!address.trim()) newErrors.location = 'Location address is required';
     if (!status) newErrors.status = 'Event status is required';
 
@@ -130,21 +155,32 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     onSubmit({
       name: name.trim(),
       date,
+      ...(isMultiDay && endDate ? { endDate } : {}),
       address: address.trim(),
       status,
     });
     
-    // Close the dialog natively, which will trigger the 'close' event and update parent state
     if (dialogRef.current) {
       dialogRef.current.close();
     }
   };
 
+  // Calculate total days
+  const getDurationDays = () => {
+    if (!date || !endDate) return 0;
+    const start = new Date(date);
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - start.getTime();
+    if (diffTime < 0) return 0;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  };
+  const duration = isMultiDay ? getDurationDays() : 1;
+
   return (
     <dialog
       ref={dialogRef}
       id="add-event-dialog"
-      // Declarative light-dismiss (supported in modern Chrome/Firefox/Edge)
       closedby="any"
       aria-labelledby="dialog-title"
       className="event-modal-dialog"
@@ -180,20 +216,86 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
           {errors.name && <span className="error-message">{errors.name}</span>}
         </div>
 
+        {/* Duration Type Segmented Picker */}
         <div className="form-group">
-          <label htmlFor="event-date" className="form-label">
-            Event Date <span style={{ color: '#ef4444' }}>*</span>
-          </label>
-          <input
-            type="date"
-            id="event-date"
-            value={date}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className={`form-input ${errors.date ? 'input-error' : ''}`}
-            required
-          />
-          {errors.date && <span className="error-message">{errors.date}</span>}
+          <label className="form-label">Duration</label>
+          <div className="segmented-control">
+            <button
+              type="button"
+              className={`segmented-btn ${!isMultiDay ? 'active' : ''}`}
+              onClick={() => {
+                setIsMultiDay(false);
+                setEndDate('');
+                if (errors.endDate) {
+                  setErrors((prev) => {
+                    const copy = { ...prev };
+                    delete copy.endDate;
+                    return copy;
+                  });
+                }
+              }}
+            >
+              Single Day
+            </button>
+            <button
+              type="button"
+              className={`segmented-btn ${isMultiDay ? 'active' : ''}`}
+              onClick={() => setIsMultiDay(true)}
+            >
+              Runs Over Days
+            </button>
+          </div>
         </div>
+
+        {/* Date Picker Section */}
+        <div className="date-pickers-layout">
+          <div className="form-group flex-1">
+            <label htmlFor="event-date" className="form-label">
+              {isMultiDay ? 'Start Date' : 'Event Date'} <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <div className="date-input-wrapper">
+              <Calendar className="date-input-icon" size={16} />
+              <input
+                type="date"
+                id="event-date"
+                value={date}
+                onChange={(e) => handleDateChange(e.target.value)}
+                className={`form-input date-picker-input ${errors.date ? 'input-error' : ''}`}
+                required
+              />
+            </div>
+            {errors.date && <span className="error-message">{errors.date}</span>}
+          </div>
+
+          {isMultiDay && (
+            <div className="form-group flex-1 animate-slide-down">
+              <label htmlFor="event-end-date" className="form-label">
+                End Date <span style={{ color: '#ef4444' }}>*</span>
+              </label>
+              <div className="date-input-wrapper">
+                <Calendar className="date-input-icon" size={16} />
+                <input
+                  type="date"
+                  id="event-end-date"
+                  value={endDate}
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  className={`form-input date-picker-input ${errors.endDate ? 'input-error' : ''}`}
+                  required
+                />
+              </div>
+              {errors.endDate && <span className="error-message">{errors.endDate}</span>}
+            </div>
+          )}
+        </div>
+
+        {/* Duration hint badge */}
+        {isMultiDay && duration > 0 && (
+          <div className="date-duration-hint-container">
+            <span className="date-duration-hint">
+              Event spans <strong>{duration}</strong> {duration === 1 ? 'day' : 'days'}
+            </span>
+          </div>
+        )}
 
         <div className="form-group">
           <label htmlFor="event-address" className="form-label">

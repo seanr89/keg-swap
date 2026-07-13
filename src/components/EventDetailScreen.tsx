@@ -184,6 +184,69 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     return 0;
   });
 
+  const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
+    if (!startDateString) return '';
+    const startObj = new Date(startDateString);
+    
+    if (!endDateString || startDateString === endDateString) {
+      return startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    const endObj = new Date(endDateString);
+    
+    const isSameDay = startObj.getFullYear() === endObj.getFullYear() &&
+                      startObj.getMonth() === endObj.getMonth() &&
+                      startObj.getDate() === endObj.getDate();
+                      
+    if (isSameDay) {
+      return startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+    }
+
+    const startYear = startObj.getFullYear();
+    const endYear = endObj.getFullYear();
+
+    const startFormatted = startObj.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+
+    if (startYear !== endYear) {
+      const startFull = startObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const endFull = endObj.toLocaleDateString(undefined, {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      return `${startFull} – ${endFull}`;
+    }
+
+    const endFormatted = endObj.toLocaleDateString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+    const yearFormatted = startObj.getFullYear().toString();
+    
+    return `${startFormatted} – ${endFormatted}, ${yearFormatted}`;
+  };
+
   return (
     <div className="event-detail-screen">
       {/* Navigation & Header */}
@@ -203,7 +266,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
           <div className="detail-meta-grid">
             <div className="detail-meta-item">
               <Calendar size={16} />
-              <span>{new Date(event.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
+              <span>{formatFriendlyDate(event.date, event.endDate)}</span>
             </div>
             <div className="detail-meta-item">
               <MapPin size={16} />

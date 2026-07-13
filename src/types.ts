@@ -21,6 +21,7 @@ export interface BeerEvent {
   id: string;
   name: string;
   date: string;
+  endDate?: string;
   address: string;
   status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
   drinks?: BeerDrink[];

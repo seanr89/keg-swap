@@ -94,6 +94,7 @@ function App() {
       await addDoc(collection(db, 'events'), {
         name: eventData.name,
         date: eventData.date,
+        ...(eventData.endDate ? { endDate: eventData.endDate } : {}),
         address: eventData.address,
         status: eventData.status,
         drinks: [],
