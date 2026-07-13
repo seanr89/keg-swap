@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
-import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search } from 'lucide-react';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
@@ -25,6 +25,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
   const [addDrinkError, setAddDrinkError] = useState('');
+
+  // Search and Filter states
+  const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
+  const [filterHasReviews, setFilterHasReviews] = useState<'all' | 'with-reviews'>('all');
 
   // Add Review Dialog Modal states (top-level to prevent parents clipping)
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
@@ -142,6 +146,15 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     Cancelled: 'status-cancelled',
   };
 
+  const filteredDrinks = (event.drinks || []).filter((drink) => {
+    const matchesSearch =
+      drink.name.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
+      drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
+      drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
+    const matchesReviews = filterHasReviews === 'all' || (drink.reviews && drink.reviews.length > 0);
+    return matchesSearch && matchesReviews;
+  });
+
   return (
     <div className="event-detail-screen">
       {/* Navigation & Header */}
@@ -206,7 +219,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       {/* Add New Drink Form Drawer */}
       {showAddForm && (
         <form onSubmit={handleDrinkSubmit} className="add-drink-form">
-          <h3>Add Available Beer or Drink</h3>
+          <h4>Register a Drink</h4>
           {addDrinkError && (
             <div className="form-alert">
               <AlertCircle size={16} />
@@ -215,7 +228,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
           )}
           <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="drink-name" className="form-label">Drink Name</label>
+              <label htmlFor="drink-name" className="form-label">Beer/Drink Name</label>
               <input
                 type="text"
                 id="drink-name"
@@ -236,6 +249,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 onChange={(e) => setNewDrinkBrewery(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="form-grid">
             <div className="form-group">
               <label htmlFor="drink-location" className="form-label">Brewery Location</label>
               <input
@@ -247,30 +263,35 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 onChange={(e) => setNewDrinkLocation(e.target.value)}
               />
             </div>
-            <div className="form-group">
-              <label htmlFor="drink-abv" className="form-label">ABV (%)</label>
-              <input
-                type="text"
-                id="drink-abv"
-                className="form-input"
-                placeholder="e.g. 4.6%"
-                value={newDrinkAbv}
-                onChange={(e) => setNewDrinkAbv(e.target.value)}
-              />
+            <div className="form-grid-three">
+              <div className="form-group">
+                <label htmlFor="drink-abv" className="form-label">ABV (%)</label>
+                <input
+                  type="text"
+                  id="drink-abv"
+                  className="form-input"
+                  placeholder="e.g. 4.6%"
+                  value={newDrinkAbv}
+                  onChange={(e) => setNewDrinkAbv(e.target.value)}
+                />
+              </div>
+              <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                <label htmlFor="drink-style" className="form-label">Beer Style</label>
+                <input
+                  type="text"
+                  id="drink-style"
+                  className="form-input"
+                  placeholder="e.g. Porter"
+                  value={newDrinkStyle}
+                  onChange={(e) => setNewDrinkStyle(e.target.value)}
+                />
+              </div>
             </div>
+          </div>
+
+          <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="drink-style" className="form-label">Beer/Drink Style</label>
-              <input
-                type="text"
-                id="drink-style"
-                className="form-input"
-                placeholder="e.g. Porter"
-                value={newDrinkStyle}
-                onChange={(e) => setNewDrinkStyle(e.target.value)}
-              />
-            </div>
-            <div className="form-group full-width">
-              <label htmlFor="drink-desc" className="form-label">Description / Tasting Notes</label>
+              <label htmlFor="drink-desc" className="form-label">Description / Tasting Profile</label>
               <input
                 type="text"
                 id="drink-desc"
@@ -290,21 +311,62 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
       {/* Beers List Section */}
       <div className="drinks-feed-section">
-        <h3 className="section-title">Drinks Available ({event.drinks?.length || 0})</h3>
+        <h3 className="section-title">Drinks Available ({filteredDrinks.length})</h3>
         
         {event.drinks && event.drinks.length > 0 ? (
-          <div className="drinks-grid">
-            {event.drinks.map((drink) => (
-              <BeerDrinkCard
-                key={drink.id}
-                drink={drink}
-                onTriggerReview={() => {
-                  setActiveReviewDrink(drink);
-                  setReviewError('');
-                }}
-              />
-            ))}
-          </div>
+          <>
+            {/* Search & Filter Toolbar inside Event Details */}
+            <div className="toolbar" style={{ marginBottom: '24px', padding: '12px 16px' }}>
+              <div className="search-bar">
+                <Search className="search-icon" size={16} />
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search drinks by name, brewery or style..."
+                  value={drinkSearchQuery}
+                  onChange={(e) => setDrinkSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <div className="filter-tabs">
+                <button
+                  type="button"
+                  className={`filter-tab-btn ${filterHasReviews === 'all' ? 'active' : ''}`}
+                  onClick={() => setFilterHasReviews('all')}
+                >
+                  All Drinks
+                </button>
+                <button
+                  type="button"
+                  className={`filter-tab-btn ${filterHasReviews === 'with-reviews' ? 'active' : ''}`}
+                  onClick={() => setFilterHasReviews('with-reviews')}
+                >
+                  Reviewed Only ({event.drinks?.filter(d => d.reviews && d.reviews.length > 0).length || 0})
+                </button>
+              </div>
+            </div>
+
+            {filteredDrinks.length > 0 ? (
+              <div className="drinks-grid">
+                {filteredDrinks.map((drink) => (
+                  <BeerDrinkCard
+                    key={drink.id}
+                    drink={drink}
+                    onTriggerReview={() => {
+                      setActiveReviewDrink(drink);
+                      setReviewError('');
+                    }}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state drinks-empty">
+                <X size={32} />
+                <h4>No drinks match your filters</h4>
+                <p>Try refining your search keyword or selection criteria.</p>
+              </div>
+            )}
+          </>
         ) : (
           <div className="empty-state drinks-empty">
             <X size={32} />

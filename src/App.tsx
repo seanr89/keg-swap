@@ -21,7 +21,6 @@ import {
 } from 'firebase/firestore';
 import './App.css';
 
-
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('keg_swap_theme') as 'light' | 'dark') || 'light';
@@ -67,19 +66,7 @@ function App() {
     const q = query(collection(db, 'events'), orderBy('date', 'desc'));
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (snapshot.empty) {
-        // Seed initial mock data if events are completely empty
         try {
-          for (const initialEv of INITIAL_EVENTS) {
-            await addDoc(collection(db, 'events'), {
-              name: initialEv.name,
-              date: initialEv.date,
-              address: initialEv.address,
-              status: initialEv.status,
-              drinks: initialEv.drinks || [],
-              userId: 'system',
-              createdAt: new Date().toISOString()
-            });
-          }
         } catch (seedErr) {
           console.error('Failed to seed events collection:', seedErr);
         }
