@@ -615,6 +615,13 @@
   gap: 6px;
 }
 
+.form-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
 .form-label {
   font-size: 14px;
   font-weight: 600;

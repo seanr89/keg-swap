@@ -29,6 +29,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   // Search and Filter states
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
   const [filterHasReviews, setFilterHasReviews] = useState<'all' | 'with-reviews'>('all');
+  const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
+  const [selectedSort, setSelectedSort] = useState<string>('default');
 
   // Add Review Dialog Modal states (top-level to prevent parents clipping)
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
@@ -146,13 +148,40 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     Cancelled: 'status-cancelled',
   };
 
+  const availableStyles = Array.from(
+    new Set((event.drinks || []).map((drink) => drink.style).filter(Boolean))
+  ).sort();
+
+  const getAvgRatingNum = (drink: BeerDrink): number => {
+    if (!drink.reviews || drink.reviews.length === 0) return 0;
+    return drink.reviews.reduce((acc, r) => acc + r.rating, 0) / drink.reviews.length;
+  };
+
   const filteredDrinks = (event.drinks || []).filter((drink) => {
     const matchesSearch =
       drink.name.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
     const matchesReviews = filterHasReviews === 'all' || (drink.reviews && drink.reviews.length > 0);
-    return matchesSearch && matchesReviews;
+    const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
+    return matchesSearch && matchesReviews && matchesStyle;
+  });
+
+  const sortedDrinks = [...filteredDrinks].sort((a, b) => {
+    if (selectedSort === 'rating-desc') {
+      return getAvgRatingNum(b) - getAvgRatingNum(a);
+    }
+    if (selectedSort === 'rating-asc') {
+      const aRating = getAvgRatingNum(a);
+      const bRating = getAvgRatingNum(b);
+      if (aRating === 0) return 1;
+      if (bRating === 0) return -1;
+      return aRating - bRating;
+    }
+    if (selectedSort === 'reviews-desc') {
+      return (b.reviews?.length || 0) - (a.reviews?.length || 0);
+    }
+    return 0;
   });
 
   return (
@@ -219,7 +248,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       {/* Add New Drink Form Drawer */}
       {showAddForm && (
         <form onSubmit={handleDrinkSubmit} className="add-drink-form">
-          <h4>Register a Drink</h4>
+          <h4 className="form-title">Register a Drink</h4>
           {addDrinkError && (
             <div className="form-alert">
               <AlertCircle size={16} />
@@ -275,8 +304,13 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   onChange={(e) => setNewDrinkAbv(e.target.value)}
                 />
               </div>
-              <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                <label htmlFor="drink-style" className="form-label">Beer Style</label>
+             
+            </div>
+          </div>
+
+          <div className="form-grid">
+             <div className="form-group">
+                <label htmlFor="drink-style" className="form-label">Beer Type</label>
                 <input
                   type="text"
                   id="drink-style"
@@ -286,12 +320,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   onChange={(e) => setNewDrinkStyle(e.target.value)}
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="form-grid">
             <div className="form-group">
-              <label htmlFor="drink-desc" className="form-label">Description / Tasting Profile</label>
+              <label htmlFor="drink-desc" className="form-label">Tasting Profile</label>
               <input
                 type="text"
                 id="drink-desc"
@@ -316,8 +346,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         {event.drinks && event.drinks.length > 0 ? (
           <>
             {/* Search & Filter Toolbar inside Event Details */}
-            <div className="toolbar" style={{ marginBottom: '24px', padding: '12px 16px' }}>
-              <div className="search-bar">
+            <div className="toolbar" style={{ marginBottom: '24px', padding: '12px 16px', gap: '16px', flexWrap: 'wrap' }}>
+              <div className="search-bar" style={{ flex: '1 1 250px' }}>
                 <Search className="search-icon" size={16} />
                 <input
                   type="text"
@@ -328,27 +358,63 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 />
               </div>
               
-              <div className="filter-tabs">
-                <button
-                  type="button"
-                  className={`filter-tab-btn ${filterHasReviews === 'all' ? 'active' : ''}`}
-                  onClick={() => setFilterHasReviews('all')}
-                >
-                  All Drinks
-                </button>
-                <button
-                  type="button"
-                  className={`filter-tab-btn ${filterHasReviews === 'with-reviews' ? 'active' : ''}`}
-                  onClick={() => setFilterHasReviews('with-reviews')}
-                >
-                  Reviewed Only ({event.drinks?.filter(d => d.reviews && d.reviews.length > 0).length || 0})
-                </button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Beer Type/Style Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '140px' }}>
+                  <select
+                    value={selectedStyle}
+                    onChange={(e) => setSelectedStyle(e.target.value)}
+                    className="form-select"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="All Styles">All Styles ({event.drinks?.length || 0})</option>
+                    {availableStyles.map((style) => (
+                      <option key={style} value={style}>
+                        {style} ({event.drinks?.filter(d => d.style === style).length || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Sort Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
+                  <select
+                    value={selectedSort}
+                    onChange={(e) => setSelectedSort(e.target.value)}
+                    className="form-select"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="default">Default Sort</option>
+                    <option value="rating-desc">Highest Rating</option>
+                    <option value="rating-asc">Lowest Rating</option>
+                    <option value="reviews-desc">Most Reviewed</option>
+                  </select>
+                </div>
+
+                <div className="filter-tabs">
+                  <button
+                    type="button"
+                    className={`filter-tab-btn ${filterHasReviews === 'all' ? 'active' : ''}`}
+                    onClick={() => setFilterHasReviews('all')}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                  >
+                    All Drinks
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-tab-btn ${filterHasReviews === 'with-reviews' ? 'active' : ''}`}
+                    onClick={() => setFilterHasReviews('with-reviews')}
+                    style={{ padding: '6px 12px', fontSize: '13px' }}
+                  >
+                    Reviewed Only ({event.drinks?.filter(d => d.reviews && d.reviews.length > 0).length || 0})
+                  </button>
+                </div>
               </div>
             </div>
 
-            {filteredDrinks.length > 0 ? (
+            {sortedDrinks.length > 0 ? (
               <div className="drinks-grid">
-                {filteredDrinks.map((drink) => (
+                {sortedDrinks.map((drink) => (
                   <BeerDrinkCard
                     key={drink.id}
                     drink={drink}
