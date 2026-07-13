@@ -79,11 +79,45 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     };
   }, [onClose]);
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (errors.name) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.name;
+        return copy;
+      });
+    }
+  };
+
+  const handleDateChange = (val: string) => {
+    setDate(val);
+    if (errors.date) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.date;
+        return copy;
+      });
+    }
+  };
+
+  const handleAddressChange = (val: string) => {
+    setAddress(val);
+    if (errors.address) {
+      setErrors((prev) => {
+        const copy = { ...prev };
+        delete copy.address;
+        return copy;
+      });
+    }
+  };
+
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};
     if (!name.trim()) newErrors.name = 'Event name is required';
-    if (!date) newErrors.date = 'Date is required';
-    if (!address.trim()) newErrors.address = 'Location address is required';
+    if (!date) newErrors.date = 'Event date is required';
+    if (!address.trim()) newErrors.location = 'Location address is required';
+    if (!status) newErrors.status = 'Event status is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -131,14 +165,14 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
       <form onSubmit={handleSubmit} className="modal-form" noValidate>
         <div className="form-group">
           <label htmlFor="event-name" className="form-label">
-            Event Name
+            Event Name <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
             id="event-name"
             placeholder="e.g. Imperial Stout Tap Takeover"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => handleNameChange(e.target.value)}
             className={`form-input ${errors.name ? 'input-error' : ''}`}
             required
             autoFocus
@@ -148,13 +182,13 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
 
         <div className="form-group">
           <label htmlFor="event-date" className="form-label">
-            Event Date
+            Event Date <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="date"
             id="event-date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
+            onChange={(e) => handleDateChange(e.target.value)}
             className={`form-input ${errors.date ? 'input-error' : ''}`}
             required
           />
@@ -163,23 +197,23 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
 
         <div className="form-group">
           <label htmlFor="event-address" className="form-label">
-            Location Address
+            Location Address <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <input
             type="text"
             id="event-address"
             placeholder="e.g. The Crafty Keg, 12 Pint Rd"
             value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            className={`form-input ${errors.address ? 'input-error' : ''}`}
+            onChange={(e) => handleAddressChange(e.target.value)}
+            className={`form-input ${errors.location ? 'input-error' : ''}`}
             required
           />
-          {errors.address && <span className="error-message">{errors.address}</span>}
+          {errors.location && <span className="error-message">{errors.location}</span>}
         </div>
 
         <div className="form-group">
           <label htmlFor="event-status" className="form-label">
-            Status
+            Status <span style={{ color: '#ef4444' }}>*</span>
           </label>
           <div className="form-select-wrapper">
             <select
@@ -187,6 +221,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
               value={status}
               onChange={(e) => setStatus(e.target.value as BeerEvent['status'])}
               className="form-select"
+              required
             >
               <option value="Upcoming">Upcoming</option>
               <option value="Ongoing">Ongoing</option>
