@@ -5,6 +5,8 @@ import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
 import { EventDetailScreen } from './components/EventDetailScreen';
 import { AuthScreen } from './components/AuthScreen';
+import { CookieConsent } from './components/CookieConsent';
+import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -34,17 +36,45 @@ function App() {
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [cookieConsent, setCookieConsent] = useState<{ necessary: boolean; preferences: boolean } | null>(() => {
+    const saved = localStorage.getItem('keg_swap_cookie_consent');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     const metaColorScheme = document.querySelector('meta[name="color-scheme"]');
     if (metaColorScheme) {
       metaColorScheme.setAttribute('content', theme === 'dark' ? 'dark' : 'light dark');
     }
-    localStorage.setItem('keg_swap_theme', theme);
-  }, [theme]);
+    if (cookieConsent && cookieConsent.preferences) {
+      localStorage.setItem('keg_swap_theme', theme);
+    } else {
+      localStorage.removeItem('keg_swap_theme');
+    }
+  }, [theme, cookieConsent]);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleAcceptAllCookies = () => {
+    const consentVal = { necessary: true, preferences: true };
+    setCookieConsent(consentVal);
+    localStorage.setItem('keg_swap_cookie_consent', JSON.stringify(consentVal));
+  };
+
+  const handleRejectNonEssentialCookies = () => {
+    const consentVal = { necessary: true, preferences: false };
+    setCookieConsent(consentVal);
+    localStorage.setItem('keg_swap_cookie_consent', JSON.stringify(consentVal));
+  };
+
+  const handleSaveCustomConsent = (preferencesAccepted: boolean) => {
+    const consentVal = { necessary: true, preferences: preferencesAccepted };
+    setCookieConsent(consentVal);
+    localStorage.setItem('keg_swap_cookie_consent', JSON.stringify(consentVal));
   };
 
   // Auth Listener
@@ -213,7 +243,28 @@ function App() {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    return (
+      <div className="auth-page-wrapper">
+        <AuthScreen />
+        <footer className="auth-footer-links">
+          <button type="button" className="footer-link-btn" onClick={() => setIsPolicyOpen(true)}>
+            Privacy Policy & Cookie Settings
+          </button>
+        </footer>
+        <CookieConsent
+          isVisible={cookieConsent === null}
+          onAcceptAll={handleAcceptAllCookies}
+          onRejectAll={handleRejectNonEssentialCookies}
+          onOpenSettings={() => setIsPolicyOpen(true)}
+        />
+        <PrivacyPolicyModal
+          isOpen={isPolicyOpen}
+          onClose={() => setIsPolicyOpen(false)}
+          consent={cookieConsent || { necessary: true, preferences: false }}
+          onSaveConsent={handleSaveCustomConsent}
+        />
+      </div>
+    );
   }
 
   if (activeEvent) {
@@ -274,6 +325,30 @@ function App() {
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
           />
         </main>
+
+        <footer className="app-footer">
+          <div className="footer-links">
+            <button type="button" className="footer-link-btn" onClick={() => setIsPolicyOpen(true)}>
+              Privacy Policy & Cookie Settings
+            </button>
+          </div>
+          <p className="footer-copyright">
+            &copy; {new Date().getFullYear()} Keg Swap. All rights reserved.
+          </p>
+        </footer>
+
+        <CookieConsent
+          isVisible={cookieConsent === null}
+          onAcceptAll={handleAcceptAllCookies}
+          onRejectAll={handleRejectNonEssentialCookies}
+          onOpenSettings={() => setIsPolicyOpen(true)}
+        />
+        <PrivacyPolicyModal
+          isOpen={isPolicyOpen}
+          onClose={() => setIsPolicyOpen(false)}
+          consent={cookieConsent || { necessary: true, preferences: false }}
+          onSaveConsent={handleSaveCustomConsent}
+        />
       </div>
     );
   }
@@ -435,6 +510,30 @@ function App() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddEvent}
+      />
+
+      <footer className="app-footer">
+        <div className="footer-links">
+          <button type="button" className="footer-link-btn" onClick={() => setIsPolicyOpen(true)}>
+            Privacy Policy & Cookie Settings
+          </button>
+        </div>
+        <p className="footer-copyright">
+          &copy; {new Date().getFullYear()} Keg Swap. All rights reserved.
+        </p>
+      </footer>
+
+      <CookieConsent
+        isVisible={cookieConsent === null}
+        onAcceptAll={handleAcceptAllCookies}
+        onRejectAll={handleRejectNonEssentialCookies}
+        onOpenSettings={() => setIsPolicyOpen(true)}
+      />
+      <PrivacyPolicyModal
+        isOpen={isPolicyOpen}
+        onClose={() => setIsPolicyOpen(false)}
+        consent={cookieConsent || { necessary: true, preferences: false }}
+        onSaveConsent={handleSaveCustomConsent}
       />
     </div>
   );

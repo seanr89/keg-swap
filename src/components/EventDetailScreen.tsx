@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search } from 'lucide-react';
 
@@ -39,6 +39,53 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [hoverRating, setHoverRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState('');
+
+  const reviewDialogRef = useRef<HTMLDialogElement>(null);
+
+  // Sync React open state with native dialog element
+  useEffect(() => {
+    const dialog = reviewDialogRef.current;
+    if (!dialog) return;
+
+    if (activeReviewDrink) {
+      if (!dialog.open) {
+        dialog.showModal();
+        // Reset form on open
+        setReviewerName('');
+        setRatingVal(5);
+        setReviewComment('');
+        setReviewError('');
+      }
+    } else {
+      if (dialog.open) {
+        dialog.close();
+      }
+    }
+  }, [activeReviewDrink]);
+
+  // Handle native close events (e.g. Escape key) and backdrop clicks
+  useEffect(() => {
+    const dialog = reviewDialogRef.current;
+    if (!dialog) return;
+
+    const handleNativeClose = () => {
+      setActiveReviewDrink(null);
+    };
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    };
+
+    dialog.addEventListener('close', handleNativeClose);
+    dialog.addEventListener('click', handleBackdropClick);
+
+    return () => {
+      dialog.removeEventListener('close', handleNativeClose);
+      dialog.removeEventListener('click', handleBackdropClick);
+    };
+  }, []);
 
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -505,22 +552,28 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         )}
       </div>
 
-      {/* Add Review Dialog Modal (Rendered at root to escape parent overflows) */}
-      {activeReviewDrink && (
-        <div className="modal-backdrop" onClick={() => setActiveReviewDrink(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      {/* Add Review Dialog Modal */}
+      <dialog
+        ref={reviewDialogRef}
+        className="event-modal-dialog"
+        id="add-review-dialog"
+        aria-labelledby="review-dialog-title"
+      >
+        {activeReviewDrink && (
+          <>
             <div className="modal-header">
-              <h3>Review {activeReviewDrink.name}</h3>
+              <h2 id="review-dialog-title">Review {activeReviewDrink.name}</h2>
               <button 
                 type="button" 
-                className="btn-close-modal" 
+                className="modal-close-btn" 
                 onClick={() => setActiveReviewDrink(null)}
+                aria-label="Close dialog"
               >
                 <X size={18} />
               </button>
             </div>
             
-            <form onSubmit={handleReviewSubmit} className="add-event-form">
+            <form onSubmit={handleReviewSubmit} className="modal-form">
               {reviewError && (
                 <div className="form-alert review-alert" style={{ marginBottom: '16px' }}>
                   <AlertCircle size={14} />
@@ -593,9 +646,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </dialog>
     </div>
   );
 };
