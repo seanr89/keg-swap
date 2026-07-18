@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck } from 'lucide-react';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
@@ -10,6 +10,7 @@ interface EventDetailScreenProps {
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => void;
   onAddReview: (drinkId: string, reviewer: string, rating: number, comment: string) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
+  onToggleAttendance: (id: string) => void;
 }
 
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
@@ -19,6 +20,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   onAddDrink,
   onAddReview,
   onAddDrinksBatch,
+  onToggleAttendance,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDrinkName, setNewDrinkName] = useState('');
@@ -28,6 +30,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
   const [addDrinkError, setAddDrinkError] = useState('');
+
+  const isAttending = event.attendees?.includes(user.uid) || false;
+  const attendeesCount = event.attendees?.length || 0;
 
   // Search and Filter states
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
@@ -333,6 +338,17 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             onChange={handleBatchUpload}
             style={{ display: 'none' }}
           />
+
+          <button
+            type="button"
+            className={`btn-detail-attend ${isAttending ? 'active' : ''}`}
+            onClick={() => onToggleAttendance(event.id)}
+            title={isAttending ? "You are attending this event! Click to leave." : "Click to attend this event"}
+          >
+            <UserCheck size={16} />
+            <span>{isAttending ? 'Attending' : 'Attend Event'}</span>
+            {attendeesCount > 0 && <span className="attendees-count-pill">{attendeesCount}</span>}
+          </button>
           
           <button
             type="button"

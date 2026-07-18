@@ -186,6 +186,24 @@ function App() {
     }
   };
 
+  const handleToggleAttendance = async (eventId: string) => {
+    if (!user) return;
+    const eventToUpdate = events.find((e) => e.id === eventId);
+    if (!eventToUpdate) return;
+
+    const currentAttendees = eventToUpdate.attendees || [];
+    const isAttending = currentAttendees.includes(user.uid);
+    const updatedAttendees = isAttending
+      ? currentAttendees.filter((uid) => uid !== user.uid)
+      : [...currentAttendees, user.uid];
+
+    try {
+      await updateDoc(doc(db, 'events', eventId), { attendees: updatedAttendees });
+    } catch (err) {
+      console.error('Failed to update event attendance in Firestore:', err);
+    }
+  };
+
   const handleAddDrink = async (eventId: string, drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => {
     const newDrink: BeerDrink = {
       ...drinkData,
@@ -336,6 +354,7 @@ function App() {
               handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment)
             }
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
+            onToggleAttendance={handleToggleAttendance}
           />
         </main>
 
@@ -495,9 +514,11 @@ function App() {
                     <EventCard
                       key={event.id}
                       event={event}
+                      user={user}
                       onDelete={handleDeleteEvent}
                       onStatusChange={handleStatusChange}
                       onSelect={() => setActiveEventId(event.id)}
+                      onToggleAttendance={handleToggleAttendance}
                     />
                   ))}
                 </div>

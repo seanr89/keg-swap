@@ -1,7 +1,7 @@
 import React from 'react';
 import type { BeerEvent, BeerReview } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, Star, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Star, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
 
 interface UserProfileScreenProps {
   user: User;
@@ -91,6 +91,9 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   const uniqueBeers = new Set(userReviews.map((item) => `${item.drinkName}-${item.brewery}`));
   const totalUniqueBeers = uniqueBeers.size;
 
+  // Events attending count
+  const totalAttending = events.filter((event) => event.attendees?.includes(user.uid)).length;
+
   // Format account creation date
   const creationDate = user.metadata.creationTime
     ? new Date(user.metadata.creationTime).toLocaleDateString(undefined, {
@@ -171,6 +174,16 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                 <div className="stat-box-data">
                   <span className="stat-box-value" style={{ fontSize: '15px', fontWeight: 700 }}>{favoriteStyle}</span>
                   <span className="stat-box-label">Favorite Style</span>
+                </div>
+              </div>
+
+              <div className="profile-stat-box">
+                <div className="stat-box-icon text-amber">
+                  <UserCheck size={20} />
+                </div>
+                <div className="stat-box-data">
+                  <span className="stat-box-value">{totalAttending}</span>
+                  <span className="stat-box-label">Events Attending</span>
                 </div>
               </div>
 

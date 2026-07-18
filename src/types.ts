@@ -26,4 +26,5 @@ export interface BeerEvent {
   address: string;
   status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
   drinks?: BeerDrink[];
+  attendees?: string[];
 }
