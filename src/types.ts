@@ -4,6 +4,7 @@ export interface BeerReview {
   rating: number; // 1-5
   comment: string;
   createdAt: string;
+  userId?: string;
 }
 
 export interface BeerDrink {

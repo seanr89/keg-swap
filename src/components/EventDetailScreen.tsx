@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
+import type { User } from 'firebase/auth';
 import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search } from 'lucide-react';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
+  user: User;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => void;
   onAddReview: (drinkId: string, reviewer: string, rating: number, comment: string) => void;
@@ -12,6 +14,7 @@ interface EventDetailScreenProps {
 
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   event,
+  user,
   onBack,
   onAddDrink,
   onAddReview,
@@ -51,7 +54,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       if (!dialog.open) {
         dialog.showModal();
         // Reset form on open
-        setReviewerName('');
+        setReviewerName(user.displayName || user.email || '');
         setRatingVal(5);
         setReviewComment('');
         setReviewError('');
@@ -61,7 +64,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         dialog.close();
       }
     }
-  }, [activeReviewDrink]);
+  }, [activeReviewDrink, user]);
 
   // Handle native close events (e.g. Escape key) and backdrop clicks
   useEffect(() => {
@@ -611,11 +614,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   type="text"
                   id="rev-name"
                   className="form-input"
-                  placeholder="e.g. Liam"
                   value={reviewerName}
-                  onChange={(e) => setReviewerName(e.target.value)}
+                  disabled
+                  readOnly
                   required
                 />
+                <span className="form-input-help" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Posting review as your authenticated profile account.
+                </span>
               </div>
 
               <div className="form-group">
