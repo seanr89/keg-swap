@@ -7,6 +7,7 @@ import { EventDetailScreen } from './components/EventDetailScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
+import { UserProfileScreen } from './components/UserProfileScreen';
 import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -29,6 +30,7 @@ function App() {
   });
 
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [events, setEvents] = useState<BeerEvent[]>([]);
@@ -163,6 +165,7 @@ function App() {
       rating,
       comment,
       createdAt: new Date().toISOString(),
+      userId: user?.uid,
     };
 
     const eventToUpdate = events.find((e) => e.id === eventId);
@@ -180,6 +183,24 @@ function App() {
       await updateDoc(doc(db, 'events', eventId), { drinks: updatedDrinks });
     } catch (err) {
       console.error('Failed to add review in Firestore:', err);
+    }
+  };
+
+  const handleToggleAttendance = async (eventId: string) => {
+    if (!user) return;
+    const eventToUpdate = events.find((e) => e.id === eventId);
+    if (!eventToUpdate) return;
+
+    const currentAttendees = eventToUpdate.attendees || [];
+    const isAttending = currentAttendees.includes(user.uid);
+    const updatedAttendees = isAttending
+      ? currentAttendees.filter((uid) => uid !== user.uid)
+      : [...currentAttendees, user.uid];
+
+    try {
+      await updateDoc(doc(db, 'events', eventId), { attendees: updatedAttendees });
+    } catch (err) {
+      console.error('Failed to update event attendance in Firestore:', err);
     }
   };
 
@@ -272,7 +293,7 @@ function App() {
       <div className="app-container">
         {/* Header section with beer theme */}
         <header className="app-header">
-          <div className="brand" onClick={() => setActiveEventId(null)} style={{ cursor: 'pointer' }}>
+          <div className="brand" onClick={() => { setActiveEventId(null); setShowProfile(false); }} style={{ cursor: 'pointer' }}>
             <div className="logo-container">
               <Beer className="brand-logo" size={32} />
             </div>
@@ -283,10 +304,18 @@ function App() {
           </div>
           
           <div className="header-actions">
-            <span className="user-email-badge">
+            <button
+              type="button"
+              className={`btn-user-profile ${showProfile ? 'active' : ''}`}
+              onClick={() => {
+                setShowProfile(true);
+                setActiveEventId(null);
+              }}
+              title="View Profile"
+            >
               <UserIcon size={14} />
               <span>{user.displayName || user.email}</span>
-            </span>
+            </button>
 
             <button
               type="button"
@@ -304,6 +333,7 @@ function App() {
               onClick={() => {
                 signOut(auth);
                 setActiveEventId(null);
+                setShowProfile(false);
               }}
               title="Sign Out"
               aria-label="Sign out"
@@ -317,12 +347,14 @@ function App() {
         <main className="app-main">
           <EventDetailScreen
             event={activeEvent}
+            user={user}
             onBack={() => setActiveEventId(null)}
             onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
             onAddReview={(drinkId, reviewer, rating, comment) =>
               handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment)
             }
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
+            onToggleAttendance={handleToggleAttendance}
           />
         </main>
 
@@ -357,7 +389,7 @@ function App() {
     <div className="app-container">
       {/* Header section with beer theme */}
       <header className="app-header">
-        <div className="brand">
+        <div className="brand" onClick={() => { setActiveEventId(null); setShowProfile(false); }} style={{ cursor: 'pointer' }}>
           <div className="logo-container">
             <Beer className="brand-logo" size={32} />
           </div>
@@ -368,10 +400,18 @@ function App() {
         </div>
         
         <div className="header-actions">
-          <span className="user-email-badge">
+          <button
+            type="button"
+            className={`btn-user-profile ${showProfile ? 'active' : ''}`}
+            onClick={() => {
+              setShowProfile(true);
+              setActiveEventId(null);
+            }}
+            title="View Profile"
+          >
             <UserIcon size={14} />
             <span>{user.displayName || user.email}</span>
-          </span>
+          </button>
 
           <button
             type="button"
@@ -389,6 +429,7 @@ function App() {
             onClick={() => {
               signOut(auth);
               setActiveEventId(null);
+              setShowProfile(false);
             }}
             title="Sign Out"
             aria-label="Sign out"
@@ -412,86 +453,102 @@ function App() {
 
       {/* Main Content Area */}
       <main className="app-main">
-        {/* Statistics Dashboard */}
-        <section className="stats-section">
-          <StatsHeader events={events} />
-        </section>
+        {showProfile ? (
+          <UserProfileScreen
+            user={user}
+            events={events}
+            onBack={() => setShowProfile(false)}
+            onNavigateToEvent={(eventId) => {
+              setShowProfile(false);
+              setActiveEventId(eventId);
+            }}
+          />
+        ) : (
+          <>
+            {/* Statistics Dashboard */}
+            <section className="stats-section">
+              <StatsHeader events={events} />
+            </section>
 
-        {/* Filters and Actions Toolbar */}
-        <section className="toolbar-section">
-          <div className="toolbar">
-            {/* Search inputs */}
-            <div className="search-bar">
-              <Search className="search-icon" size={18} />
-              <input
-                type="text"
-                placeholder="Search events by name or location..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-                id="search-events-input"
-                aria-label="Search events by name or location"
-              />
-            </div>
+            {/* Filters and Actions Toolbar */}
+            <section className="toolbar-section">
+              <div className="toolbar">
+                {/* Search inputs */}
+                <div className="search-bar">
+                  <Search className="search-icon" size={18} />
+                  <input
+                    type="text"
+                    placeholder="Search events by name or location..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                    id="search-events-input"
+                    aria-label="Search events by name or location"
+                  />
+                </div>
 
-            {/* Filter segments (horizontal tab buttons) */}
-            <div className="filter-tabs" role="tablist" aria-label="Filter events by status">
-              {(['All', 'Upcoming', 'Ongoing', 'Completed', 'Cancelled'] as const).map((status) => (
-                <button
-                  key={status}
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === status}
-                  onClick={() => setStatusFilter(status)}
-                  className={`filter-tab-btn ${statusFilter === status ? 'active' : ''}`}
-                  id={`filter-tab-${status}`}
-                >
-                  {status}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
+                {/* Filter segments (horizontal tab buttons) */}
+                <div className="filter-tabs" role="tablist" aria-label="Filter events by status">
+                  {(['All', 'Upcoming', 'Ongoing', 'Completed', 'Cancelled'] as const).map((status) => (
+                    <button
+                      key={status}
+                      type="button"
+                      role="tab"
+                      aria-selected={statusFilter === status}
+                      onClick={() => setStatusFilter(status)}
+                      className={`filter-tab-btn ${statusFilter === status ? 'active' : ''}`}
+                      id={`filter-tab-${status}`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </section>
 
-        {/* Events Feed / Grid */}
-        <section className="events-section">
-          {filteredEvents.length > 0 ? (
-            <div className="events-grid">
-              {filteredEvents.map((event) => (
-                <EventCard
-                  key={event.id}
-                  event={event}
-                  onDelete={handleDeleteEvent}
-                  onStatusChange={handleStatusChange}
-                  onSelect={() => setActiveEventId(event.id)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <Beer className="empty-icon animate-float" size={48} />
-              <h3>No events found</h3>
-              <p>
-                {searchQuery || statusFilter !== 'All'
-                  ? "We couldn't find any events matching your search or filters. Try adjusting them!"
-                  : "There are no events registered. Be the first to brew up a new one!"}
-              </p>
-              {(searchQuery || statusFilter !== 'All') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery('');
-                    setStatusFilter('All');
-                  }}
-                  className="btn-secondary"
-                  id="reset-filters-btn"
-                >
-                  Reset Filters
-                </button>
+            {/* Events Feed / Grid */}
+            <section className="events-section">
+              {filteredEvents.length > 0 ? (
+                <div className="events-grid">
+                  {filteredEvents.map((event) => (
+                    <EventCard
+                      key={event.id}
+                      event={event}
+                      user={user}
+                      onDelete={handleDeleteEvent}
+                      onStatusChange={handleStatusChange}
+                      onSelect={() => setActiveEventId(event.id)}
+                      onToggleAttendance={handleToggleAttendance}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <Beer className="empty-icon animate-float" size={48} />
+                  <h3>No events found</h3>
+                  <p>
+                    {searchQuery || statusFilter !== 'All'
+                      ? "We couldn't find any events matching your search or filters. Try adjusting them!"
+                      : "There are no events registered. Be the first to brew up a new one!"}
+                  </p>
+                  {(searchQuery || statusFilter !== 'All') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery('');
+                        setStatusFilter('All');
+                      }}
+                      className="btn-secondary"
+                      id="reset-filters-btn"
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </div>
               )}
-            </div>
-          )}
-        </section>
+            </section>
+          </>
+        )}
       </main>
 
       {/* Sticky Bottom Add Button (Mobile-first UX) */}

@@ -1,15 +1,18 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent } from '../types';
-import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle } from 'lucide-react';
+import type { User } from 'firebase/auth';
+import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck } from 'lucide-react';
 
 interface EventCardProps {
   event: BeerEvent;
+  user: User;
   onDelete: (id: string) => void;
   onStatusChange: (id: string, status: BeerEvent['status']) => void;
   onSelect: () => void;
+  onToggleAttendance: (id: string) => void;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onStatusChange, onSelect }) => {
+export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onStatusChange, onSelect, onToggleAttendance }) => {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -208,19 +211,34 @@ export const EventCard: React.FC<EventCardProps> = ({ event, onDelete, onStatusC
             <span>{event.status}</span>
           </div>
           
-          <button
-            type="button"
-            className="card-delete-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete(event.id);
-            }}
-            aria-label={`Delete event ${event.name}`}
-            id={`delete-${event.id}`}
-            title="Delete Event"
-          >
-            <Trash2 size={16} />
-          </button>
+          <div style={{ display: 'flex', gap: '8px', marginLeft: 'auto', alignItems: 'center' }}>
+            <button
+              type="button"
+              className={`card-attend-btn ${event.attendees?.includes(user.uid) ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleAttendance(event.id);
+              }}
+              title={event.attendees?.includes(user.uid) ? "You are attending! Click to leave." : "Click to attend event"}
+            >
+              <UserCheck size={14} />
+              <span>{event.attendees?.includes(user.uid) ? 'Attending' : 'Attend'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="card-delete-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(event.id);
+              }}
+              aria-label={`Delete event ${event.name}`}
+              id={`delete-${event.id}`}
+              title="Delete Event"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
         </div>
 
         <h3 className="event-name">{event.name}</h3>

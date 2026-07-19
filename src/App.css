@@ -2210,3 +2210,500 @@
 .toggle-switch input:checked + .toggle-slider:before {
   transform: translateX(20px);
 }
+
+/* User Profile Button in Header */
+.btn-user-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--border-color);
+  color: var(--text-primary);
+  padding: 8px 16px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-user-profile:hover, .btn-user-profile.active {
+  background: var(--primary-glow);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+@media (max-width: 600px) {
+  .btn-user-profile {
+    padding: 8px 12px;
+  }
+  .btn-user-profile span {
+    display: none; /* Hide text on small screens, show icon only */
+  }
+}
+
+/* Profile Screen Layout */
+.profile-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-layout-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 968px) {
+  .profile-layout-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Profile Card Sidebar */
+.profile-sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+
+.profile-card:hover {
+  border-color: rgba(245, 158, 11, 0.2);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.profile-avatar-wrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), #ea580c);
+  color: #0c0a09;
+  font-size: 36px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.profile-name {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.profile-email {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  word-break: break-all;
+}
+
+.profile-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.profile-meta-icon {
+  color: var(--text-muted);
+}
+
+/* Stats Dashboard */
+.profile-stats-dashboard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sidebar-title {
+  font-size: 16px;
+  font-weight: 750;
+  margin: 0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.profile-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .profile-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.profile-stat-box {
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+
+.profile-stat-box:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-focus);
+}
+
+.stat-box-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  box-shadow: var(--shadow-sm);
+}
+
+.text-amber { color: #d97706; }
+.text-gold { color: #fbbf24; }
+.text-beer { color: var(--primary); }
+.text-emerald { color: #10b981; }
+
+.stat-box-data {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-box-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-box-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Achievement Card */
+.profile-achievement-card {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.16);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  color: #10b981;
+}
+
+.profile-achievement-card strong {
+  font-weight: 700;
+}
+
+.achievement-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Profile Review Feed */
+.profile-feed-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.feed-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.feed-count-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--border-color);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.profile-reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profile-review-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.profile-review-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-focus);
+}
+
+.profile-review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.profile-review-beer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-review-beer-name {
+  font-size: 16px;
+  font-weight: 850;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.profile-review-beer-style {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-main);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.profile-review-brewery {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.profile-review-stars {
+  display: flex;
+  gap: 2px;
+  color: #fbbf24;
+}
+
+.profile-review-comment {
+  font-size: 14px;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.6;
+  font-style: italic;
+}
+
+.profile-review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.profile-review-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.btn-profile-event-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+}
+
+.btn-profile-event-link:hover {
+  background: var(--primary-glow);
+  color: var(--primary-hover);
+  padding-right: 12px;
+}
+
+/* Empty Profile Reviews State */
+.profile-reviews-empty {
+  background: var(--bg-card);
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 48px 24px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+}
+
+.profile-reviews-empty h4 {
+  font-size: 18px;
+  font-weight: 750;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.profile-reviews-empty p {
+  font-size: 14px;
+  color: var(--text-muted);
+  max-width: 320px;
+  margin: 0;
+}
+
+/* Card Attendance Button */
+.card-attend-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 4px 8px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.card-attend-btn:hover {
+  background: var(--primary-glow);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.card-attend-btn.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.card-attend-btn.active:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* Event Detail Attend Button */
+.btn-detail-attend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-detail-attend:hover {
+  background: var(--primary-glow);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-detail-attend.active {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.btn-detail-attend.active:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.attendees-count-pill {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.btn-detail-attend.active:hover .attendees-count-pill {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+
