@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { BeerEvent } from '../types';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, MapPin, Globe } from 'lucide-react';
 
 interface EventModalProps {
   isOpen: boolean;
@@ -16,6 +16,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
   const [date, setDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [address, setAddress] = useState('');
+  const [mapsUrl, setMapsUrl] = useState('');
+  const [url, setUrl] = useState('');
   const [status, setStatus] = useState<BeerEvent['status']>('Upcoming');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -34,6 +36,8 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
         setDate('');
         setEndDate('');
         setAddress('');
+        setMapsUrl('');
+        setUrl('');
         setStatus('Upcoming');
         setErrors({});
       }
@@ -126,6 +130,13 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     }
   };
 
+  const formatUrl = (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return '';
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
+
   const validate = (): boolean => {
     const newErrors: { [key: string]: string } = {};
     if (!name.trim()) newErrors.name = 'Event name is required';
@@ -152,12 +163,17 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     e.preventDefault();
     if (!validate()) return;
 
+    const formattedUrl = formatUrl(url);
+    const formattedMapsUrl = formatUrl(mapsUrl);
+
     onSubmit({
       name: name.trim(),
       date,
       ...(isMultiDay && endDate ? { endDate } : {}),
       address: address.trim(),
       status,
+      ...(formattedUrl ? { url: formattedUrl } : {}),
+      ...(formattedMapsUrl ? { mapsUrl: formattedMapsUrl } : {}),
     });
     
     if (dialogRef.current) {
@@ -314,6 +330,43 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
         </div>
 
         <div className="form-group">
+          <label htmlFor="event-maps-url" className="form-label">
+            Google Maps Pin Location URL <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'normal' }}>(Optional)</span>
+          </label>
+          <div className="date-input-wrapper">
+            <MapPin className="date-input-icon" size={16} />
+            <input
+              type="url"
+              id="event-maps-url"
+              placeholder="e.g. https://maps.app.goo.gl/... or map pin link"
+              value={mapsUrl}
+              onChange={(e) => setMapsUrl(e.target.value)}
+              className="form-input date-picker-input"
+            />
+          </div>
+          <span className="form-input-help" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+            Leave blank to auto-generate a map search link from the location address.
+          </span>
+        </div>
+
+        <div className="form-group">
+          <label htmlFor="event-url" className="form-label">
+            Event Web Link / URL <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'normal' }}>(Optional)</span>
+          </label>
+          <div className="date-input-wrapper">
+            <Globe className="date-input-icon" size={16} />
+            <input
+              type="url"
+              id="event-url"
+              placeholder="e.g. https://craftkegfest.com or event page"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="form-input date-picker-input"
+            />
+          </div>
+        </div>
+
+        <div className="form-group">
           <label htmlFor="event-status" className="form-label">
             Status <span style={{ color: '#ef4444' }}>*</span>
           </label>
@@ -350,3 +403,4 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     </dialog>
   );
 };
+

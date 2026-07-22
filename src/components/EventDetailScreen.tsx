@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
@@ -49,6 +49,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewError, setReviewError] = useState('');
 
   const reviewDialogRef = useRef<HTMLDialogElement>(null);
+
+  const mapsTargetUrl = event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`;
 
   // Sync React open state with native dialog element
   useEffect(() => {
@@ -323,10 +325,30 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               <Calendar size={16} />
               <span>{formatFriendlyDate(event.date, event.endDate)}</span>
             </div>
-            <div className="detail-meta-item">
+            <a
+              href={mapsTargetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="detail-meta-item detail-meta-link"
+              title="Open location pin in Google Maps"
+            >
               <MapPin size={16} />
               <span>{event.address}</span>
-            </div>
+              <ExternalLink size={13} style={{ marginLeft: '4px', opacity: 0.8 }} />
+            </a>
+            {event.url && (
+              <a
+                href={event.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="detail-meta-item detail-meta-link"
+                title="Open official event website"
+              >
+                <Globe size={16} />
+                <span>Event Website</span>
+                <ExternalLink size={13} style={{ marginLeft: '4px', opacity: 0.8 }} />
+              </a>
+            )}
           </div>
         </div>
 
