@@ -128,6 +128,8 @@ function App() {
         date: eventData.date,
         ...(eventData.endDate ? { endDate: eventData.endDate } : {}),
         address: eventData.address,
+        ...(eventData.mapsUrl ? { mapsUrl: eventData.mapsUrl } : {}),
+        ...(eventData.url ? { url: eventData.url } : {}),
         status: eventData.status,
         drinks: [],
         userId: user.uid,

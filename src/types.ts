@@ -27,4 +27,6 @@ export interface BeerEvent {
   status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
   drinks?: BeerDrink[];
   attendees?: string[];
+  url?: string;
+  mapsUrl?: string;
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent } from '../types';
 import type { User } from 'firebase/auth';
-import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck } from 'lucide-react';
+import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck, Globe, ExternalLink } from 'lucide-react';
 
 interface EventCardProps {
   event: BeerEvent;
@@ -171,6 +171,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
   };
 
   const config = statusConfig[event.status] || statusConfig.Upcoming;
+  const mapsTargetUrl = event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`;
 
   return (
     <div 
@@ -248,10 +249,34 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
             <Calendar size={15} className="detail-icon" />
             <time dateTime={event.date}>{formatFriendlyDate(event.date, event.endDate)}</time>
           </div>
-          <div className="detail-item">
-            <MapPin size={15} className="detail-icon" />
-            <span>{event.address}</span>
-          </div>
+          
+          <a
+            href={mapsTargetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="detail-item detail-link-location"
+            onClick={(e) => e.stopPropagation()}
+            title="Open location pin in Google Maps"
+          >
+            <MapPin size={15} className="detail-icon detail-location-icon" />
+            <span className="address-text">{event.address}</span>
+            <ExternalLink size={12} className="link-external-icon" />
+          </a>
+
+          {event.url && (
+            <a
+              href={event.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="detail-item detail-link-website"
+              onClick={(e) => e.stopPropagation()}
+              title="Open official event website"
+            >
+              <Globe size={15} className="detail-icon detail-website-icon" />
+              <span>Event Website</span>
+              <ExternalLink size={12} className="link-external-icon" />
+            </a>
+          )}
         </div>
 
         <div className="card-footer" onClick={(e) => e.stopPropagation()}>
