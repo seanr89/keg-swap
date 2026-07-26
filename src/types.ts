@@ -1,7 +1,7 @@
 export interface BeerReview {
   id: string;
   reviewer: string;
-  rating: number; // 1-5
+  rating: number; // 0.5 - 10.0 (supports 0.5 step half ratings)
   comment: string;
   createdAt: string;
   userId?: string;
