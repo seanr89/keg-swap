@@ -26,23 +26,49 @@ export const StarRating: React.FC<StarRatingProps> = ({
 
   const currentRating = hoverRating !== null ? hoverRating : rating;
 
-  const handleMouseMove = (starIndex: number, e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleMouseMove = (glassIndex: number, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!interactive) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const isHalf = x < rect.width / 2;
-    const val = isHalf ? starIndex + 0.5 : starIndex + 1;
+    const val = isHalf ? glassIndex + 0.5 : glassIndex + 1;
     setHoverRating(val);
   };
 
-  const handleClick = (starIndex: number, e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleClick = (glassIndex: number, e: React.MouseEvent<HTMLButtonElement>) => {
     if (!interactive || !onChange) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const isHalf = x < rect.width / 2;
-    const val = isHalf ? starIndex + 0.5 : starIndex + 1;
+    const val = isHalf ? glassIndex + 0.5 : glassIndex + 1;
     onChange(val);
   };
+
+  const renderBeerGlassIcon = (isFull: boolean, isHalf: boolean) => (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={isFull || isHalf ? 'star-filled' : 'star-empty'}
+    >
+      <path
+        d="M5 8v11a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V8H5z"
+        fill={isFull ? 'currentColor' : isHalf ? `url(#star-half-grad-${gradientId})` : 'none'}
+      />
+      <path
+        d="M14 7.5c-1 0-1.44.5-3 .5s-2-.5-3-.5-1.72.5-2.5.5a2.5 2.5 0 0 1 0-5c.78 0 1.57.5 2.5.5S9.44 2.5 11 2.5s2 .5 3 .5 1.72-.5 2.5-.5a2.5 2.5 0 0 1 0 5c-.78 0-1.57-.5-2.5-.5Z"
+        fill={isFull ? 'currentColor' : isHalf ? `url(#star-half-grad-${gradientId})` : 'none'}
+      />
+      <path d="M17 11h1a3 3 0 0 1 0 6h-1" fill="none" />
+      <path d="M9 12v6" strokeOpacity="0.6" />
+      <path d="M13 12v6" strokeOpacity="0.6" />
+    </svg>
+  );
 
   return (
     <div className={`star-rating-container ${interactive ? 'interactive' : ''} ${className}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
@@ -61,9 +87,9 @@ export const StarRating: React.FC<StarRatingProps> = ({
         style={{ display: 'inline-flex', alignItems: 'center', gap: '2px' }}
       >
         {Array.from({ length: maxStars }, (_, i) => {
-          const starVal = i + 1;
-          const isFull = currentRating >= starVal;
-          const isHalf = !isFull && currentRating >= starVal - 0.5;
+          const glassVal = i + 1;
+          const isFull = currentRating >= glassVal;
+          const isHalf = !isFull && currentRating >= glassVal - 0.5;
 
           if (interactive) {
             return (
@@ -73,7 +99,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                 className={`star-btn-item ${isFull ? 'filled' : isHalf ? 'half' : 'empty'}`}
                 onMouseMove={(e) => handleMouseMove(i, e)}
                 onClick={(e) => handleClick(i, e)}
-                aria-label={`Rate ${starVal - 0.5} or ${starVal}`}
+                aria-label={`Rate ${glassVal - 0.5} or ${glassVal} beer glasses`}
                 style={{
                   width: size,
                   height: size,
@@ -87,21 +113,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                   transition: 'transform 0.15s ease'
                 }}
               >
-                <svg
-                  width={size}
-                  height={size}
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className={isFull || isHalf ? 'star-filled' : 'star-empty'}
-                >
-                  <polygon
-                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-                    fill={isFull ? 'currentColor' : isHalf ? `url(#star-half-grad-${gradientId})` : 'none'}
-                  />
-                </svg>
+                {renderBeerGlassIcon(isFull, isHalf)}
               </button>
             );
           }
@@ -118,21 +130,7 @@ export const StarRating: React.FC<StarRatingProps> = ({
                 justifyContent: 'center'
               }}
             >
-              <svg
-                width={size}
-                height={size}
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={isFull || isHalf ? 'star-filled' : 'star-empty'}
-              >
-                <polygon
-                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
-                  fill={isFull ? 'currentColor' : isHalf ? `url(#star-half-grad-${gradientId})` : 'none'}
-                />
-              </svg>
+              {renderBeerGlassIcon(isFull, isHalf)}
             </span>
           );
         })}

@@ -1,7 +1,7 @@
 import React from 'react';
 import type { BeerEvent, BeerReview } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, Star, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
+import { ArrowLeft, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
 import { StarRating } from './StarRating';
 
 interface UserProfileScreenProps {
@@ -150,7 +150,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
               <div className="profile-stat-box">
                 <div className="stat-box-icon text-gold">
-                  <Star size={20} fill="currentColor" />
+                  <Beer size={20} fill="currentColor" />
                 </div>
                 <div className="stat-box-data">
                   <span className="stat-box-value">{avgRating}</span>

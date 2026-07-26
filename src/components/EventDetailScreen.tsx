@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Plus, Beer, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
 import { StarRating } from './StarRating';
 
 interface EventDetailScreenProps {
@@ -761,7 +761,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
           <div className="avg-rating-badge">
             {avgRating ? (
               <>
-                <Star className="star-filled" size={18} fill="currentColor" />
+                <Beer className="star-filled" size={18} fill="currentColor" />
                 <span className="avg-val">{avgRating}</span>
                 <span className="avg-val-scale" style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.85 }}>/10</span>
               </>
