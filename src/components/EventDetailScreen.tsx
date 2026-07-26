@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, MapPin, Calendar, Plus, Star, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Plus, Beer, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
+import { StarRating } from './StarRating';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
@@ -43,8 +44,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   // Add Review Dialog Modal states (top-level to prevent parents clipping)
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
   const [reviewerName, setReviewerName] = useState('');
-  const [ratingVal, setRatingVal] = useState(5);
-  const [hoverRating, setHoverRating] = useState(0);
+  const [ratingVal, setRatingVal] = useState(8);
   const [reviewComment, setReviewComment] = useState('');
   const [reviewError, setReviewError] = useState('');
 
@@ -62,7 +62,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         dialog.showModal();
         // Reset form on open
         setReviewerName(user.displayName || user.email || '');
-        setRatingVal(5);
+        setRatingVal(8);
         setReviewComment('');
         setReviewError('');
       }
@@ -102,14 +102,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     if (!activeReviewDrink) return;
     if (!reviewerName.trim()) return setReviewError('Your name is required');
     if (!reviewComment.trim()) return setReviewError('Review comment is required');
-    if (ratingVal < 1 || ratingVal > 5) return setReviewError('Invalid rating selected');
+    if (ratingVal < 0.5 || ratingVal > 10) return setReviewError('Rating must be between 0.5 and 10');
 
     onAddReview(activeReviewDrink.id, reviewerName.trim(), ratingVal, reviewComment.trim());
 
     // Reset Form & Close Modal
     setReviewerName('');
     setReviewComment('');
-    setRatingVal(5);
+    setRatingVal(8);
     setReviewError('');
     setActiveReviewDrink(null);
   };
@@ -623,26 +623,53 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               )}
               
               <div className="form-group" style={{ marginBottom: '20px' }}>
-                <span className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Your Rating</span>
-                <div className="star-selector" style={{ display: 'flex', gap: '6px' }}>
-                  {[1, 2, 3, 4, 5].map((star) => (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span className="form-label" style={{ margin: 0 }}>Your Rating (1–10)</span>
+                  <span className="rating-score-badge">
+                    {ratingVal.toFixed(1)} <span style={{ fontSize: '13px', opacity: 0.7 }}>/ 10</span>
+                  </span>
+                </div>
+                
+                <div className="rating-input-box">
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <StarRating
+                      rating={ratingVal}
+                      maxStars={10}
+                      size={24}
+                      interactive={true}
+                      onChange={(val) => setRatingVal(val)}
+                    />
+                  </div>
+
+                  <div className="rating-slider-row">
                     <button
-                      key={star}
                       type="button"
-                      className="star-btn"
-                      onClick={() => setRatingVal(star)}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      aria-label={`Rate ${star} stars`}
-                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                      className="btn-rating-step"
+                      onClick={() => setRatingVal(prev => Math.max(0.5, prev - 0.5))}
+                      title="Decrease rating by 0.5"
                     >
-                      <Star 
-                        size={28} 
-                        className={(hoverRating || ratingVal) >= star ? 'star-filled' : 'star-empty'} 
-                        fill={(hoverRating || ratingVal) >= star ? 'currentColor' : 'none'}
-                      />
+                      -0.5
                     </button>
-                  ))}
+
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="10"
+                      step="0.5"
+                      value={ratingVal}
+                      onChange={(e) => setRatingVal(parseFloat(e.target.value))}
+                      className="rating-range-slider"
+                    />
+
+                    <button
+                      type="button"
+                      className="btn-rating-step"
+                      onClick={() => setRatingVal(prev => Math.min(10, prev + 0.5))}
+                      title="Increase rating by 0.5"
+                    >
+                      +0.5
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -734,8 +761,9 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
           <div className="avg-rating-badge">
             {avgRating ? (
               <>
-                <Star className="star-filled" size={18} fill="currentColor" />
+                <Beer className="star-filled" size={18} fill="currentColor" />
                 <span className="avg-val">{avgRating}</span>
+                <span className="avg-val-scale" style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.85 }}>/10</span>
               </>
             ) : (
               <span className="avg-val-none">No Reviews</span>
@@ -786,15 +814,11 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
                 <div key={rev.id} className="review-item">
                   <div className="review-item-header">
                     <span className="review-author">{rev.reviewer}</span>
-                    <div className="review-stars-fixed">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={11} 
-                          className={i < rev.rating ? 'star-filled' : 'star-empty'} 
-                          fill={i < rev.rating ? 'currentColor' : 'none'}
-                        />
-                      ))}
+                    <div className="review-stars-fixed" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <StarRating rating={rev.rating} maxStars={10} size={11} />
+                      <span className="review-rating-num" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        {rev.rating.toFixed(1)}
+                      </span>
                     </div>
                   </div>
                   <p className="review-comment">{rev.comment}</p>

@@ -1616,6 +1616,67 @@ a.detail-meta-link:hover {
   opacity: 0.4;
 }
 
+/* 1-10 Rating Input Controls */
+.rating-score-badge {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.rating-input-box {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--bg-tertiary, rgba(255, 255, 255, 0.04));
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+}
+
+.rating-slider-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-rating-step {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-rating-step:hover {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.rating-range-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.star-btn-item:hover {
+  transform: scale(1.2);
+}
+
 .review-input-name {
   padding: 8px 12px !important;
   font-size: 13px !important;

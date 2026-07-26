@@ -1,7 +1,8 @@
 import React from 'react';
 import type { BeerEvent, BeerReview } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, Star, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
+import { ArrowLeft, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
+import { StarRating } from './StarRating';
 
 interface UserProfileScreenProps {
   user: User;
@@ -149,7 +150,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
               <div className="profile-stat-box">
                 <div className="stat-box-icon text-gold">
-                  <Star size={20} fill="currentColor" />
+                  <Beer size={20} fill="currentColor" />
                 </div>
                 <div className="stat-box-data">
                   <span className="stat-box-value">{avgRating}</span>
@@ -192,7 +193,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
             {highestRating > 0 && (
               <div className="profile-achievement-card">
                 <CheckCircle size={18} className="achievement-icon" />
-                <span>Highest review rating given is <strong>{highestRating} {highestRating === 1 ? 'star' : 'stars'}</strong>!</span>
+                <span>Highest review rating given is <strong>{highestRating.toFixed(1)} / 10</strong>!</span>
               </div>
             )}
           </div>
@@ -218,15 +219,11 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                       <p className="profile-review-brewery">by {brewery}</p>
                     </div>
 
-                    <div className="profile-review-stars">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={13}
-                          className={i < review.rating ? 'star-filled' : 'star-empty'}
-                          fill={i < review.rating ? 'currentColor' : 'none'}
-                        />
-                      ))}
+                    <div className="profile-review-stars" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                      <StarRating rating={review.rating} maxStars={10} size={12} />
+                      <span className="profile-review-rating-num" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                        {review.rating.toFixed(1)}
+                      </span>
                     </div>
                   </div>
 
