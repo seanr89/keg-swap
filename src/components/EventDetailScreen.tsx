@@ -761,7 +761,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               )}
 
               <div className="form-group">
-                <label htmlFor="rev-comment" className="form-label">Tasting Notes / Comments</label>
+                <label htmlFor="rev-comment" className="form-label">
+                  Tasting Notes / Comments <span style={{ color: '#ef4444' }}>*</span>
+                </label>
                 <textarea
                   id="rev-comment"
                   className="form-input review-textarea"

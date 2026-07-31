@@ -14,7 +14,8 @@ import {
   Lock, 
   Users, 
   UserPlus, 
-  UserMinus 
+  UserMinus,
+  MapPin 
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 
@@ -116,8 +117,19 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   const uniqueBeers = new Set(userReviews.map((item) => `${item.drinkName}-${item.brewery}`));
   const totalUniqueBeers = uniqueBeers.size;
 
-  // Events attending count
-  const totalAttending = events.filter((event) => event.attendees?.includes(user.uid)).length;
+  // Events attended/attending calculation
+  const attendedEvents = events.filter(
+    (event) => event.attendees?.includes(user.uid) || userReviews.some((ur) => ur.eventId === event.id)
+  );
+
+  // Sort attended events by date descending
+  attendedEvents.sort((a, b) => {
+    const timeA = a.date ? new Date(a.date).getTime() : 0;
+    const timeB = b.date ? new Date(b.date).getTime() : 0;
+    return timeB - timeA;
+  });
+
+  const totalAttending = attendedEvents.length;
 
   // Format account creation date
   const creationDate = user.metadata.creationTime
@@ -323,70 +335,166 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
           </div>
         </div>
 
-        {/* Right Side: Recent Reviews Feed */}
+        {/* Right Side: Attended Events & Recent Reviews Feed */}
         <div className="profile-feed-group">
-          <div className="feed-header-row">
-            <h3 className="section-title" style={{ margin: 0 }}>Recent Reviews</h3>
-            <span className="feed-count-badge">Showing last {recentReviews.length} of {totalReviews}</span>
-          </div>
+          {/* Attended Events Section */}
+          <div className="profile-feed-section">
+            <div className="feed-header-row">
+              <h3 className="section-title" style={{ margin: 0 }}>Attended Events</h3>
+              <span className="feed-count-badge">
+                {attendedEvents.length} {attendedEvents.length === 1 ? 'Event' : 'Events'}
+              </span>
+            </div>
 
-          {recentReviews.length > 0 ? (
-            <div className="profile-reviews-list">
-              {recentReviews.map(({ review, drinkName, brewery, style, eventName, eventId }) => (
-                <div key={review.id} className="profile-review-card">
-                  <div className="profile-review-header">
-                    <div>
-                      <div className="profile-review-beer-row">
-                        <h4 className="profile-review-beer-name">{drinkName}</h4>
-                        <span className="profile-review-beer-style">{style}</span>
-                        {review.servingSize && <span className="review-meta-tag">{review.servingSize}</span>}
-                        {review.price && <span className="review-meta-tag price">{review.price}</span>}
-                      </div>
-                      <p className="profile-review-brewery">by {brewery}</p>
-                    </div>
-
-                    <div className="profile-review-stars" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <StarRating rating={review.rating} maxStars={10} size={12} />
-                      <span className="profile-review-rating-num" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        {review.rating.toFixed(1)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p className="profile-review-comment">"{review.comment}"</p>
-
-                  <div className="profile-review-footer">
-                    <span className="profile-review-date">
-                      {new Date(review.createdAt).toLocaleDateString(undefined, {
+            {attendedEvents.length > 0 ? (
+              <div className="profile-events-list">
+                {attendedEvents.map((event) => {
+                  const drinksCount = event.drinks?.length || 0;
+                  const attendeesCount = event.attendees?.length || 0;
+                  const userReviewCountInEvent = userReviews.filter((ur) => ur.eventId === event.id).length;
+                  const formattedDate = event.date
+                    ? new Date(event.date).toLocaleDateString(undefined, {
+                        weekday: 'short',
                         month: 'short',
                         day: 'numeric',
                         year: 'numeric',
-                      })}
-                    </span>
+                      })
+                    : 'Date TBD';
 
-                    <button
-                      type="button"
-                      className="btn-profile-event-link"
-                      onClick={() => onNavigateToEvent(eventId)}
-                      title={`Go to ${eventName}`}
-                    >
-                      <span>at {eventName}</span>
-                      <ChevronRight size={14} />
-                    </button>
+                  return (
+                    <div key={event.id} className="profile-event-card">
+                      <div className="profile-event-header">
+                        <div style={{ flex: 1 }}>
+                          <div className="profile-event-title-row">
+                            <h4 className="profile-event-name">{event.name}</h4>
+                            <span className={`status-badge status-${event.status.toLowerCase()}`}>
+                              {event.status}
+                            </span>
+                          </div>
+                          <div className="profile-event-meta-info">
+                            <span className="event-meta-item">
+                              <Calendar size={13} />
+                              <span>{formattedDate}</span>
+                            </span>
+                            {event.address && (
+                              <span className="event-meta-item">
+                                <MapPin size={13} />
+                                <span>{event.address}</span>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="profile-event-footer">
+                        <div className="profile-event-badges">
+                          <span className="event-stat-chip">
+                            <Beer size={12} />
+                            <span>{drinksCount} {drinksCount === 1 ? 'Beer' : 'Beers'}</span>
+                          </span>
+                          <span className="event-stat-chip">
+                            <Users size={12} />
+                            <span>{attendeesCount} {attendeesCount === 1 ? 'Attendee' : 'Attendees'}</span>
+                          </span>
+                          {userReviewCountInEvent > 0 && (
+                            <span className="event-stat-chip chip-highlight">
+                              <MessageSquare size={12} />
+                              <span>{userReviewCountInEvent} {userReviewCountInEvent === 1 ? 'Review' : 'Reviews'}</span>
+                            </span>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          className="btn-profile-event-link"
+                          onClick={() => onNavigateToEvent(event.id)}
+                          title={`Go to ${event.name}`}
+                        >
+                          <span>View Event</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="profile-reviews-empty">
+                <Calendar className="empty-icon animate-float" size={48} />
+                <h4>No attended events yet</h4>
+                <p>When you join or attend events, they will appear here in your activity log!</p>
+                <button type="button" className="btn-secondary" onClick={onBack} style={{ marginTop: '16px' }}>
+                  Explore Events
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Reviews Section */}
+          <div className="profile-feed-section">
+            <div className="feed-header-row">
+              <h3 className="section-title" style={{ margin: 0 }}>Recent Reviews</h3>
+              <span className="feed-count-badge">Showing last {recentReviews.length} of {totalReviews}</span>
+            </div>
+
+            {recentReviews.length > 0 ? (
+              <div className="profile-reviews-list">
+                {recentReviews.map(({ review, drinkName, brewery, style, eventName, eventId }) => (
+                  <div key={review.id} className="profile-review-card">
+                    <div className="profile-review-header">
+                      <div>
+                        <div className="profile-review-beer-row">
+                          <h4 className="profile-review-beer-name">{drinkName}</h4>
+                          <span className="profile-review-beer-style">{style}</span>
+                          {review.servingSize && <span className="review-meta-tag">{review.servingSize}</span>}
+                          {review.price && <span className="review-meta-tag price">{review.price}</span>}
+                        </div>
+                        <p className="profile-review-brewery">by {brewery}</p>
+                      </div>
+
+                      <div className="profile-review-stars" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <StarRating rating={review.rating} maxStars={10} size={12} />
+                        <span className="profile-review-rating-num" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {review.rating.toFixed(1)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="profile-review-comment">"{review.comment}"</p>
+
+                    <div className="profile-review-footer">
+                      <span className="profile-review-date">
+                        {new Date(review.createdAt).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="btn-profile-event-link"
+                        onClick={() => onNavigateToEvent(eventId)}
+                        title={`Go to ${eventName}`}
+                      >
+                        <span>at {eventName}</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="profile-reviews-empty">
-              <Beer className="empty-icon animate-float" size={48} />
-              <h4>No reviews yet</h4>
-              <p>When you start writing reviews at events, your recent tasting log will appear here!</p>
-              <button type="button" className="btn-secondary" onClick={onBack} style={{ marginTop: '16px' }}>
-                Find Events to Review
-              </button>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="profile-reviews-empty">
+                <Beer className="empty-icon animate-float" size={48} />
+                <h4>No reviews yet</h4>
+                <p>When you start writing reviews at events, your recent tasting log will appear here!</p>
+                <button type="button" className="btn-secondary" onClick={onBack} style={{ marginTop: '16px' }}>
+                  Find Events to Review
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
