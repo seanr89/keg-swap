@@ -5,6 +5,8 @@ export interface BeerReview {
   comment: string;
   createdAt: string;
   userId?: string;
+  price?: string;
+  servingSize?: string;
 }
 
 export interface BeerDrink {
@@ -30,3 +32,25 @@ export interface BeerEvent {
   url?: string;
   mapsUrl?: string;
 }
+
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  isPublic: boolean;
+  friends?: string[];
+  createdAt?: string;
+}
+
+export interface EventLocation {
+  id: string;
+  name: string;
+  address: string;
+  city?: string;
+  postcode?: string;
+  mapsUrl?: string;
+  website?: string;
+  notes?: string;
+  createdAt: string;
+}
+

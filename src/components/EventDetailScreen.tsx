@@ -9,7 +9,7 @@ interface EventDetailScreenProps {
   user: User;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => void;
-  onAddReview: (drinkId: string, reviewer: string, rating: number, comment: string) => void;
+  onAddReview: (drinkId: string, reviewer: string, rating: number, comment: string, price?: string, servingSize?: string) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
 }
@@ -46,6 +46,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewerName, setReviewerName] = useState('');
   const [ratingVal, setRatingVal] = useState(8);
   const [reviewComment, setReviewComment] = useState('');
+  const [reviewPrice, setReviewPrice] = useState('');
+  const [reviewServingSize, setReviewServingSize] = useState('');
+  const [customServingSize, setCustomServingSize] = useState('');
   const [reviewError, setReviewError] = useState('');
 
   const reviewDialogRef = useRef<HTMLDialogElement>(null);
@@ -64,6 +67,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         setReviewerName(user.displayName || user.email || '');
         setRatingVal(8);
         setReviewComment('');
+        setReviewPrice('');
+        setReviewServingSize('');
+        setCustomServingSize('');
         setReviewError('');
       }
     } else {
@@ -104,12 +110,24 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     if (!reviewComment.trim()) return setReviewError('Review comment is required');
     if (ratingVal < 0.5 || ratingVal > 10) return setReviewError('Rating must be between 0.5 and 10');
 
-    onAddReview(activeReviewDrink.id, reviewerName.trim(), ratingVal, reviewComment.trim());
+    const effectiveServingSize = reviewServingSize === 'Other' ? customServingSize.trim() : reviewServingSize;
+
+    onAddReview(
+      activeReviewDrink.id,
+      reviewerName.trim(),
+      ratingVal,
+      reviewComment.trim(),
+      reviewPrice.trim() || undefined,
+      effectiveServingSize || undefined
+    );
 
     // Reset Form & Close Modal
     setReviewerName('');
     setReviewComment('');
     setRatingVal(8);
+    setReviewPrice('');
+    setReviewServingSize('');
+    setCustomServingSize('');
     setReviewError('');
     setActiveReviewDrink(null);
   };
@@ -123,11 +141,13 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     if (!newDrinkStyle.trim()) return setAddDrinkError('Style is required');
     if (!newDrinkDesc.trim()) return setAddDrinkError('Description is required');
 
+    const formattedAbv = newDrinkAbv.trim().endsWith('%') ? newDrinkAbv.trim() : `${newDrinkAbv.trim()}%`;
+
     onAddDrink({
       name: newDrinkName.trim(),
       brewery: newDrinkBrewery.trim(),
       location: newDrinkLocation.trim(),
-      abv: newDrinkAbv.trim(),
+      abv: formattedAbv,
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
     });
@@ -171,11 +191,13 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             typeof item.style === 'string' &&
             typeof item.description === 'string'
           ) {
+            const batchAbv = item.abv.trim();
+            const formattedBatchAbv = batchAbv.endsWith('%') ? batchAbv : `${batchAbv}%`;
             validatedDrinks.push({
               name: item.name.trim(),
               brewery: item.brewery.trim(),
               location: item.location.trim(),
-              abv: item.abv.trim(),
+              abv: formattedBatchAbv,
               style: item.style.trim(),
               description: item.description.trim(),
             });
@@ -689,6 +711,55 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 </span>
               </div>
 
+              <div className="form-row-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label htmlFor="rev-size" className="form-label">Serving Size (Optional)</label>
+                  <select
+                    id="rev-size"
+                    className="form-input"
+                    value={reviewServingSize}
+                    onChange={(e) => setReviewServingSize(e.target.value)}
+                  >
+                    <option value="">Select size...</option>
+                    <option value="Pint">Pint</option>
+                    <option value="Half Pint">Half Pint</option>
+                    <option value="Third Pint">Third Pint</option>
+                    <option value="25cl">25cl</option>
+                    <option value="33cl">33cl</option>
+                    <option value="44cl">44cl</option>
+                    <option value="50cl">50cl</option>
+                    <option value="Flight / Sample">Flight / Sample</option>
+                    <option value="Other">Other...</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label htmlFor="rev-price" className="form-label">Price (Optional)</label>
+                  <input
+                    type="text"
+                    id="rev-price"
+                    className="form-input"
+                    placeholder="e.g. £5.50"
+                    value={reviewPrice}
+                    onChange={(e) => setReviewPrice(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {reviewServingSize === 'Other' && (
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <label htmlFor="rev-custom-size" className="form-label">Custom Serving Size</label>
+                  <input
+                    type="text"
+                    id="rev-custom-size"
+                    className="form-input"
+                    placeholder="e.g. 75cl Bottle"
+                    value={customServingSize}
+                    onChange={(e) => setCustomServingSize(e.target.value)}
+                  />
+                </div>
+              )}
+
               <div className="form-group">
                 <label htmlFor="rev-comment" className="form-label">Tasting Notes / Comments</label>
                 <textarea
@@ -813,7 +884,11 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
               {drink.reviews.map((rev) => (
                 <div key={rev.id} className="review-item">
                   <div className="review-item-header">
-                    <span className="review-author">{rev.reviewer}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <span className="review-author">{rev.reviewer}</span>
+                      {rev.servingSize && <span className="review-meta-tag">{rev.servingSize}</span>}
+                      {rev.price && <span className="review-meta-tag price">{rev.price}</span>}
+                    </div>
                     <div className="review-stars-fixed" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                       <StarRating rating={rev.rating} maxStars={10} size={11} />
                       <span className="review-rating-num" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
