@@ -14,8 +14,8 @@
 
 Keg Swap features a rich, responsive, and tactile interface styled with **Vanilla CSS Variables**.
 
-- **Default Light Theme:** A warm, premium theme inspired by light craft beers, ales, and barley cream tones (`#f7f5f0` background, `#ca8a04` amber gold accent).
-- **Dark Theme Option:** A deep charcoal-stout dark theme (`#0c0a09` background, `#f59e0b` golden amber accent) optimized for low-light environments.
+- **Default Dark Theme:** A deep charcoal-stout dark theme (`#0c0a09` background, `#f59e0b` golden amber accent) optimized for rich low-light environments.
+- **Light Theme Option:** A warm, premium theme inspired by light craft beers, ales, and barley cream tones (`#f7f5f0` background, `#ca8a04` amber gold accent).
 - **Theme Persistence:** Theme preferences are stored in `localStorage` under `keg_swap_theme` and initialized immediately on page load via inline blocking script to prevent Flash of Unstyled Content (FOUC).
 - **Responsive Layout:** Tailored with fluid card grids, desktop header action toolbars, and a mobile-first sticky Floating Action Button (FAB).
 - **Micro-Animations:** Fluid floating card states, drag-and-swipe gestures, and scale transitions.

@@ -1,14 +1,15 @@
 import React, { useRef, useEffect, useState } from 'react';
-import type { BeerEvent } from '../types';
-import { X, Calendar, MapPin, Globe } from 'lucide-react';
+import type { BeerEvent, EventLocation } from '../types';
+import { X, Calendar, MapPin, Globe, Building2 } from 'lucide-react';
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (eventData: Omit<BeerEvent, 'id'>) => void;
+  locations?: EventLocation[];
 }
 
-export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmit }) => {
+export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmit, locations = [] }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   
   const [name, setName] = useState('');
@@ -21,6 +22,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
   const [status, setStatus] = useState<BeerEvent['status']>('Upcoming');
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [selectedLocationId, setSelectedLocationId] = useState('');
 
   // Sync React open state with native dialog element
   useEffect(() => {
@@ -40,6 +42,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
         setUrl('');
         setStatus('Upcoming');
         setErrors({});
+        setSelectedLocationId('');
       }
     } else {
       if (dialog.open) {
@@ -309,6 +312,47 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
           <div className="date-duration-hint-container">
             <span className="date-duration-hint">
               Event spans <strong>{duration}</strong> {duration === 1 ? 'day' : 'days'}
+            </span>
+          </div>
+        )}
+
+        {locations.length > 0 && (
+          <div className="form-group">
+            <label htmlFor="event-managed-location" className="form-label">
+              <Building2 size={13} style={{ display: 'inline', marginRight: '5px', verticalAlign: 'middle' }} />
+              Managed Venue <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'normal' }}>(Optional — auto-fills address)</span>
+            </label>
+            <select
+              id="event-managed-location"
+              className="form-input"
+              value={selectedLocationId}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedLocationId(id);
+                if (id) {
+                  const loc = locations.find((l) => l.id === id);
+                  if (loc) {
+                    setAddress(loc.address);
+                    setMapsUrl(loc.mapsUrl || '');
+                    setErrors((prev) => {
+                      const copy = { ...prev };
+                      delete copy.address;
+                      delete copy.location;
+                      return copy;
+                    });
+                  }
+                }
+              }}
+            >
+              <option value="">Select a managed venue...</option>
+              {locations.map((loc) => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.name}{loc.city ? ` — ${loc.city}` : ''}
+                </option>
+              ))}
+            </select>
+            <span className="form-input-help" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+              Selecting a venue will pre-fill the address and map link below. You can still edit them manually.
             </span>
           </div>
         )}

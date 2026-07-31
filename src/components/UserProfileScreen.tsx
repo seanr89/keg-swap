@@ -1,14 +1,33 @@
 import React from 'react';
-import type { BeerEvent, BeerReview } from '../types';
+import type { BeerEvent, BeerReview, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, Beer, MessageSquare, Calendar, Award, CheckCircle, ChevronRight, UserCheck } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Beer, 
+  MessageSquare, 
+  Calendar, 
+  Award, 
+  CheckCircle, 
+  ChevronRight, 
+  UserCheck, 
+  Globe, 
+  Lock, 
+  Users, 
+  UserPlus, 
+  UserMinus 
+} from 'lucide-react';
 import { StarRating } from './StarRating';
 
 interface UserProfileScreenProps {
   user: User;
+  userProfile: UserProfile | null;
+  allUsers: UserProfile[];
   events: BeerEvent[];
   onBack: () => void;
   onNavigateToEvent: (eventId: string) => void;
+  onTogglePrivacy: () => void;
+  onOpenSearchModal: () => void;
+  onRemoveFriend: (friendUid: string) => void;
 }
 
 interface UserReviewItem {
@@ -22,9 +41,14 @@ interface UserReviewItem {
 
 export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   user,
+  userProfile,
+  allUsers,
   events,
   onBack,
   onNavigateToEvent,
+  onTogglePrivacy,
+  onOpenSearchModal,
+  onRemoveFriend,
 }) => {
   // Aggregate reviews created by this user
   const userReviews: UserReviewItem[] = [];
@@ -103,6 +127,22 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
       })
     : 'Recently';
 
+  const isPublic = userProfile?.isPublic !== false;
+  const friendUids = userProfile?.friends || [];
+
+  // Resolve friend profile details from allUsers
+  const friendProfiles = friendUids.map((uid) => {
+    const found = allUsers.find((u) => u.uid === uid);
+    return (
+      found || {
+        uid,
+        displayName: 'User',
+        email: 'Member',
+        isPublic: true,
+      }
+    );
+  });
+
   return (
     <div className="profile-screen animate-fade-in">
       {/* Navigation & Header */}
@@ -114,7 +154,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
       </div>
 
       <div className="profile-layout-grid">
-        {/* Left Side: Profile info card & statistics */}
+        {/* Left Side: Profile info card, privacy settings, friends & statistics */}
         <div className="profile-sidebar-group">
           {/* User Card */}
           <div className="profile-card">
@@ -124,13 +164,97 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
               </div>
             </div>
             <div className="profile-details">
-              <h2 className="profile-name">{user.displayName || 'Ale Connoisseur'}</h2>
+              <div className="profile-name-row">
+                <h2 className="profile-name">{user.displayName || 'Ale Connoisseur'}</h2>
+                <span className={`privacy-badge ${isPublic ? 'badge-public' : 'badge-private'}`}>
+                  {isPublic ? <Globe size={12} /> : <Lock size={12} />}
+                  <span>{isPublic ? 'Public' : 'Private'}</span>
+                </span>
+              </div>
               <p className="profile-email">{user.email}</p>
               <div className="profile-meta-row">
                 <Calendar size={14} className="profile-meta-icon" />
                 <span>Joined {creationDate}</span>
               </div>
             </div>
+          </div>
+
+          {/* Privacy Toggle Card */}
+          <div className="privacy-settings-card">
+            <div className="privacy-settings-header">
+              <div>
+                <h4 className="privacy-title">Account Privacy</h4>
+                <p className="privacy-desc">
+                  {isPublic
+                    ? 'Your profile is public. Other users can find and add you as a friend.'
+                    : 'Your profile is private. You will not appear in user search results.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                className={`btn-privacy-toggle ${isPublic ? 'active' : ''}`}
+                onClick={onTogglePrivacy}
+                title={isPublic ? 'Switch to Private profile' : 'Switch to Public profile'}
+              >
+                {isPublic ? <Globe size={16} /> : <Lock size={16} />}
+                <span>{isPublic ? 'Public Account' : 'Private Account'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Friends List Dashboard */}
+          <div className="profile-stats-dashboard friends-dashboard">
+            <div className="sidebar-header-with-action">
+              <div className="title-with-badge">
+                <Users size={18} className="text-amber" />
+                <h3 className="sidebar-title" style={{ margin: 0 }}>Friends</h3>
+                <span className="friends-count-pill">{friendProfiles.length}</span>
+              </div>
+              <button
+                type="button"
+                className="btn-primary btn-small"
+                onClick={onOpenSearchModal}
+              >
+                <UserPlus size={14} />
+                <span>Find Friends</span>
+              </button>
+            </div>
+
+            {friendProfiles.length > 0 ? (
+              <div className="friends-list-grid">
+                {friendProfiles.map((friend) => {
+                  const avatarLetter = friend.displayName
+                    ? friend.displayName.charAt(0).toUpperCase()
+                    : friend.email
+                    ? friend.email.charAt(0).toUpperCase()
+                    : 'F';
+
+                  return (
+                    <div key={friend.uid} className="friend-card-item">
+                      <div className="friend-info">
+                        <div className="friend-avatar">{avatarLetter}</div>
+                        <div className="friend-details">
+                          <span className="friend-name">{friend.displayName}</span>
+                          <span className="friend-email">{friend.email}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn-remove-friend"
+                        onClick={() => onRemoveFriend(friend.uid)}
+                        title={`Remove ${friend.displayName} from friends`}
+                      >
+                        <UserMinus size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="friends-empty-state">
+                <p>No friends added yet. Click <strong>"Find Friends"</strong> to search and add public users!</p>
+              </div>
+            )}
           </div>
 
           {/* Stats Dashboard */}
@@ -215,6 +339,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                       <div className="profile-review-beer-row">
                         <h4 className="profile-review-beer-name">{drinkName}</h4>
                         <span className="profile-review-beer-style">{style}</span>
+                        {review.servingSize && <span className="review-meta-tag">{review.servingSize}</span>}
+                        {review.price && <span className="review-meta-tag price">{review.price}</span>}
                       </div>
                       <p className="profile-review-brewery">by {brewery}</p>
                     </div>
@@ -266,3 +392,4 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
     </div>
   );
 };
+

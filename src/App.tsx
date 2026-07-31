@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { BeerEvent, BeerDrink } from './types';
+import type { BeerEvent, BeerDrink, BeerReview, EventLocation, UserProfile } from './types';
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
@@ -8,7 +8,9 @@ import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserProfileScreen } from './components/UserProfileScreen';
-import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon } from 'lucide-react';
+import { UserSearchModal } from './components/UserSearchModal';
+import { AdminScreen } from './components/AdminScreen';
+import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth, db } from './firebase';
@@ -20,20 +22,26 @@ import {
   addDoc, 
   deleteDoc, 
   doc, 
-  updateDoc 
+  updateDoc,
+  setDoc
 } from 'firebase/firestore';
 import './App.css';
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-    return (localStorage.getItem('keg_swap_theme') as 'light' | 'dark') || 'light';
+    return (localStorage.getItem('keg_swap_theme') as 'light' | 'dark') || 'dark';
   });
 
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [events, setEvents] = useState<BeerEvent[]>([]);
+  const [locations, setLocations] = useState<EventLocation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -88,6 +96,96 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Firestore User Profile Sync & All Users Sync
+  useEffect(() => {
+    if (!user) {
+      setUserProfile(null);
+      setAllUsers([]);
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', user.uid);
+
+    // Sync logged in user profile doc
+    const unsubUser = onSnapshot(userDocRef, async (docSnap) => {
+      if (docSnap.exists()) {
+        setUserProfile(docSnap.data() as UserProfile);
+      } else {
+        // Initialize user profile document
+        const newProfile: UserProfile = {
+          uid: user.uid,
+          displayName: user.displayName || user.email || 'Ale Connoisseur',
+          email: user.email || '',
+          isPublic: true,
+          friends: [],
+          createdAt: new Date().toISOString(),
+        };
+        try {
+          await setDoc(userDocRef, newProfile);
+        } catch (err) {
+          console.error('Failed to create user profile in Firestore:', err);
+        }
+      }
+    });
+
+    // Subscribe to all users (for friend search & friend name resolution)
+    const usersColRef = collection(db, 'users');
+    const unsubAllUsers = onSnapshot(usersColRef, (snapshot) => {
+      const fetched: UserProfile[] = [];
+      snapshot.forEach((d) => {
+        fetched.push({ ...d.data(), uid: d.id } as UserProfile);
+      });
+      setAllUsers(fetched);
+    });
+
+    return () => {
+      unsubUser();
+      unsubAllUsers();
+    };
+  }, [user]);
+
+  const handleTogglePrivacy = async () => {
+    if (!user || !userProfile) return;
+    const userDocRef = doc(db, 'users', user.uid);
+    try {
+      await updateDoc(userDocRef, {
+        isPublic: !userProfile.isPublic,
+      });
+    } catch (err) {
+      console.error('Failed to toggle privacy setting:', err);
+    }
+  };
+
+  const handleAddFriend = async (friendUid: string) => {
+    if (!user || !userProfile) return;
+    const currentFriends = userProfile.friends || [];
+    if (currentFriends.includes(friendUid)) return;
+    const updatedFriends = [...currentFriends, friendUid];
+    const userDocRef = doc(db, 'users', user.uid);
+    try {
+      await updateDoc(userDocRef, {
+        friends: updatedFriends,
+      });
+    } catch (err) {
+      console.error('Failed to add friend:', err);
+    }
+  };
+
+  const handleRemoveFriend = async (friendUid: string) => {
+    if (!user || !userProfile) return;
+    const currentFriends = userProfile.friends || [];
+    const updatedFriends = currentFriends.filter((id) => id !== friendUid);
+    const userDocRef = doc(db, 'users', user.uid);
+    try {
+      await updateDoc(userDocRef, {
+        friends: updatedFriends,
+      });
+    } catch (err) {
+      console.error('Failed to remove friend:', err);
+    }
+  };
+
+
   // Firestore Events Sync & Seeding
   useEffect(() => {
     if (!user) {
@@ -119,6 +217,52 @@ function App() {
 
     return () => unsubscribe();
   }, [user]);
+
+  // Firestore Locations Sync
+  useEffect(() => {
+    if (!user) {
+      setLocations([]);
+      return;
+    }
+    const q = query(collection(db, 'locations'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched: EventLocation[] = [];
+      snapshot.forEach((d) => {
+        fetched.push({ id: d.id, ...d.data() } as EventLocation);
+      });
+      setLocations(fetched);
+    }, (err) => {
+      console.error('Firestore locations snapshot error:', err);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const handleSaveLocation = async (
+    locationData: Omit<EventLocation, 'id' | 'createdAt'>,
+    id?: string
+  ) => {
+    if (!user) return;
+    try {
+      if (id) {
+        await updateDoc(doc(db, 'locations', id), { ...locationData });
+      } else {
+        await addDoc(collection(db, 'locations'), {
+          ...locationData,
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save location:', err);
+    }
+  };
+
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'locations', id));
+    } catch (err) {
+      console.error('Failed to delete location:', err);
+    }
+  };
 
   const handleAddEvent = async (eventData: Omit<BeerEvent, 'id'>) => {
     if (!user) return;
@@ -160,14 +304,24 @@ function App() {
     }
   };
 
-  const handleAddReview = async (eventId: string, drinkId: string, reviewer: string, rating: number, comment: string) => {
-    const newReview = {
+  const handleAddReview = async (
+    eventId: string, 
+    drinkId: string, 
+    reviewer: string, 
+    rating: number, 
+    comment: string,
+    price?: string,
+    servingSize?: string
+  ) => {
+    const newReview: BeerReview = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       reviewer,
       rating,
       comment,
       createdAt: new Date().toISOString(),
       userId: user?.uid,
+      ...(price?.trim() ? { price: price.trim() } : {}),
+      ...(servingSize?.trim() ? { servingSize: servingSize.trim() } : {}),
     };
 
     const eventToUpdate = events.find((e) => e.id === eventId);
@@ -206,9 +360,15 @@ function App() {
     }
   };
 
+  const formatAbv = (abv: string) => {
+    const trimmed = abv.trim();
+    return trimmed.endsWith('%') ? trimmed : `${trimmed}%`;
+  };
+
   const handleAddDrink = async (eventId: string, drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => {
     const newDrink: BeerDrink = {
       ...drinkData,
+      abv: formatAbv(drinkData.abv),
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
       reviews: [],
     };
@@ -227,6 +387,7 @@ function App() {
   const handleAddDrinksBatch = async (eventId: string, drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => {
     const newDrinks: BeerDrink[] = drinksData.map(drinkData => ({
       ...drinkData,
+      abv: formatAbv(drinkData.abv),
       id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
       reviews: [],
     }));
@@ -243,13 +404,24 @@ function App() {
   };
 
   // Filter events based on search query and status filter
-  const filteredEvents = events.filter((event) => {
-    const matchesSearch =
-      event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      event.address.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === 'All' || event.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredEvents = events
+    .filter((event) => {
+      const matchesSearch =
+        event.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.address.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'All' || event.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const now = Date.now();
+      const timeA = new Date(a.date).getTime();
+      const timeB = new Date(b.date).getTime();
+      const diffA = Math.abs(timeA - now);
+      const diffB = Math.abs(timeB - now);
+      return diffA - diffB;
+    });
+
+  const isAdmin = user?.email?.toLowerCase() === 'srafferty89@gmail.com';
 
   const activeEvent = events.find((e) => e.id === activeEventId);
 
@@ -312,12 +484,30 @@ function App() {
               onClick={() => {
                 setShowProfile(true);
                 setActiveEventId(null);
+                setShowAdmin(false);
               }}
               title="View Profile"
             >
               <UserIcon size={14} />
               <span>{user.displayName || user.email}</span>
             </button>
+
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn-admin"
+                onClick={() => {
+                  setShowAdmin(true);
+                  setShowProfile(false);
+                  setActiveEventId(null);
+                }}
+                title="Admin Panel"
+                aria-label="Open Admin Panel"
+              >
+                <ShieldAlert size={16} />
+                <span>Admin</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -336,6 +526,7 @@ function App() {
                 signOut(auth);
                 setActiveEventId(null);
                 setShowProfile(false);
+                setShowAdmin(false);
               }}
               title="Sign Out"
               aria-label="Sign out"
@@ -352,8 +543,8 @@ function App() {
             user={user}
             onBack={() => setActiveEventId(null)}
             onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-            onAddReview={(drinkId, reviewer, rating, comment) =>
-              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment)
+            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize) =>
+              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize)
             }
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
             onToggleAttendance={handleToggleAttendance}
@@ -391,7 +582,7 @@ function App() {
     <div className="app-container">
       {/* Header section with beer theme */}
       <header className="app-header">
-        <div className="brand" onClick={() => { setActiveEventId(null); setShowProfile(false); }} style={{ cursor: 'pointer' }}>
+        <div className="brand" onClick={() => { setActiveEventId(null); setShowProfile(false); setShowAdmin(false); }} style={{ cursor: 'pointer' }}>
           <div className="logo-container">
             <Beer className="brand-logo" size={32} />
           </div>
@@ -408,12 +599,30 @@ function App() {
             onClick={() => {
               setShowProfile(true);
               setActiveEventId(null);
+              setShowAdmin(false);
             }}
             title="View Profile"
           >
             <UserIcon size={14} />
             <span>{user.displayName || user.email}</span>
           </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              className="btn-admin"
+              onClick={() => {
+                setShowAdmin(true);
+                setShowProfile(false);
+                setActiveEventId(null);
+              }}
+              title="Admin Panel"
+              aria-label="Open Admin Panel"
+            >
+              <ShieldAlert size={16} />
+              <span>Admin</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -432,6 +641,7 @@ function App() {
               signOut(auth);
               setActiveEventId(null);
               setShowProfile(false);
+              setShowAdmin(false);
             }}
             title="Sign Out"
             aria-label="Sign out"
@@ -455,15 +665,28 @@ function App() {
 
       {/* Main Content Area */}
       <main className="app-main">
-        {showProfile ? (
+        {showAdmin ? (
+          <AdminScreen
+            user={user}
+            locations={locations}
+            onBack={() => setShowAdmin(false)}
+            onSaveLocation={handleSaveLocation}
+            onDeleteLocation={handleDeleteLocation}
+          />
+        ) : showProfile ? (
           <UserProfileScreen
             user={user}
+            userProfile={userProfile}
+            allUsers={allUsers}
             events={events}
             onBack={() => setShowProfile(false)}
             onNavigateToEvent={(eventId) => {
               setShowProfile(false);
               setActiveEventId(eventId);
             }}
+            onTogglePrivacy={handleTogglePrivacy}
+            onOpenSearchModal={() => setIsSearchModalOpen(true)}
+            onRemoveFriend={handleRemoveFriend}
           />
         ) : (
           <>
@@ -569,6 +792,7 @@ function App() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddEvent}
+        locations={locations}
       />
 
       <footer className="app-footer">
@@ -594,6 +818,17 @@ function App() {
         consent={cookieConsent || { necessary: true, preferences: false }}
         onSaveConsent={handleSaveCustomConsent}
       />
+      {user && (
+        <UserSearchModal
+          isOpen={isSearchModalOpen}
+          onClose={() => setIsSearchModalOpen(false)}
+          currentUserId={user.uid}
+          currentUserFriends={userProfile?.friends || []}
+          publicUsers={allUsers}
+          onAddFriend={handleAddFriend}
+          onRemoveFriend={handleRemoveFriend}
+        />
+      )}
     </div>
   );
 }
