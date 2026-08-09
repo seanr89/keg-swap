@@ -10,7 +10,7 @@ import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserProfileScreen } from './components/UserProfileScreen';
 import { UserSearchModal } from './components/UserSearchModal';
 import { AdminScreen } from './components/AdminScreen';
-import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, Users } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth, db } from './firebase';
@@ -311,7 +311,8 @@ function App() {
     rating: number, 
     comment: string,
     price?: string,
-    servingSize?: string
+    servingSize?: string,
+    imageUrl?: string
   ) => {
     const newReview: BeerReview = {
       id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
@@ -322,6 +323,7 @@ function App() {
       userId: user?.uid,
       ...(price?.trim() ? { price: price.trim() } : {}),
       ...(servingSize?.trim() ? { servingSize: servingSize.trim() } : {}),
+      ...(imageUrl?.trim() ? { imageUrl: imageUrl.trim() } : {}),
     };
 
     const eventToUpdate = events.find((e) => e.id === eventId);
@@ -543,8 +545,8 @@ function App() {
             user={user}
             onBack={() => setActiveEventId(null)}
             onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize) =>
-              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize)
+            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl) =>
+              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl)
             }
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
             onToggleAttendance={handleToggleAttendance}
@@ -574,6 +576,85 @@ function App() {
           consent={cookieConsent || { necessary: true, preferences: false }}
           onSaveConsent={handleSaveCustomConsent}
         />
+        <EventModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleAddEvent}
+          locations={locations}
+        />
+        {user && (
+          <UserSearchModal
+            isOpen={isSearchModalOpen}
+            onClose={() => setIsSearchModalOpen(false)}
+            currentUserId={user.uid}
+            currentUserFriends={userProfile?.friends || []}
+            publicUsers={allUsers}
+            onAddFriend={handleAddFriend}
+            onRemoveFriend={handleRemoveFriend}
+          />
+        )}
+
+        {/* Mobile Bottom Navigation Bar */}
+        <nav className="mobile-bottom-nav" aria-label="Mobile Bottom Navigation">
+          <button
+            type="button"
+            className={`nav-tab-btn ${!showProfile && !showAdmin && !activeEventId ? 'active' : ''}`}
+            onClick={() => {
+              setActiveEventId(null);
+              setShowProfile(false);
+              setShowAdmin(false);
+            }}
+          >
+            <Beer size={20} />
+            <span>Events</span>
+          </button>
+
+          <button
+            type="button"
+            className="nav-tab-btn"
+            onClick={() => setIsSearchModalOpen(true)}
+          >
+            <Users size={20} />
+            <span>Friends</span>
+          </button>
+
+          <button
+            type="button"
+            className="nav-tab-btn nav-tab-primary"
+            onClick={() => setIsModalOpen(true)}
+            aria-label="Add Event"
+          >
+            <Plus size={22} />
+          </button>
+
+          <button
+            type="button"
+            className={`nav-tab-btn ${showProfile ? 'active' : ''}`}
+            onClick={() => {
+              setShowProfile(true);
+              setActiveEventId(null);
+              setShowAdmin(false);
+            }}
+          >
+            <UserIcon size={20} />
+            <span>Profile</span>
+          </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              className={`nav-tab-btn ${showAdmin ? 'active' : ''}`}
+              onClick={() => {
+                setShowAdmin(true);
+                setShowProfile(false);
+                setActiveEventId(null);
+              }}
+            >
+              <ShieldAlert size={20} />
+              <span>Admin</span>
+            </button>
+          )}
+        </nav>
       </div>
     );
   }
@@ -829,6 +910,68 @@ function App() {
           onRemoveFriend={handleRemoveFriend}
         />
       )}
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile Bottom Navigation">
+        <button
+          type="button"
+          className={`nav-tab-btn ${!showProfile && !showAdmin && !activeEventId ? 'active' : ''}`}
+          onClick={() => {
+            setActiveEventId(null);
+            setShowProfile(false);
+            setShowAdmin(false);
+          }}
+        >
+          <Beer size={20} />
+          <span>Events</span>
+        </button>
+
+        <button
+          type="button"
+          className="nav-tab-btn"
+          onClick={() => setIsSearchModalOpen(true)}
+        >
+          <Users size={20} />
+          <span>Friends</span>
+        </button>
+
+        <button
+          type="button"
+          className="nav-tab-btn nav-tab-primary"
+          onClick={() => setIsModalOpen(true)}
+          aria-label="Add Event"
+        >
+          <Plus size={22} />
+        </button>
+
+        <button
+          type="button"
+          className={`nav-tab-btn ${showProfile ? 'active' : ''}`}
+          onClick={() => {
+            setShowProfile(true);
+            setActiveEventId(null);
+            setShowAdmin(false);
+          }}
+        >
+          <UserIcon size={20} />
+          <span>Profile</span>
+        </button>
+
+        {isAdmin && (
+          <button
+            type="button"
+            className={`nav-tab-btn ${showAdmin ? 'active' : ''}`}
+            onClick={() => {
+              setShowAdmin(true);
+              setShowProfile(false);
+              setActiveEventId(null);
+            }}
+          >
+            <ShieldAlert size={20} />
+            <span>Admin</span>
+          </button>
+        )}
+      </nav>
     </div>
   );
 }

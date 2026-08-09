@@ -15,7 +15,9 @@ import {
   Users, 
   UserPlus, 
   UserMinus,
-  MapPin 
+  MapPin,
+  Camera,
+  X
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 
@@ -51,6 +53,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   onOpenSearchModal,
   onRemoveFriend,
 }) => {
+  const [lightboxImage, setLightboxImage] = React.useState<{ url: string; title: string; subtitle?: string } | null>(null);
+
   // Aggregate reviews created by this user
   const userReviews: UserReviewItem[] = [];
 
@@ -462,6 +466,21 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
                     <p className="profile-review-comment">"{review.comment}"</p>
 
+                    {review.imageUrl && (
+                      <div className="review-photo-container" style={{ marginTop: '10px' }}>
+                        <img
+                          src={review.imageUrl}
+                          alt="Tasting photo"
+                          className="review-photo-thumb"
+                          onClick={() => setLightboxImage({ url: review.imageUrl!, title: `${drinkName} Photo`, subtitle: `Tasted by ${user.displayName || 'User'} at ${eventName}` })}
+                          title="Click to view full photo"
+                        />
+                        <span className="review-photo-caption">
+                          <Camera size={12} /> Drink photo attached
+                        </span>
+                      </div>
+                    )}
+
                     <div className="profile-review-footer">
                       <span className="profile-review-date">
                         {new Date(review.createdAt).toLocaleDateString(undefined, {
@@ -497,6 +516,27 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div className="lightbox-overlay" onClick={() => setLightboxImage(null)}>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="lightbox-close-btn"
+              onClick={() => setLightboxImage(null)}
+              aria-label="Close photo modal"
+            >
+              <X size={20} />
+            </button>
+            <img src={lightboxImage.url} alt={lightboxImage.title} className="lightbox-img" />
+            <div className="lightbox-caption">
+              <h4>{lightboxImage.title}</h4>
+              {lightboxImage.subtitle && <p>{lightboxImage.subtitle}</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

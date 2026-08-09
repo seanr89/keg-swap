@@ -7,6 +7,7 @@ export interface BeerReview {
   userId?: string;
   price?: string;
   servingSize?: string;
+  imageUrl?: string;
 }
 
 export interface BeerDrink {
@@ -18,6 +19,7 @@ export interface BeerDrink {
   style: string;
   description: string;
   reviews: BeerReview[];
+  imageUrl?: string;
 }
 
 export interface BeerEvent {
