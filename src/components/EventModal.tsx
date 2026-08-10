@@ -205,7 +205,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
       className="event-modal-dialog"
     >
       <div className="modal-header">
-        <h2 id="dialog-title">New Beer & Ale Event</h2>
+        <h2 id="dialog-title">New Event</h2>
         <button
           type="button"
           onClick={() => dialogRef.current?.close()}

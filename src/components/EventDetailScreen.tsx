@@ -1,15 +1,43 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
-import { ArrowLeft, MapPin, Calendar, Plus, Beer, X, Check, MessageSquare, AlertCircle, Upload, Search, UserCheck, Globe, ExternalLink } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  MapPin, 
+  Calendar, 
+  Plus, 
+  Beer, 
+  X, 
+  Check, 
+  MessageSquare, 
+  AlertCircle, 
+  Upload, 
+  Search, 
+  UserCheck, 
+  Globe, 
+  ExternalLink,
+  Camera,
+  Image as ImageIcon,
+  Maximize2,
+  Trash2
+} from 'lucide-react';
 import { StarRating } from './StarRating';
+import { compressImageFile } from '../utils/imageUtils';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
   user: User;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => void;
-  onAddReview: (drinkId: string, reviewer: string, rating: number, comment: string, price?: string, servingSize?: string) => void;
+  onAddReview: (
+    drinkId: string, 
+    reviewer: string, 
+    rating: number, 
+    comment: string, 
+    price?: string, 
+    servingSize?: string,
+    imageUrl?: string
+  ) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
 }
@@ -30,6 +58,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkAbv, setNewDrinkAbv] = useState('');
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
+  const [newDrinkImageUrl, setNewDrinkImageUrl] = useState('');
+  const [drinkImageUploading, setDrinkImageUploading] = useState(false);
   const [addDrinkError, setAddDrinkError] = useState('');
 
   const isAttending = event.attendees?.includes(user.uid) || false;
@@ -41,7 +71,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedSort, setSelectedSort] = useState<string>('default');
 
-  // Add Review Dialog Modal states (top-level to prevent parents clipping)
+  // Add Review Dialog Modal states
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
   const [reviewerName, setReviewerName] = useState('');
   const [ratingVal, setRatingVal] = useState(8);
@@ -49,7 +79,12 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewPrice, setReviewPrice] = useState('');
   const [reviewServingSize, setReviewServingSize] = useState('');
   const [customServingSize, setCustomServingSize] = useState('');
+  const [reviewImageUrl, setReviewImageUrl] = useState('');
+  const [reviewImageUploading, setReviewImageUploading] = useState(false);
   const [reviewError, setReviewError] = useState('');
+
+  // Lightbox Modal state
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
   const reviewDialogRef = useRef<HTMLDialogElement>(null);
 
@@ -70,6 +105,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         setReviewPrice('');
         setReviewServingSize('');
         setCustomServingSize('');
+        setReviewImageUrl('');
+        setReviewImageUploading(false);
         setReviewError('');
       }
     } else {
@@ -103,6 +140,40 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     };
   }, []);
 
+  const handleDrinkImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setDrinkImageUploading(true);
+    setAddDrinkError('');
+    try {
+      const compressed = await compressImageFile(file);
+      setNewDrinkImageUrl(compressed);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to upload image';
+      setAddDrinkError(errMsg);
+    } finally {
+      setDrinkImageUploading(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleReviewImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setReviewImageUploading(true);
+    setReviewError('');
+    try {
+      const compressed = await compressImageFile(file);
+      setReviewImageUrl(compressed);
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : 'Failed to upload photo';
+      setReviewError(errMsg);
+    } finally {
+      setReviewImageUploading(false);
+      e.target.value = '';
+    }
+  };
+
   const handleReviewSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeReviewDrink) return;
@@ -118,7 +189,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       ratingVal,
       reviewComment.trim(),
       reviewPrice.trim() || undefined,
-      effectiveServingSize || undefined
+      effectiveServingSize || undefined,
+      reviewImageUrl.trim() || undefined
     );
 
     // Reset Form & Close Modal
@@ -128,6 +200,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setReviewPrice('');
     setReviewServingSize('');
     setCustomServingSize('');
+    setReviewImageUrl('');
     setReviewError('');
     setActiveReviewDrink(null);
   };
@@ -150,6 +223,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       abv: formattedAbv,
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
+      imageUrl: newDrinkImageUrl.trim() || undefined,
     });
 
     // Reset Form
@@ -159,6 +233,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setNewDrinkAbv('');
     setNewDrinkStyle('');
     setNewDrinkDesc('');
+    setNewDrinkImageUrl('');
     setAddDrinkError('');
     setShowAddForm(false);
   };
@@ -200,6 +275,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               abv: formattedBatchAbv,
               style: item.style.trim(),
               description: item.description.trim(),
+              ...(typeof item.imageUrl === 'string' && item.imageUrl.trim() ? { imageUrl: item.imageUrl.trim() } : {}),
             });
           }
         }
@@ -477,22 +553,21 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   onChange={(e) => setNewDrinkAbv(e.target.value)}
                 />
               </div>
-             
             </div>
           </div>
 
           <div className="form-grid">
-             <div className="form-group">
-                <label htmlFor="drink-style" className="form-label">Beer Type</label>
-                <input
-                  type="text"
-                  id="drink-style"
-                  className="form-input"
-                  placeholder="e.g. Porter"
-                  value={newDrinkStyle}
-                  onChange={(e) => setNewDrinkStyle(e.target.value)}
-                />
-              </div>
+            <div className="form-group">
+              <label htmlFor="drink-style" className="form-label">Beer Type</label>
+              <input
+                type="text"
+                id="drink-style"
+                className="form-input"
+                placeholder="e.g. Porter"
+                value={newDrinkStyle}
+                onChange={(e) => setNewDrinkStyle(e.target.value)}
+              />
+            </div>
             <div className="form-group">
               <label htmlFor="drink-desc" className="form-label">Tasting Profile</label>
               <input
@@ -505,7 +580,55 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               />
             </div>
           </div>
-          <button type="submit" className="btn-primary form-submit-btn">
+
+          {/* Photo / Image Attachment Section for New Drink */}
+          <div className="form-group image-upload-group" style={{ marginTop: '12px', marginBottom: '16px' }}>
+            <label className="form-label d-flex align-items-center" style={{ gap: '6px' }}>
+              <ImageIcon size={16} />
+              <span>Drink Photo (Optional)</span>
+            </label>
+            <div className="image-attachment-wrapper">
+              {newDrinkImageUrl ? (
+                <div className="image-preview-card">
+                  <img src={newDrinkImageUrl} alt="Drink Preview" className="image-preview-thumb" />
+                  <button
+                    type="button"
+                    className="btn-remove-image"
+                    onClick={() => setNewDrinkImageUrl('')}
+                    title="Remove attached photo"
+                  >
+                    <Trash2 size={14} />
+                    <span>Remove Photo</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="image-input-options">
+                  <label htmlFor="drink-file-upload" className="btn-file-upload">
+                    <Camera size={16} />
+                    <span>{drinkImageUploading ? 'Processing Image...' : 'Upload or Snap Photo'}</span>
+                    <input
+                      type="file"
+                      id="drink-file-upload"
+                      accept="image/*"
+                      onChange={handleDrinkImageFileSelect}
+                      style={{ display: 'none' }}
+                      disabled={drinkImageUploading}
+                    />
+                  </label>
+                  <span className="or-divider">or</span>
+                  <input
+                    type="url"
+                    className="form-input url-input"
+                    placeholder="Paste Image URL (https://...)"
+                    value={newDrinkImageUrl}
+                    onChange={(e) => setNewDrinkImageUrl(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <button type="submit" className="btn-primary form-submit-btn" disabled={drinkImageUploading}>
             <Check size={16} />
             <span>Confirm Add Drink</span>
           </button>
@@ -595,6 +718,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       setActiveReviewDrink(drink);
                       setReviewError('');
                     }}
+                    onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
                   />
                 ))}
               </div>
@@ -761,7 +885,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               )}
 
               <div className="form-group">
-                <label htmlFor="rev-comment" className="form-label">Tasting Notes / Comments</label>
+                <label htmlFor="rev-comment" className="form-label">
+                  Tasting Notes / Comments <span style={{ color: '#ef4444' }}>*</span>
+                </label>
                 <textarea
                   id="rev-comment"
                   className="form-input review-textarea"
@@ -774,6 +900,54 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 />
               </div>
 
+              {/* Photo / Image Attachment Section for Review */}
+              <div className="form-group image-upload-group" style={{ marginTop: '16px' }}>
+                <label className="form-label d-flex align-items-center" style={{ gap: '6px' }}>
+                  <Camera size={16} />
+                  <span>Attach Photo of Your Drink (Optional)</span>
+                </label>
+                <div className="image-attachment-wrapper">
+                  {reviewImageUrl ? (
+                    <div className="image-preview-card">
+                      <img src={reviewImageUrl} alt="Review Drink Preview" className="image-preview-thumb" />
+                      <button
+                        type="button"
+                        className="btn-remove-image"
+                        onClick={() => setReviewImageUrl('')}
+                        title="Remove attached photo"
+                      >
+                        <Trash2 size={14} />
+                        <span>Remove Photo</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="image-input-options">
+                      <label htmlFor="review-file-upload" className="btn-file-upload">
+                        <Camera size={16} />
+                        <span>{reviewImageUploading ? 'Processing Photo...' : 'Take Photo or Choose File'}</span>
+                        <input
+                          type="file"
+                          id="review-file-upload"
+                          accept="image/*"
+                          capture="environment"
+                          onChange={handleReviewImageFileSelect}
+                          style={{ display: 'none' }}
+                          disabled={reviewImageUploading}
+                        />
+                      </label>
+                      <span className="or-divider">or</span>
+                      <input
+                        type="url"
+                        className="form-input url-input"
+                        placeholder="Paste Image Link (https://...)"
+                        value={reviewImageUrl}
+                        onChange={(e) => setReviewImageUrl(e.target.value)}
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="modal-actions" style={{ marginTop: '24px' }}>
                 <button 
                   type="button" 
@@ -782,7 +956,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary">
+                <button type="submit" className="btn-primary" disabled={reviewImageUploading}>
                   <Check size={16} />
                   <span>Submit Review</span>
                 </button>
@@ -791,6 +965,27 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
           </>
         )}
       </dialog>
+
+      {/* Lightbox / Full-screen Image Preview Overlay */}
+      {lightboxImage && (
+        <div className="lightbox-overlay" onClick={() => setLightboxImage(null)}>
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="lightbox-close-btn"
+              onClick={() => setLightboxImage(null)}
+              aria-label="Close photo modal"
+            >
+              <X size={20} />
+            </button>
+            <img src={lightboxImage.url} alt={lightboxImage.title} className="lightbox-img" />
+            <div className="lightbox-caption">
+              <h4>{lightboxImage.title}</h4>
+              {lightboxImage.subtitle && <p>{lightboxImage.subtitle}</p>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -799,9 +994,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 interface BeerDrinkCardProps {
   drink: BeerDrink;
   onTriggerReview: () => void;
+  onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
 }
 
-const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview }) => {
+const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, onOpenLightbox }) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
   // Calculate Average Rating
@@ -811,12 +1007,32 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
 
   return (
     <div className="beer-card">
+      {/* Optional Top Drink Image Header */}
+      {drink.imageUrl && (
+        <div 
+          className="beer-card-image-banner"
+          onClick={() => onOpenLightbox(drink.imageUrl!, drink.name, `${drink.brewery} • ${drink.style}`)}
+          title="Click to view full drink photo"
+        >
+          <img src={drink.imageUrl} alt={drink.name} className="beer-card-img" />
+          <div className="image-zoom-badge">
+            <Maximize2 size={14} />
+            <span>Enlarge</span>
+          </div>
+        </div>
+      )}
+
       <div className="beer-card-main">
         {/* Left Side Details */}
         <div className="beer-card-info">
           <div className="beer-card-top">
             <span className="beer-style-badge">{drink.style}</span>
             <span className="beer-abv-badge">{drink.abv}</span>
+            {drink.imageUrl && (
+              <span className="photo-attached-badge" title="Drink has photo attached">
+                <ImageIcon size={12} /> Photo
+              </span>
+            )}
           </div>
           <h4 className="beer-name">{drink.name}</h4>
           <div className="beer-origin">
@@ -896,7 +1112,25 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview })
                       </span>
                     </div>
                   </div>
+                  
                   <p className="review-comment">{rev.comment}</p>
+                  
+                  {/* Photo of the drink the reviewer had */}
+                  {rev.imageUrl && (
+                    <div className="review-photo-container">
+                      <img
+                        src={rev.imageUrl}
+                        alt={`${rev.reviewer}'s drink check-in photo`}
+                        className="review-photo-thumb"
+                        onClick={() => onOpenLightbox(rev.imageUrl!, `${rev.reviewer}'s Drink Photo`, `${drink.name} • Rating: ${rev.rating.toFixed(1)}/10`)}
+                        title="Click to view full photo"
+                      />
+                      <span className="review-photo-caption">
+                        <Camera size={12} /> Snap of drink served
+                      </span>
+                    </div>
+                  )}
+
                   <span className="review-date">
                     {new Date(rev.createdAt).toLocaleDateString(undefined, {
                       month: 'short',
