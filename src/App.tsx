@@ -25,6 +25,11 @@ import {
   updateDoc,
   setDoc
 } from 'firebase/firestore';
+import { 
+  sanitizeOrUploadImageUrl, 
+  isBase64DataUrl, 
+  migrateEventImagesToStorage 
+} from './utils/imageUtils';
 import './App.css';
 
 function App() {
@@ -211,6 +216,23 @@ function App() {
         } as BeerEvent);
       });
       setEvents(fetchedEvents);
+
+      // Asynchronously migrate any legacy base64 images to Firebase Cloud Storage
+      fetchedEvents.forEach(async (ev) => {
+        const hasBase64 = (ev.drinks || []).some(
+          (d) => isBase64DataUrl(d.imageUrl) || (d.reviews || []).some((r) => isBase64DataUrl(r.imageUrl))
+        );
+        if (hasBase64) {
+          try {
+            const { updated, event: migratedEvent } = await migrateEventImagesToStorage(ev);
+            if (updated) {
+              await updateDoc(doc(db, 'events', ev.id), { drinks: migratedEvent.drinks });
+            }
+          } catch (migErr) {
+            console.error('Failed to migrate legacy base64 images for event', ev.id, migErr);
+          }
+        }
+      });
     }, (err) => {
       console.error("Firestore events snapshot error:", err);
     });
@@ -312,10 +334,25 @@ function App() {
     comment: string,
     price?: string,
     servingSize?: string,
-    imageUrl?: string
+    imageUrl?: string,
+    reviewId?: string
   ) => {
+    const finalReviewId = reviewId || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
+
+    let finalImageUrl = imageUrl?.trim();
+    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
+      try {
+        finalImageUrl = await sanitizeOrUploadImageUrl(
+          finalImageUrl,
+          `events/${eventId}/reviews/${finalReviewId}.jpg`
+        );
+      } catch (uploadErr) {
+        console.error('Failed to upload review image to Cloud Storage:', uploadErr);
+      }
+    }
+
     const newReview: BeerReview = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      id: finalReviewId,
       reviewer,
       rating,
       comment,
@@ -323,7 +360,7 @@ function App() {
       userId: user?.uid,
       ...(price?.trim() ? { price: price.trim() } : {}),
       ...(servingSize?.trim() ? { servingSize: servingSize.trim() } : {}),
-      ...(imageUrl?.trim() ? { imageUrl: imageUrl.trim() } : {}),
+      ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
     };
 
     const eventToUpdate = events.find((e) => e.id === eventId);
@@ -367,11 +404,29 @@ function App() {
     return trimmed.endsWith('%') ? trimmed : `${trimmed}%`;
   };
 
-  const handleAddDrink = async (eventId: string, drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => {
+  const handleAddDrink = async (
+    eventId: string, 
+    drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }
+  ) => {
+    const finalDrinkId = drinkData.id || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
+
+    let finalImageUrl = drinkData.imageUrl?.trim();
+    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
+      try {
+        finalImageUrl = await sanitizeOrUploadImageUrl(
+          finalImageUrl,
+          `events/${eventId}/drinks/${finalDrinkId}.jpg`
+        );
+      } catch (uploadErr) {
+        console.error('Failed to upload drink image to Cloud Storage:', uploadErr);
+      }
+    }
+
     const newDrink: BeerDrink = {
       ...drinkData,
+      id: finalDrinkId,
       abv: formatAbv(drinkData.abv),
-      id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
+      imageUrl: finalImageUrl || undefined,
       reviews: [],
     };
 
@@ -386,13 +441,34 @@ function App() {
     }
   };
 
-  const handleAddDrinksBatch = async (eventId: string, drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => {
-    const newDrinks: BeerDrink[] = drinksData.map(drinkData => ({
-      ...drinkData,
-      abv: formatAbv(drinkData.abv),
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36),
-      reviews: [],
-    }));
+  const handleAddDrinksBatch = async (
+    eventId: string, 
+    drinksData: (Omit<BeerDrink, 'id' | 'reviews'> & { id?: string })[]
+  ) => {
+    const newDrinks: BeerDrink[] = await Promise.all(
+      drinksData.map(async (drinkData) => {
+        const drinkId = drinkData.id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36));
+        let finalImageUrl = drinkData.imageUrl?.trim();
+        if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
+          try {
+            finalImageUrl = await sanitizeOrUploadImageUrl(
+              finalImageUrl,
+              `events/${eventId}/drinks/${drinkId}.jpg`
+            );
+          } catch (err) {
+            console.error(`Failed to upload batch drink image for ${drinkId}:`, err);
+          }
+        }
+
+        return {
+          ...drinkData,
+          abv: formatAbv(drinkData.abv),
+          id: drinkId,
+          imageUrl: finalImageUrl || undefined,
+          reviews: [],
+        };
+      })
+    );
 
     const eventToUpdate = events.find((e) => e.id === eventId);
     if (!eventToUpdate) return;
@@ -545,8 +621,8 @@ function App() {
             user={user}
             onBack={() => setActiveEventId(null)}
             onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl) =>
-              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl)
+            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId) =>
+              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId)
             }
             onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
             onToggleAttendance={handleToggleAttendance}

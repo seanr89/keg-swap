@@ -22,13 +22,17 @@ import {
   Trash2
 } from 'lucide-react';
 import { StarRating } from './StarRating';
-import { compressImageFile } from '../utils/imageUtils';
+import { 
+  uploadImageFile, 
+  sanitizeOrUploadImageUrl, 
+  isBase64DataUrl 
+} from '../utils/imageUtils';
 
 interface EventDetailScreenProps {
   event: BeerEvent;
   user: User;
   onBack: () => void;
-  onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'>) => void;
+  onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }) => void;
   onAddReview: (
     drinkId: string, 
     reviewer: string, 
@@ -36,7 +40,8 @@ interface EventDetailScreenProps {
     comment: string, 
     price?: string, 
     servingSize?: string,
-    imageUrl?: string
+    imageUrl?: string,
+    reviewId?: string
   ) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
@@ -59,6 +64,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
   const [newDrinkImageUrl, setNewDrinkImageUrl] = useState('');
+  const [drinkDraftId, setDrinkDraftId] = useState(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
+  );
   const [drinkImageUploading, setDrinkImageUploading] = useState(false);
   const [addDrinkError, setAddDrinkError] = useState('');
 
@@ -80,6 +88,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewServingSize, setReviewServingSize] = useState('');
   const [customServingSize, setCustomServingSize] = useState('');
   const [reviewImageUrl, setReviewImageUrl] = useState('');
+  const [reviewDraftId, setReviewDraftId] = useState(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
+  );
   const [reviewImageUploading, setReviewImageUploading] = useState(false);
   const [reviewError, setReviewError] = useState('');
 
@@ -146,8 +157,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setDrinkImageUploading(true);
     setAddDrinkError('');
     try {
-      const compressed = await compressImageFile(file);
-      setNewDrinkImageUrl(compressed);
+      const storagePath = `events/${event.id}/drinks/${drinkDraftId}.jpg`;
+      const downloadUrl = await uploadImageFile(file, storagePath);
+      setNewDrinkImageUrl(downloadUrl);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Failed to upload image';
       setAddDrinkError(errMsg);
@@ -163,8 +175,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setReviewImageUploading(true);
     setReviewError('');
     try {
-      const compressed = await compressImageFile(file);
-      setReviewImageUrl(compressed);
+      const storagePath = `events/${event.id}/reviews/${reviewDraftId}.jpg`;
+      const downloadUrl = await uploadImageFile(file, storagePath);
+      setReviewImageUrl(downloadUrl);
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : 'Failed to upload photo';
       setReviewError(errMsg);
@@ -174,7 +187,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeReviewDrink) return;
     if (!reviewerName.trim()) return setReviewError('Your name is required');
@@ -183,6 +196,24 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
     const effectiveServingSize = reviewServingSize === 'Other' ? customServingSize.trim() : reviewServingSize;
 
+    let finalImageUrl = reviewImageUrl.trim() || undefined;
+    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
+      try {
+        setReviewImageUploading(true);
+        finalImageUrl = await sanitizeOrUploadImageUrl(
+          finalImageUrl,
+          `events/${event.id}/reviews/${reviewDraftId}.jpg`
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'Failed to process review photo';
+        setReviewError(errMsg);
+        setReviewImageUploading(false);
+        return;
+      } finally {
+        setReviewImageUploading(false);
+      }
+    }
+
     onAddReview(
       activeReviewDrink.id,
       reviewerName.trim(),
@@ -190,7 +221,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       reviewComment.trim(),
       reviewPrice.trim() || undefined,
       effectiveServingSize || undefined,
-      reviewImageUrl.trim() || undefined
+      finalImageUrl,
+      reviewDraftId
     );
 
     // Reset Form & Close Modal
@@ -203,9 +235,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setReviewImageUrl('');
     setReviewError('');
     setActiveReviewDrink(null);
+    setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
   };
 
-  const handleDrinkSubmit = (e: React.FormEvent) => {
+  const handleDrinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDrinkName.trim()) return setAddDrinkError('Drink name is required');
     if (!newDrinkBrewery.trim()) return setAddDrinkError('Brewery is required');
@@ -216,14 +249,33 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
     const formattedAbv = newDrinkAbv.trim().endsWith('%') ? newDrinkAbv.trim() : `${newDrinkAbv.trim()}%`;
 
+    let finalImageUrl = newDrinkImageUrl.trim() || undefined;
+    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
+      try {
+        setDrinkImageUploading(true);
+        finalImageUrl = await sanitizeOrUploadImageUrl(
+          finalImageUrl,
+          `events/${event.id}/drinks/${drinkDraftId}.jpg`
+        );
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : 'Failed to process drink photo';
+        setAddDrinkError(errMsg);
+        setDrinkImageUploading(false);
+        return;
+      } finally {
+        setDrinkImageUploading(false);
+      }
+    }
+
     onAddDrink({
+      id: drinkDraftId,
       name: newDrinkName.trim(),
       brewery: newDrinkBrewery.trim(),
       location: newDrinkLocation.trim(),
       abv: formattedAbv,
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
-      imageUrl: newDrinkImageUrl.trim() || undefined,
+      imageUrl: finalImageUrl,
     });
 
     // Reset Form
@@ -236,6 +288,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setNewDrinkImageUrl('');
     setAddDrinkError('');
     setShowAddForm(false);
+    setDrinkDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
   };
 
   const handleBatchUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -716,6 +769,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     drink={drink}
                     onTriggerReview={() => {
                       setActiveReviewDrink(drink);
+                      setReviewImageUrl('');
+                      setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
                       setReviewError('');
                     }}
                     onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}

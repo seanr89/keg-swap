@@ -1,0 +1,18 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Event drinks and review photos
+    match /events/{eventId}/{allPaths=**} {
+      // Allow any authenticated user to view event images
+      allow read: if request.auth != null;
+      
+      // Allow authenticated users to upload drink/review images under 5MB with valid image content types
+      allow write: if request.auth != null
+                   && request.resource.size < 5 * 1024 * 1024
+                   && request.resource.contentType.matches('image/.*');
+      
+      // Allow deletion by authenticated users
+      allow delete: if request.auth != null;
+    }
+  }
+}
