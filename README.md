@@ -197,22 +197,15 @@ Keg Swap supports **Firebase Authentication** for user accounts and **Cloud Fire
 2. Click **Create Database**.
 3. Choose your database location, select **Start in production mode** (or test mode), and click **Create**.
 
-### Step 4: Configure Firestore Security Rules
-For authentication-based security, navigate to the **Rules** tab in Firestore and define the rules.
+### Step 4: Deploy Firestore Security Rules
+Rules live in `firestore.rules` (and `storage.rules` for Cloud Storage). Admins are identified by a document at `admins/<their Firebase Auth uid>`.
 
-Example Rules (Allows logged-in users to read and write events):
-```javascript
-rules_version = '2';
+**Order matters:**
+1. In the Firebase console (Firestore Database), create a collection `admins` with a document whose ID is your Auth uid (Authentication > Users). It needs no fields.
+2. Deploy the app build.
+3. Deploy the rules: `firebase deploy --only firestore:rules,storage`
 
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /events/{eventId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null;
-    }
-  }
-}
-```
+Deploying the rules before step 1 locks you out of admin-only writes (locations).
 
 ### Step 5: Register App & Get Config Keys
 1. In the Firebase Console, go to **Project Settings** (cog icon next to Project Overview).

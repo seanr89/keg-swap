@@ -27,7 +27,7 @@ Drinks and reviews are **embedded arrays inside the `events/{id}` document** (`B
 Other collections: `users/{uid}` (`UserProfile`, with `isPublic`, `friends`), `locations/{id}` (`EventLocation`, admin-managed).
 
 ### Images
-Images go to Firebase Storage under `events/{eventId}/...` and only the download URL is stored in Firestore. `src/utils/imageUtils.ts` handles canvas compression, upload, and a legacy migration: when the events snapshot fires, `App.tsx` finds events whose drinks/reviews still hold base64 `data:` URLs, uploads them, and writes the URLs back. `storage.rules` restricts uploads to authenticated users, images only, under 5MB. There is no `firestore.rules` file in the repo.
+Images go to Firebase Storage under `events/{eventId}/...` and only the download URL is stored in Firestore. `src/utils/imageUtils.ts` handles canvas compression, upload, and a legacy migration: when the events snapshot fires, `App.tsx` finds events whose drinks/reviews still hold base64 `data:` URLs, uploads them, and writes the URLs back. `storage.rules` restricts uploads to authenticated users, images only, under 5MB. Firestore access is governed by `firestore.rules` (deploy with `firebase deploy --only firestore:rules,storage`).
 
 ### Theming
 Theme is a `data-theme` attribute, persisted in `localStorage` key `keg_swap_theme` (default dark), but only when the user has accepted the "preferences" cookie consent (otherwise the key is removed). An inline script in `index.html` applies it before first paint to avoid FOUC; preserve that when touching theme code. All colors are CSS custom properties from `src/index.css`; do not hardcode hex values in components.
@@ -37,7 +37,7 @@ Ratings are 0.5–10.0 in 0.5 steps (`StarRating.tsx` renders beer glasses). `ab
 
 ## Known gotchas (also tracked in `TODO.md`)
 
-- Admin is detected client-side by hardcoded email comparison in `App.tsx` (`isAdmin`) and `AdminScreen.tsx`; there is no server-side enforcement. Don't extend this pattern. Prefer custom claims or a roles doc.
-- `App.tsx` subscribes to the **entire** `users` collection and filters `isPublic` on the client. Server-side `where('isPublic', '==', true)` is the intended fix.
-- Event deletion has no confirmation or ownership check yet. `AGENTS.md` requires a confirmation dialog for any destructive action you add.
+- Admin status is the existence of `admins/{uid}` (read by `src/hooks/useIsAdmin.ts`, enforced in `firestore.rules`). Admin docs are created manually in the Firebase console; deploy rules only after your own admin doc exists.
+- Event deletion goes through `ConfirmDialog` and is limited to the creator or an admin (events without `userId` are admin-only). Location and drink deletes still lack confirmation; `AGENTS.md` requires a confirmation dialog for any destructive action you add.
+- `App.tsx` fetches only public users (`where('isPublic', '==', true)`); review attribution on profiles uses `review.userId` only. Dates like `YYYY-MM-DD` must go through `parseLocalDate` (`src/utils/dateUtils.ts`), not `new Date(str)`.
 - `AGENTS.md` also defines engineering rules (no `any`, no hardcoded colors, domain types centralized in `src/types.ts`) and four workspace skills in `.agents/skills/` (`firebase-data-architecture`, `component-refactoring`, `beer-catalog-manager`, `keg-quality-testing`). Read the relevant one before working in that area.

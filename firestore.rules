@@ -1,0 +1,44 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // Admin role documents: created manually in the console, never by clients.
+    match /admins/{uid} {
+      allow get: if isSignedIn() && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+
+    // Profiles: own doc, or any public profile (the client queries isPublic == true).
+    match /users/{uid} {
+      allow read: if isSignedIn()
+        && (request.auth.uid == uid || resource.data.isPublic == true);
+      allow create, update: if isSignedIn() && request.auth.uid == uid;
+      allow delete: if false;
+    }
+
+    // Event venues: any signed-in user can read, only admins can change.
+    match /locations/{locationId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Events embed drinks, reviews and attendees, so any signed-in user may update.
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn()
+        && (isAdmin() || resource.data.userId == request.auth.uid);
+    }
+  }
+}

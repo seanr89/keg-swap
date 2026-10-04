@@ -30,7 +30,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - *Issue:* `App.tsx` subscribes to the entire `users` collection via `onSnapshot(collection(db, 'users'))`. Filtering for `isPublic !== false` occurs strictly on the client, sending all emails and private profile data to all connected clients.
   - *Fix:* Update the Firestore query to filter server-side: `query(collection(db, 'users'), where('isPublic', '==', true))`.
 
-- [ ] **[P1] Client-Only Hardcoded Admin Credentials** `firebase-specialist`
+- [x] **[P1] Client-Only Hardcoded Admin Credentials** `firebase-specialist`
   - *Location:* [`src/App.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/App.tsx#L426) & [`src/components/AdminScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/AdminScreen.tsx#L21)
   - *Issue:* `srafferty89@gmail.com` is hardcoded on the client. Without corresponding Firestore security rules, malicious users can bypass client guards and directly write or delete from `/locations`.
   - *Fix:* Add `firestore.rules` enforcing admin privileges server-side and migrate admin verification to Firebase Auth Custom Claims or an `/admins/{uid}` collection.
@@ -158,7 +158,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | Fix Firestore 1MB document limit via Storage | P0 | `firebase-specialist` | Completed |
 | Add confirmation modal for event deletion | P0 | `frontend-refactorer` | Completed (client-side) |
 | Restrict user queries to `isPublic == true` | P1 | `firebase-specialist` | Completed |
-| Add server-side `firestore.rules` | P1 | `firebase-specialist` | Pending |
+| Add server-side `firestore.rules` | P1 | `firebase-specialist` | Completed (deploy pending) |
 | Code-split heavy routes (`React.lazy`) | P1 | `frontend-refactorer` | Pending |
 | Setup Vitest + RTL test suite | P1 | `qa-auditor` | Pending |
 | Extract custom hooks (`useAuth`, `useEvents`) | P1 | `frontend-refactorer` | Pending |
