@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent } from '../types';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from '../utils/dateUtils';
 import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck, Globe, ExternalLink } from 'lucide-react';
 
 interface EventCardProps {
@@ -112,7 +113,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, canDelete, on
   // Formatting date to a friendly local string range
   const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
     if (!startDateString) return '';
-    const startObj = new Date(startDateString);
+    const startObj = parseLocalDate(startDateString);
     
     if (!endDateString || startDateString === endDateString) {
       return startObj.toLocaleDateString(undefined, {
@@ -123,7 +124,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, canDelete, on
       });
     }
 
-    const endObj = new Date(endDateString);
+    const endObj = parseLocalDate(endDateString);
     
     const isSameDay = startObj.getFullYear() === endObj.getFullYear() &&
                       startObj.getMonth() === endObj.getMonth() &&

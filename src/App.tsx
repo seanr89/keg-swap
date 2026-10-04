@@ -14,12 +14,14 @@ import { AdminScreen } from './components/AdminScreen';
 import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, Users } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from './utils/dateUtils';
 import { auth, db } from './firebase';
 import { 
   collection, 
   onSnapshot, 
   query, 
   orderBy, 
+  where,
   addDoc, 
   deleteDoc, 
   doc, 
@@ -135,9 +137,10 @@ function App() {
       }
     });
 
-    // Subscribe to all users (for friend search & friend name resolution)
-    const usersColRef = collection(db, 'users');
-    const unsubAllUsers = onSnapshot(usersColRef, (snapshot) => {
+    // Subscribe to public users (for friend search & friend name resolution)
+    // Only public profiles are fetched so private accounts never reach other clients
+    const usersQuery = query(collection(db, 'users'), where('isPublic', '==', true));
+    const unsubAllUsers = onSnapshot(usersQuery, (snapshot) => {
       const fetched: UserProfile[] = [];
       snapshot.forEach((d) => {
         fetched.push({ ...d.data(), uid: d.id } as UserProfile);
@@ -501,8 +504,8 @@ function App() {
     })
     .sort((a, b) => {
       const now = Date.now();
-      const timeA = new Date(a.date).getTime();
-      const timeB = new Date(b.date).getTime();
+      const timeA = parseLocalDate(a.date).getTime();
+      const timeB = parseLocalDate(b.date).getTime();
       const diffA = Math.abs(timeA - now);
       const diffB = Math.abs(timeB - now);
       return diffA - diffB;

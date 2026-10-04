@@ -25,7 +25,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - *Fix:* Add a modal confirmation dialog (`"Are you sure you want to delete this event?"`) and restrict delete privileges to the event creator (`userId == auth.uid`) or an admin.
   - *Status:* Done client-side (`ConfirmDialog` + `canDelete` on `EventCard`; legacy events without `userId` are admin-only). Server-side enforcement still requires `firestore.rules` (see the P1 admin item).
 
-- [ ] **[P1] Private User Profiles Leaked to All Clients** `firebase-specialist`
+- [x] **[P1] Private User Profiles Leaked to All Clients** `firebase-specialist`
   - *Location:* [`src/App.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/App.tsx#L132-L139) & [`src/components/UserSearchModal.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/UserSearchModal.tsx#L60-L62)
   - *Issue:* `App.tsx` subscribes to the entire `users` collection via `onSnapshot(collection(db, 'users'))`. Filtering for `isPublic !== false` occurs strictly on the client, sending all emails and private profile data to all connected clients.
   - *Fix:* Update the Firestore query to filter server-side: `query(collection(db, 'users'), where('isPublic', '==', true))`.
@@ -35,12 +35,12 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - *Issue:* `srafferty89@gmail.com` is hardcoded on the client. Without corresponding Firestore security rules, malicious users can bypass client guards and directly write or delete from `/locations`.
   - *Fix:* Add `firestore.rules` enforcing admin privileges server-side and migrate admin verification to Firebase Auth Custom Claims or an `/admins/{uid}` collection.
 
-- [ ] **[P2] Date Timezone Off-by-One in Event Display** `frontend-refactorer`
+- [x] **[P2] Date Timezone Off-by-One in Event Display** `frontend-refactorer`
   - *Location:* [`src/components/EventCard.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/EventCard.tsx#L110-L150)
   - *Issue:* Parsing ISO date strings `YYYY-MM-DD` with `new Date(str)` parses as UTC midnight, which displays as the previous day in timezones west of UTC (e.g. US timezones).
   - *Fix:* Normalize date formatting with calendar-safe parsing (e.g., splitting `YYYY-MM-DD` or using `Intl.DateTimeFormat` with explicit UTC).
 
-- [ ] **[P2] User Review Misattribution by Display Name** `firebase-specialist`
+- [x] **[P2] User Review Misattribution by Display Name** `firebase-specialist`
   - *Location:* [`src/components/UserProfileScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/UserProfileScreen.tsx#L64-L71)
   - *Issue:* Legacy fallback matches reviews by `review.reviewer === user.displayName || review.reviewer === user.email`. If two users share the same display name, reviews will be cross-attributed.
   - *Fix:* Enforce `userId` on all reviews and remove non-unique display name matching.
@@ -157,7 +157,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | :--- | :---: | :--- | :---: |
 | Fix Firestore 1MB document limit via Storage | P0 | `firebase-specialist` | Completed |
 | Add confirmation modal for event deletion | P0 | `frontend-refactorer` | Completed (client-side) |
-| Restrict user queries to `isPublic == true` | P1 | `firebase-specialist` | Pending |
+| Restrict user queries to `isPublic == true` | P1 | `firebase-specialist` | Completed |
 | Add server-side `firestore.rules` | P1 | `firebase-specialist` | Pending |
 | Code-split heavy routes (`React.lazy`) | P1 | `frontend-refactorer` | Pending |
 | Setup Vitest + RTL test suite | P1 | `qa-auditor` | Pending |

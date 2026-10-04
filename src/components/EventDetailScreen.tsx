@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent, BeerDrink } from '../types';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from '../utils/dateUtils';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -394,7 +395,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
     if (!startDateString) return '';
-    const startObj = new Date(startDateString);
+    const startObj = parseLocalDate(startDateString);
     
     if (!endDateString || startDateString === endDateString) {
       return startObj.toLocaleDateString(undefined, {
@@ -405,7 +406,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       });
     }
 
-    const endObj = new Date(endDateString);
+    const endObj = parseLocalDate(endDateString);
     
     const isSameDay = startObj.getFullYear() === endObj.getFullYear() &&
                       startObj.getMonth() === endObj.getMonth() &&
