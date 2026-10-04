@@ -33,6 +33,8 @@ export interface BeerEvent {
   attendees?: string[];
   url?: string;
   mapsUrl?: string;
+  userId?: string; // uid of the creator; absent on legacy events
+  createdAt?: string;
 }
 
 export interface UserProfile {

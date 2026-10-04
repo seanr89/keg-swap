@@ -3,6 +3,7 @@ import type { BeerEvent, BeerDrink, BeerReview, EventLocation, UserProfile } fro
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { EventDetailScreen } from './components/EventDetailScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
@@ -50,6 +51,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [eventPendingDelete, setEventPendingDelete] = useState<BeerEvent | null>(null);
 
   const [cookieConsent, setCookieConsent] = useState<{ necessary: boolean; preferences: boolean } | null>(() => {
     const saved = localStorage.getItem('keg_swap_cookie_consent');
@@ -307,10 +309,17 @@ function App() {
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
+  // Only the creator or an admin may delete; legacy events without a userId are admin-only
+  const canDeleteEvent = (event: BeerEvent) =>
+    isAdmin || (!!user && !!event.userId && event.userId === user.uid);
+
+  const handleConfirmDeleteEvent = async () => {
+    const event = eventPendingDelete;
+    setEventPendingDelete(null);
+    if (!event || !canDeleteEvent(event)) return;
     try {
-      await deleteDoc(doc(db, 'events', id));
-      if (activeEventId === id) {
+      await deleteDoc(doc(db, 'events', event.id));
+      if (activeEventId === event.id) {
         setActiveEventId(null);
       }
     } catch (err) {
@@ -897,7 +906,8 @@ function App() {
                       key={event.id}
                       event={event}
                       user={user}
-                      onDelete={handleDeleteEvent}
+                      canDelete={canDeleteEvent(event)}
+                      onRequestDelete={setEventPendingDelete}
                       onStatusChange={handleStatusChange}
                       onSelect={() => setActiveEventId(event.id)}
                       onToggleAttendance={handleToggleAttendance}
@@ -950,6 +960,20 @@ function App() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddEvent}
         locations={locations}
+      />
+
+      <ConfirmDialog
+        isOpen={eventPendingDelete !== null}
+        title="Delete Event"
+        message={
+          <>
+            Delete <strong style={{ color: 'var(--text-primary)' }}>{eventPendingDelete?.name}</strong>?
+            This also removes its drinks and reviews. This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Event"
+        onConfirm={handleConfirmDeleteEvent}
+        onCancel={() => setEventPendingDelete(null)}
       />
 
       <footer className="app-footer">

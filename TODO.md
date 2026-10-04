@@ -19,10 +19,11 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - *Issue:* Drinks and reviews store compressed canvas JPEG data URLs directly within `events/{eventId}` documents. An event with 10–15 drinks containing photo reviews will exceed the Firestore 1MB document cap and trigger write failures.
   - *Fix:* Migrate image storage to Firebase Cloud Storage (`events/{id}/drinks/...`) or an external CDN; save only the download URL string in Firestore.
 
-- [ ] **[P0] Unconfirmed & Unauthorized Event Deletion** `qa-auditor` `frontend-refactorer`
+- [x] **[P0] Unconfirmed & Unauthorized Event Deletion** `qa-auditor` `frontend-refactorer`
   - *Location:* [`src/components/EventCard.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/EventCard.tsx#L230-L241) & [`src/App.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/App.tsx#L288-L297)
   - *Issue:* Clicking the trash icon or performing a touch swipe gesture triggers `deleteDoc` immediately without a confirmation prompt or ownership validation. Any user can delete any event.
   - *Fix:* Add a modal confirmation dialog (`"Are you sure you want to delete this event?"`) and restrict delete privileges to the event creator (`userId == auth.uid`) or an admin.
+  - *Status:* Done client-side (`ConfirmDialog` + `canDelete` on `EventCard`; legacy events without `userId` are admin-only). Server-side enforcement still requires `firestore.rules` (see the P1 admin item).
 
 - [ ] **[P1] Private User Profiles Leaked to All Clients** `firebase-specialist`
   - *Location:* [`src/App.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/App.tsx#L132-L139) & [`src/components/UserSearchModal.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/UserSearchModal.tsx#L60-L62)
@@ -155,7 +156,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | Task | Priority | Assigned Subagent | Status |
 | :--- | :---: | :--- | :---: |
 | Fix Firestore 1MB document limit via Storage | P0 | `firebase-specialist` | Completed |
-| Add confirmation modal for event deletion | P0 | `frontend-refactorer` | Pending |
+| Add confirmation modal for event deletion | P0 | `frontend-refactorer` | Completed (client-side) |
 | Restrict user queries to `isPublic == true` | P1 | `firebase-specialist` | Pending |
 | Add server-side `firestore.rules` | P1 | `firebase-specialist` | Pending |
 | Code-split heavy routes (`React.lazy`) | P1 | `frontend-refactorer` | Pending |
