@@ -38,7 +38,7 @@ Created manually in the Firebase console. Clients can read only their own doc; n
 | `admins/{uid}` | own doc | none |
 | `users/{uid}` | own doc, or `isPublic == true` | create/update own doc only (`request.auth.uid == uid`); no delete |
 | `locations/{id}` | signed in | admin only |
-| `events/{id}` | signed in | create: signed in and `userId == auth.uid`; update: signed in; delete: `userId == auth.uid` or admin |
+| `events/{id}` | signed in | create: signed in and `userId == auth.uid`; update: signed in and `userId` unchanged (so ownership can't be claimed); delete: `userId == auth.uid` or admin |
 
 `isAdmin()` helper: `exists(/databases/$(database)/documents/admins/$(request.auth.uid))`.
 The `users` read rule is written so the client query `where('isPublic', '==', true)` is permitted.
