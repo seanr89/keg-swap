@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { EventLocation } from '../types';
-import type { User } from 'firebase/auth';
 import {
   ArrowLeft,
   Plus,
@@ -18,10 +17,8 @@ import {
   StickyNote,
 } from 'lucide-react';
 
-const ADMIN_EMAIL = 'srafferty89@gmail.com';
-
 interface AdminScreenProps {
-  user: User;
+  isAdmin: boolean;
   locations: EventLocation[];
   onBack: () => void;
   onSaveLocation: (locationData: Omit<EventLocation, 'id' | 'createdAt'>, id?: string) => Promise<void>;
@@ -49,14 +46,12 @@ const emptyForm = (): LocationFormState => ({
 });
 
 export const AdminScreen: React.FC<AdminScreenProps> = ({
-  user,
+  isAdmin,
   locations,
   onBack,
   onSaveLocation,
   onDeleteLocation,
 }) => {
-  const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL;
-
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

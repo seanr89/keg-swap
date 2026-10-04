@@ -15,6 +15,7 @@ import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, U
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from './utils/dateUtils';
+import { useIsAdmin } from './hooks/useIsAdmin';
 import { auth, db } from './firebase';
 import { 
   collection, 
@@ -511,7 +512,7 @@ function App() {
       return diffA - diffB;
     });
 
-  const isAdmin = user?.email?.toLowerCase() === 'srafferty89@gmail.com';
+  const isAdmin = useIsAdmin(user);
 
   const activeEvent = events.find((e) => e.id === activeEventId);
 
@@ -836,7 +837,7 @@ function App() {
       <main className="app-main">
         {showAdmin ? (
           <AdminScreen
-            user={user}
+            isAdmin={isAdmin}
             locations={locations}
             onBack={() => setShowAdmin(false)}
             onSaveLocation={handleSaveLocation}
