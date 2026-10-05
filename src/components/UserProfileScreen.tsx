@@ -1,6 +1,7 @@
 import React from 'react';
 import type { BeerEvent, BeerReview, UserProfile } from '../types';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from '../utils/dateUtils';
 import { 
   ArrowLeft, 
   Beer, 
@@ -61,13 +62,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   events.forEach((event) => {
     event.drinks?.forEach((drink) => {
       drink.reviews?.forEach((review) => {
-        // Match by userId if present, otherwise fallback to reviewer name matching user's displayName or email
-        const isUserReview = 
-          (review.userId && review.userId === user.uid) ||
-          (!review.userId && (
-            review.reviewer === user.displayName || 
-            review.reviewer === user.email
-          ));
+        // Attribute by userId only; display names are not unique
+        const isUserReview = review.userId === user.uid;
 
         if (isUserReview) {
           userReviews.push({
@@ -357,7 +353,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                   const attendeesCount = event.attendees?.length || 0;
                   const userReviewCountInEvent = userReviews.filter((ur) => ur.eventId === event.id).length;
                   const formattedDate = event.date
-                    ? new Date(event.date).toLocaleDateString(undefined, {
+                    ? parseLocalDate(event.date).toLocaleDateString(undefined, {
                         weekday: 'short',
                         month: 'short',
                         day: 'numeric',

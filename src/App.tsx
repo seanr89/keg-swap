@@ -3,6 +3,7 @@ import type { BeerEvent, BeerDrink, BeerReview, EventLocation, UserProfile } fro
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
+import { ConfirmDialog } from './components/ConfirmDialog';
 import { EventDetailScreen } from './components/EventDetailScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
@@ -13,12 +14,15 @@ import { AdminScreen } from './components/AdminScreen';
 import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, Users } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from './utils/dateUtils';
+import { useIsAdmin } from './hooks/useIsAdmin';
 import { auth, db } from './firebase';
 import { 
   collection, 
   onSnapshot, 
   query, 
   orderBy, 
+  where,
   addDoc, 
   deleteDoc, 
   doc, 
@@ -50,6 +54,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [eventPendingDelete, setEventPendingDelete] = useState<BeerEvent | null>(null);
 
   const [cookieConsent, setCookieConsent] = useState<{ necessary: boolean; preferences: boolean } | null>(() => {
     const saved = localStorage.getItem('keg_swap_cookie_consent');
@@ -133,9 +138,10 @@ function App() {
       }
     });
 
-    // Subscribe to all users (for friend search & friend name resolution)
-    const usersColRef = collection(db, 'users');
-    const unsubAllUsers = onSnapshot(usersColRef, (snapshot) => {
+    // Subscribe to public users (for friend search & friend name resolution)
+    // Only public profiles are fetched so private accounts never reach other clients
+    const usersQuery = query(collection(db, 'users'), where('isPublic', '==', true));
+    const unsubAllUsers = onSnapshot(usersQuery, (snapshot) => {
       const fetched: UserProfile[] = [];
       snapshot.forEach((d) => {
         fetched.push({ ...d.data(), uid: d.id } as UserProfile);
@@ -307,10 +313,17 @@ function App() {
     }
   };
 
-  const handleDeleteEvent = async (id: string) => {
+  // Only the creator or an admin may delete; legacy events without a userId are admin-only
+  const canDeleteEvent = (event: BeerEvent) =>
+    isAdmin || (!!user && !!event.userId && event.userId === user.uid);
+
+  const handleConfirmDeleteEvent = async () => {
+    const event = eventPendingDelete;
+    setEventPendingDelete(null);
+    if (!event || !canDeleteEvent(event)) return;
     try {
-      await deleteDoc(doc(db, 'events', id));
-      if (activeEventId === id) {
+      await deleteDoc(doc(db, 'events', event.id));
+      if (activeEventId === event.id) {
         setActiveEventId(null);
       }
     } catch (err) {
@@ -492,14 +505,14 @@ function App() {
     })
     .sort((a, b) => {
       const now = Date.now();
-      const timeA = new Date(a.date).getTime();
-      const timeB = new Date(b.date).getTime();
+      const timeA = parseLocalDate(a.date).getTime();
+      const timeB = parseLocalDate(b.date).getTime();
       const diffA = Math.abs(timeA - now);
       const diffB = Math.abs(timeB - now);
       return diffA - diffB;
     });
 
-  const isAdmin = user?.email?.toLowerCase() === 'srafferty89@gmail.com';
+  const isAdmin = useIsAdmin(user);
 
   const activeEvent = events.find((e) => e.id === activeEventId);
 
@@ -824,7 +837,7 @@ function App() {
       <main className="app-main">
         {showAdmin ? (
           <AdminScreen
-            user={user}
+            isAdmin={isAdmin}
             locations={locations}
             onBack={() => setShowAdmin(false)}
             onSaveLocation={handleSaveLocation}
@@ -897,7 +910,8 @@ function App() {
                       key={event.id}
                       event={event}
                       user={user}
-                      onDelete={handleDeleteEvent}
+                      canDelete={canDeleteEvent(event)}
+                      onRequestDelete={setEventPendingDelete}
                       onStatusChange={handleStatusChange}
                       onSelect={() => setActiveEventId(event.id)}
                       onToggleAttendance={handleToggleAttendance}
@@ -950,6 +964,20 @@ function App() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleAddEvent}
         locations={locations}
+      />
+
+      <ConfirmDialog
+        isOpen={eventPendingDelete !== null}
+        title="Delete Event"
+        message={
+          <>
+            Delete <strong style={{ color: 'var(--text-primary)' }}>{eventPendingDelete?.name}</strong>?
+            This also removes its drinks and reviews. This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Event"
+        onConfirm={handleConfirmDeleteEvent}
+        onCancel={() => setEventPendingDelete(null)}
       />
 
       <footer className="app-footer">

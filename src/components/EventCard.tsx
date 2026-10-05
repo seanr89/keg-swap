@@ -1,18 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent } from '../types';
 import type { User } from 'firebase/auth';
+import { parseLocalDate } from '../utils/dateUtils';
 import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck, Globe, ExternalLink } from 'lucide-react';
 
 interface EventCardProps {
   event: BeerEvent;
   user: User;
-  onDelete: (id: string) => void;
+  canDelete: boolean;
+  onRequestDelete: (event: BeerEvent) => void;
   onStatusChange: (id: string, status: BeerEvent['status']) => void;
   onSelect: () => void;
   onToggleAttendance: (id: string) => void;
 }
 
-export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onStatusChange, onSelect, onToggleAttendance }) => {
+export const EventCard: React.FC<EventCardProps> = ({ event, user, canDelete, onRequestDelete, onStatusChange, onSelect, onToggleAttendance }) => {
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
   const [isRevealed, setIsRevealed] = useState(false);
@@ -76,14 +78,16 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
         setSwipeOffset(0);
         setIsRevealed(false);
       } else if (diffX < -40) {
-        // Deeper swipe triggers delete
-        onDelete(event.id);
+        // Deeper swipe asks for delete confirmation, then snaps the card back
+        onRequestDelete(event);
+        setSwipeOffset(0);
+        setIsRevealed(false);
       } else {
         setSwipeOffset(-80);
       }
     } else {
       // Swiping left to reveal the delete button
-      if (diffX < -50) {
+      if (diffX < -50 && canDelete) {
         setSwipeOffset(-80);
         setIsRevealed(true);
       } else {
@@ -109,7 +113,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
   // Formatting date to a friendly local string range
   const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
     if (!startDateString) return '';
-    const startObj = new Date(startDateString);
+    const startObj = parseLocalDate(startDateString);
     
     if (!endDateString || startDateString === endDateString) {
       return startObj.toLocaleDateString(undefined, {
@@ -120,7 +124,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
       });
     }
 
-    const endObj = new Date(endDateString);
+    const endObj = parseLocalDate(endDateString);
     
     const isSameDay = startObj.getFullYear() === endObj.getFullYear() &&
                       startObj.getMonth() === endObj.getMonth() &&
@@ -180,18 +184,24 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
       style={{ overflow: 'hidden', position: 'relative' }}
     >
       {/* Background delete action revealed by swipe */}
-      <div className="card-swipe-actions">
-        <button
-          type="button"
-          className="swipe-delete-btn"
-          onClick={() => onDelete(event.id)}
-          aria-label={`Delete event ${event.name}`}
-          id={`swipe-delete-${event.id}`}
-        >
-          <Trash2 size={20} />
-          <span>Delete</span>
-        </button>
-      </div>
+      {canDelete && (
+        <div className="card-swipe-actions">
+          <button
+            type="button"
+            className="swipe-delete-btn"
+            onClick={() => {
+              onRequestDelete(event);
+              setSwipeOffset(0);
+              setIsRevealed(false);
+            }}
+            aria-label={`Delete event ${event.name}`}
+            id={`swipe-delete-${event.id}`}
+          >
+            <Trash2 size={20} />
+            <span>Delete</span>
+          </button>
+        </div>
+      )}
 
       {/* Main card content layer */}
       <div
@@ -226,19 +236,21 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, onDelete, onS
               <span>{event.attendees?.includes(user.uid) ? 'Attending' : 'Attend'}</span>
             </button>
 
-            <button
-              type="button"
-              className="card-delete-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(event.id);
-              }}
-              aria-label={`Delete event ${event.name}`}
-              id={`delete-${event.id}`}
-              title="Delete Event"
-            >
-              <Trash2 size={16} />
-            </button>
+            {canDelete && (
+              <button
+                type="button"
+                className="card-delete-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestDelete(event);
+                }}
+                aria-label={`Delete event ${event.name}`}
+                id={`delete-${event.id}`}
+                title="Delete Event"
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
           </div>
         </div>
 
