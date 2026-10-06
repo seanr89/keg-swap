@@ -31,6 +31,7 @@ import {
 
 interface EventDetailScreenProps {
   event: BeerEvent;
+  drinksLoading?: boolean;
   user: User;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }) => void;
@@ -50,6 +51,7 @@ interface EventDetailScreenProps {
 
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   event,
+  drinksLoading = false,
   user,
   onBack,
   onAddDrink,
@@ -786,6 +788,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               </div>
             )}
           </>
+        ) : drinksLoading ? (
+          <div className="loading-container" role="status" aria-live="polite">
+            <Beer className="animate-float" size={32} />
+            <p>Loading drinks...</p>
+          </div>
         ) : (
           <div className="empty-state drinks-empty">
             <X size={32} />

@@ -49,7 +49,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 
 ## ⚡ 2. Performance & Scalability Optimizations
 
-- [ ] **[P1] Code-Splitting & Route-Level Bundle Splitting (Reduce 861 kB Bundle)** `frontend-refactorer`
+- [x] **[P1] Code-Splitting & Route-Level Bundle Splitting (Reduce 861 kB Bundle)** `frontend-refactorer`
   - *Location:* [`src/App.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/App.tsx) & [`vite.config.ts`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/vite.config.ts)
   - *Issue:* Vite emits a warning that `dist/assets/index-*.js` is **861 kB** because `AdminScreen`, `UserProfileScreen`, `EventDetailScreen`, and all Lucide icons are bundled together.
   - *Fix:* Use `React.lazy()` and `Suspense` for heavy screens:
@@ -58,32 +58,37 @@ This document tracks identified bugs, security vulnerabilities, performance bott
     const UserProfileScreen = lazy(() => import('./components/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })));
     const EventDetailScreen = lazy(() => import('./components/EventDetailScreen').then(m => ({ default: m.EventDetailScreen })));
     ```
+  - *Status:* Done. The three screens are lazy-loaded behind `Suspense` in `App.tsx`, and `vite.config.ts` splits vendors into `react-vendor`, `firebase` and `firebase-firestore` chunks. Largest chunk is now ~477 kB (Firestore SDK), so the warning is gone. Most of the original 861 kB was Firebase, not the screens.
 
-- [ ] **[P1] Firestore Subcollections Migration for Drinks & Reviews** `firebase-specialist`
+- [x] **[P1] Firestore Subcollections Migration for Drinks & Reviews** `firebase-specialist`
   - *Location:* [`src/types.ts`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/types.ts#L21-L32)
   - *Issue:* When fetching the events dashboard, Firestore downloads all drinks and reviews for all historical events into memory.
   - *Fix:* Split drinks and reviews into subcollections:
     - `/events/{eventId}/drinks/{drinkId}`
     - `/events/{eventId}/drinks/{drinkId}/reviews/{reviewId}`
     - Events list only fetches event metadata; beer details load on-demand when opening an event.
+  - *Status:* Done in code (`src/utils/eventData.ts`, `useEventDrinks`, `useUserReviews`, updated `firestore.rules` + new `firestore.indexes.json`). Legacy events migrate automatically when a client loads them. **Deploy rules and indexes first** (`firebase deploy --only firestore:rules,firestore:indexes`). Reviews are still writable by any signed-in user, as before; tightening that is a follow-up.
 
-- [ ] **[P2] List Virtualization for High-Volume Beer Festivals** `frontend-refactorer`
+- [x] **[P2] List Virtualization for High-Volume Beer Festivals** `frontend-refactorer`
   - *Location:* [`src/components/EventDetailScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/EventDetailScreen.tsx)
   - *Issue:* Festivals with 100+ beers render all card DOM nodes and star ratings simultaneously, causing frame drops on low-power mobile devices.
   - *Fix:* Implement list virtualization or apply modern CSS `content-visibility: auto` to off-screen drink cards.
+  - *Status:* Done with the CSS option: `content-visibility: auto` + `contain-intrinsic-size` on `.beer-card`. No windowing library, so search, sort and filters are unchanged; revisit true virtualization only if 500+ drink events are slow.
 
-- [ ] **[P2] WebP Image Compression & Thumbnail Generation** `frontend-refactorer`
+- [x] **[P2] WebP Image Compression & Thumbnail Generation** `frontend-refactorer`
   - *Location:* [`src/utils/imageUtils.ts`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/utils/imageUtils.ts)
   - *Issue:* Canvas encodes to JPEG quality 0.8 at up to 1000×1000px, creating files of 200–400KB each.
   - *Fix:* Switch export format to WebP with responsive thumbnail sizing (`maxWidth = 600`, `quality = 0.75`), reducing image sizes by ~60%.
+  - *Status:* Done. `compressImageToBlob` encodes WebP at 600px / 0.75 (JPEG fallback when the browser cannot encode WebP). No separate thumbnail files: images are stored once at the reduced size.
 
-- [ ] **[P3] Service Worker & Offline PWA Capabilities** `frontend-refactorer`
+- [x] **[P3] Service Worker & Offline PWA Capabilities** `frontend-refactorer`
   - *Issue:* Beer festival venues (breweries, taprooms, cellars) frequently suffer from poor cellular connectivity.
   - *Fix:* Add `vite-plugin-pwa` with service worker caching for event schedules, drinks lists, and offline review queuing.
 
 ---
 
 ## ✨ 3. Feature Additions & Enhancements
+  - *Status:* Done. `vite-plugin-pwa` app-shell caching, cache-first Storage images, and Firestore persistent cache for offline reads and queued writes. Storage uploads (photos) still need a connection.
 
 - [ ] **[P1] Beer Wishlist / "Want to Try" Bookmark Toggle** `frontend-refactorer`
   - Add a bookmark/heart icon on beer cards so attendees can flag beers they want to sample during a festival or swap night.

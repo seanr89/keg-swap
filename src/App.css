@@ -1581,6 +1581,9 @@ a.detail-meta-link:hover {
 
 /* Beer Card Layout */
 .beer-card {
+  /* Skip layout and paint for cards that are off-screen; matters at 100+ beers per festival */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
   background: var(--bg-card);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
