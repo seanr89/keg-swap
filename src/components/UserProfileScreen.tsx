@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { StarRating } from './StarRating';
+import { useUserReviews } from '../hooks/useUserReviews';
 
 interface UserProfileScreenProps {
   user: User;
@@ -56,16 +57,25 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 }) => {
   const [lightboxImage, setLightboxImage] = React.useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
-  // Aggregate reviews created by this user
+  // Aggregate reviews created by this user (subcollection reviews, plus any still embedded
+  // in events that have not been migrated yet)
+  const { reviews: storedReviews } = useUserReviews(user.uid);
+  const eventNames = new Map(events.map((event) => [event.id, event.name]));
   const userReviews: UserReviewItem[] = [];
+  const seenReviewIds = new Set<string>();
+
+  storedReviews.forEach(({ eventId, drinkId: _drinkId, drinkName, brewery, style, ...review }) => {
+    const eventName = eventNames.get(eventId);
+    if (eventName === undefined) return; // event no longer exists
+    seenReviewIds.add(review.id);
+    userReviews.push({ review, drinkName, brewery, style, eventName, eventId });
+  });
 
   events.forEach((event) => {
     event.drinks?.forEach((drink) => {
       drink.reviews?.forEach((review) => {
         // Attribute by userId only; display names are not unique
-        const isUserReview = review.userId === user.uid;
-
-        if (isUserReview) {
+        if (review.userId === user.uid && !seenReviewIds.has(review.id)) {
           userReviews.push({
             review,
             drinkName: drink.name,
@@ -349,7 +359,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
             {attendedEvents.length > 0 ? (
               <div className="profile-events-list">
                 {attendedEvents.map((event) => {
-                  const drinksCount = event.drinks?.length || 0;
+                  const drinksCount = event.drinkCount ?? event.drinks?.length ?? 0;
                   const attendeesCount = event.attendees?.length || 0;
                   const userReviewCountInEvent = userReviews.filter((ur) => ur.eventId === event.id).length;
                   const formattedDate = event.date

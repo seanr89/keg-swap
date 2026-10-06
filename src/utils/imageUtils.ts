@@ -14,169 +14,125 @@ export function isBase64DataUrl(urlStr?: string): boolean {
   return urlStr.trim().startsWith('data:image/');
 }
 
+// WebP at ~0.75 is roughly 60% smaller than the JPEG 0.8 / 1000px this replaced.
+export const IMAGE_MAX_DIMENSION = 600;
+export const IMAGE_QUALITY = 0.75;
+
+const PREFERRED_IMAGE_TYPE = 'image/webp';
+const FALLBACK_IMAGE_TYPE = 'image/jpeg';
+
+function extensionForMime(mime: string): string {
+  return mime === 'image/webp' ? 'webp' : mime === 'image/png' ? 'png' : 'jpg';
+}
+
+/** Swaps a storage path's extension for the one matching the actual encoded format. */
+function withImageExtension(storagePath: string, mime: string): string {
+  return storagePath.replace(/\.[A-Za-z0-9]+$/, '') + '.' + extensionForMime(mime);
+}
+
+function loadImage(file: File): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read image file.'));
+    reader.onload = (e) => {
+      if (!e.target?.result) {
+        reject(new Error('Empty image payload.'));
+        return;
+      }
+      const img = new Image();
+      img.onerror = () => reject(new Error('Failed to load image element.'));
+      img.onload = () => resolve(img);
+      img.src = e.target.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promise<Blob | null> {
+  return new Promise((resolve) => canvas.toBlob(resolve, type, quality));
+}
+
 /**
  * Compresses an uploaded image file using an HTML canvas element to a binary Blob.
  * Scales down dimensions to fit within maxWidth / maxHeight while maintaining aspect ratio,
- * and encodes to JPEG with the specified quality.
+ * and encodes to WebP. Browsers that cannot encode WebP (older Safari silently returns PNG)
+ * fall back to JPEG; check `blob.type` for the format actually produced.
  */
 export async function compressImageToBlob(
   file: File,
-  maxWidth = 1000,
-  maxHeight = 1000,
-  quality = 0.8
+  maxWidth = IMAGE_MAX_DIMENSION,
+  maxHeight = IMAGE_MAX_DIMENSION,
+  quality = IMAGE_QUALITY
 ): Promise<Blob> {
   if (!file.type.startsWith('image/')) {
     throw new Error('Selected file is not an image.');
   }
 
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
+  const img = await loadImage(file);
 
-    reader.onerror = () => {
-      reject(new Error('Failed to read image file.'));
-    };
+  let width = img.width;
+  let height = img.height;
+  if (width > maxWidth || height > maxHeight) {
+    const bestRatio = Math.min(maxWidth / width, maxHeight / height);
+    width = Math.round(width * bestRatio);
+    height = Math.round(height * bestRatio);
+  }
 
-    reader.onload = (e) => {
-      const img = new Image();
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
 
-      img.onerror = () => {
-        reject(new Error('Failed to load image element.'));
-      };
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Could not get 2D context from canvas.');
+  }
+  ctx.drawImage(img, 0, 0, width, height);
 
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
+  const webp = await canvasToBlob(canvas, PREFERRED_IMAGE_TYPE, quality);
+  if (webp && webp.type === PREFERRED_IMAGE_TYPE) return webp;
 
-        // Calculate scaling aspect ratio
-        if (width > maxWidth || height > maxHeight) {
-          const widthRatio = maxWidth / width;
-          const heightRatio = maxHeight / height;
-          const bestRatio = Math.min(widthRatio, heightRatio);
-
-          width = Math.round(width * bestRatio);
-          height = Math.round(height * bestRatio);
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get 2D context from canvas.'));
-          return;
-        }
-
-        // Draw and export compressed JPEG Blob
-        ctx.drawImage(img, 0, 0, width, height);
-
-        canvas.toBlob(
-          (blob) => {
-            if (blob) {
-              resolve(blob);
-            } else {
-              reject(new Error('Failed to compress image to Blob.'));
-            }
-          },
-          'image/jpeg',
-          quality
-        );
-      };
-
-      if (e.target?.result) {
-        img.src = e.target.result as string;
-      } else {
-        reject(new Error('Empty image payload.'));
-      }
-    };
-
-    reader.readAsDataURL(file);
-  });
+  const jpeg = await canvasToBlob(canvas, FALLBACK_IMAGE_TYPE, quality);
+  if (!jpeg) {
+    throw new Error('Failed to compress image to Blob.');
+  }
+  return jpeg;
 }
 
 /**
- * Compresses an uploaded image file using an HTML canvas element and returns a base64 data URL.
+ * Compresses an uploaded image file and returns a base64 data URL.
  * Provided for backward compatibility and local previews.
  */
 export async function compressImageFile(
   file: File,
-  maxWidth = 1000,
-  maxHeight = 1000,
-  quality = 0.8
+  maxWidth = IMAGE_MAX_DIMENSION,
+  maxHeight = IMAGE_MAX_DIMENSION,
+  quality = IMAGE_QUALITY
 ): Promise<string> {
-  if (!file.type.startsWith('image/')) {
-    throw new Error('Selected file is not an image.');
-  }
-
+  const blob = await compressImageToBlob(file, maxWidth, maxHeight, quality);
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
-    reader.onerror = () => {
-      reject(new Error('Failed to read image file.'));
-    };
-
-    reader.onload = (e) => {
-      const img = new Image();
-
-      img.onerror = () => {
-        reject(new Error('Failed to load image element.'));
-      };
-
-      img.onload = () => {
-        let width = img.width;
-        let height = img.height;
-
-        if (width > maxWidth || height > maxHeight) {
-          const widthRatio = maxWidth / width;
-          const heightRatio = maxHeight / height;
-          const bestRatio = Math.min(widthRatio, heightRatio);
-
-          width = Math.round(width * bestRatio);
-          height = Math.round(height * bestRatio);
-        }
-
-        const canvas = document.createElement('canvas');
-        canvas.width = width;
-        canvas.height = height;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Could not get 2D context from canvas.'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedDataUrl);
-      };
-
-      if (e.target?.result) {
-        img.src = e.target.result as string;
-      } else {
-        reject(new Error('Empty image payload.'));
-      }
-    };
-
-    reader.readAsDataURL(file);
+    reader.onerror = () => reject(new Error('Failed to read compressed image.'));
+    reader.onload = () => resolve(reader.result as string);
+    reader.readAsDataURL(blob);
   });
 }
 
 /**
  * Compresses an image file and uploads it directly to Firebase Cloud Storage.
+ * The path's extension is replaced to match the encoded format.
  * Returns the public HTTPS download URL.
  */
 export async function uploadImageFile(
   file: File,
   storagePath: string,
-  maxWidth = 1000,
-  maxHeight = 1000,
-  quality = 0.8
+  maxWidth = IMAGE_MAX_DIMENSION,
+  maxHeight = IMAGE_MAX_DIMENSION,
+  quality = IMAGE_QUALITY
 ): Promise<string> {
   const blob = await compressImageToBlob(file, maxWidth, maxHeight, quality);
-  const storageRef = ref(storage, storagePath);
+  const storageRef = ref(storage, withImageExtension(storagePath, blob.type));
   await uploadBytes(storageRef, blob, {
-    contentType: 'image/jpeg',
+    contentType: blob.type,
   });
   return getDownloadURL(storageRef);
 }
@@ -185,7 +141,8 @@ export async function uploadImageFile(
  * Uploads a base64 Data URL to Firebase Cloud Storage and returns the public HTTPS download URL.
  */
 export async function uploadBase64Image(dataUrl: string, storagePath: string): Promise<string> {
-  const storageRef = ref(storage, storagePath);
+  const mime = /^data:(image\/[A-Za-z0-9.+-]+)/.exec(dataUrl.trim())?.[1] ?? FALLBACK_IMAGE_TYPE;
+  const storageRef = ref(storage, withImageExtension(storagePath, mime));
   await uploadString(storageRef, dataUrl, 'data_url');
   return getDownloadURL(storageRef);
 }

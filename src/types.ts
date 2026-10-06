@@ -10,6 +10,19 @@ export interface BeerReview {
   imageUrl?: string;
 }
 
+/**
+ * A review as stored at `events/{eventId}/drinks/{drinkId}/reviews/{reviewId}`.
+ * The beer details are denormalised so a user's reviews can be listed with a single
+ * collection-group query (`where('userId', '==', uid)`) without loading every event.
+ */
+export interface BeerReviewDoc extends BeerReview {
+  eventId: string;
+  drinkId: string;
+  drinkName: string;
+  brewery: string;
+  style: string;
+}
+
 export interface BeerDrink {
   id: string;
   name: string;
@@ -20,7 +33,11 @@ export interface BeerDrink {
   description: string;
   reviews: BeerReview[];
   imageUrl?: string;
+  createdAt?: string; // used to keep the drinks list in insertion order
 }
+
+/** A drink as stored at `events/{eventId}/drinks/{drinkId}` (reviews live in a subcollection). */
+export type BeerDrinkDoc = Omit<BeerDrink, 'reviews'>;
 
 export interface BeerEvent {
   id: string;
@@ -29,6 +46,13 @@ export interface BeerEvent {
   endDate?: string;
   address: string;
   status: 'Upcoming' | 'Ongoing' | 'Completed' | 'Cancelled';
+  /** Number of drinks in the `drinks` subcollection (kept in step by every drink write). */
+  drinkCount?: number;
+  /**
+   * Legacy: drinks used to be embedded in the event document. They now live in
+   * `events/{id}/drinks`; this is only populated on events not yet migrated, and
+   * on the active event once its subcollections have been loaded (see `useEventDrinks`).
+   */
   drinks?: BeerDrink[];
   attendees?: string[];
   url?: string;

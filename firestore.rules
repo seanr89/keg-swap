@@ -32,8 +32,8 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Events embed drinks, reviews and attendees, so any signed-in user may update,
-    // but the owner is fixed: otherwise a non-owner could claim an event and delete it.
+    // Any signed-in user may update an event (attendees, status, drink count), but the
+    // owner is fixed: otherwise a non-owner could claim an event and delete it.
     match /events/{eventId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
@@ -41,6 +41,28 @@ service cloud.firestore {
         && request.resource.data.get('userId', null) == resource.data.get('userId', null);
       allow delete: if isSignedIn()
         && (isAdmin() || resource.data.userId == request.auth.uid);
+
+      function isEventOwner() {
+        return get(/databases/$(database)/documents/events/$(eventId)).data.get('userId', null) == request.auth.uid;
+      }
+
+      // Drinks and reviews are subcollections. Anyone signed in can add and edit them, as
+      // when they were embedded in the event; deletes (used when an event is deleted)
+      // are limited to the event's owner or an admin.
+      match /drinks/{drinkId} {
+        allow read, create, update: if isSignedIn();
+        allow delete: if isSignedIn() && (isAdmin() || isEventOwner());
+
+        match /reviews/{reviewId} {
+          allow read, create, update: if isSignedIn();
+          allow delete: if isSignedIn() && (isAdmin() || isEventOwner());
+        }
+      }
+    }
+
+    // Collection-group reads: all reviews for one event, or all reviews by one user.
+    match /{path=**}/reviews/{reviewId} {
+      allow read: if isSignedIn();
     }
   }
 }

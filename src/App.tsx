@@ -1,16 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import type { BeerEvent, BeerDrink, BeerReview, EventLocation, UserProfile } from './types';
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
 import { ConfirmDialog } from './components/ConfirmDialog';
-import { EventDetailScreen } from './components/EventDetailScreen';
 import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
-import { UserProfileScreen } from './components/UserProfileScreen';
 import { UserSearchModal } from './components/UserSearchModal';
-import { AdminScreen } from './components/AdminScreen';
 import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, Users } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
@@ -29,12 +26,22 @@ import {
   updateDoc,
   setDoc
 } from 'firebase/firestore';
-import { 
-  sanitizeOrUploadImageUrl, 
-  isBase64DataUrl, 
-  migrateEventImagesToStorage 
-} from './utils/imageUtils';
+import { sanitizeOrUploadImageUrl, isBase64DataUrl } from './utils/imageUtils';
+import { addDrinks, addReview, deleteEventCascade, migrateLegacyEvent } from './utils/eventData';
+import { useEventDrinks } from './hooks/useEventDrinks';
 import './App.css';
+
+// Heavy screens are only needed after sign-in and navigation, so load them on demand.
+const EventDetailScreen = lazy(() => import('./components/EventDetailScreen').then(m => ({ default: m.EventDetailScreen })));
+const UserProfileScreen = lazy(() => import('./components/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })));
+const AdminScreen = lazy(() => import('./components/AdminScreen').then(m => ({ default: m.AdminScreen })));
+
+const ScreenFallback = () => (
+  <div className="loading-container" role="status" aria-live="polite">
+    <Beer className="animate-float" size={32} />
+    <p>Loading...</p>
+  </div>
+);
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -197,6 +204,9 @@ function App() {
   };
 
 
+  // Events whose legacy embedded drinks are being (or have been) migrated this session
+  const migratingEventIds = useRef(new Set<string>());
+
   // Firestore Events Sync & Seeding
   useEffect(() => {
     if (!user) {
@@ -223,21 +233,14 @@ function App() {
       });
       setEvents(fetchedEvents);
 
-      // Asynchronously migrate any legacy base64 images to Firebase Cloud Storage
-      fetchedEvents.forEach(async (ev) => {
-        const hasBase64 = (ev.drinks || []).some(
-          (d) => isBase64DataUrl(d.imageUrl) || (d.reviews || []).some((r) => isBase64DataUrl(r.imageUrl))
-        );
-        if (hasBase64) {
-          try {
-            const { updated, event: migratedEvent } = await migrateEventImagesToStorage(ev);
-            if (updated) {
-              await updateDoc(doc(db, 'events', ev.id), { drinks: migratedEvent.drinks });
-            }
-          } catch (migErr) {
-            console.error('Failed to migrate legacy base64 images for event', ev.id, migErr);
-          }
-        }
+      // Move drinks still embedded in an event document into subcollections (once per session)
+      fetchedEvents.forEach((ev) => {
+        if (!ev.drinks?.length || migratingEventIds.current.has(ev.id)) return;
+        migratingEventIds.current.add(ev.id);
+        migrateLegacyEvent(ev).catch((migErr) => {
+          migratingEventIds.current.delete(ev.id);
+          console.error('Failed to migrate drinks to subcollections for event', ev.id, migErr);
+        });
       });
     }, (err) => {
       console.error("Firestore events snapshot error:", err);
@@ -303,7 +306,7 @@ function App() {
         ...(eventData.mapsUrl ? { mapsUrl: eventData.mapsUrl } : {}),
         ...(eventData.url ? { url: eventData.url } : {}),
         status: eventData.status,
-        drinks: [],
+        drinkCount: 0,
         userId: user.uid,
         createdAt: new Date().toISOString()
       });
@@ -322,7 +325,7 @@ function App() {
     setEventPendingDelete(null);
     if (!event || !canDeleteEvent(event)) return;
     try {
-      await deleteDoc(doc(db, 'events', event.id));
+      await deleteEventCascade(event.id);
       if (activeEventId === event.id) {
         setActiveEventId(null);
       }
@@ -376,19 +379,11 @@ function App() {
       ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
     };
 
-    const eventToUpdate = events.find((e) => e.id === eventId);
-    if (!eventToUpdate) return;
+    const drink = activeDrinks.find((d) => d.id === drinkId);
+    if (!drink) return;
 
     try {
-      const updatedDrinks = (eventToUpdate.drinks || []).map((drink) => {
-        if (drink.id !== drinkId) return drink;
-        return {
-          ...drink,
-          reviews: [newReview, ...drink.reviews],
-        };
-      });
-
-      await updateDoc(doc(db, 'events', eventId), { drinks: updatedDrinks });
+      await addReview(eventId, drink, newReview);
     } catch (err) {
       console.error('Failed to add review in Firestore:', err);
     }
@@ -443,12 +438,8 @@ function App() {
       reviews: [],
     };
 
-    const eventToUpdate = events.find((e) => e.id === eventId);
-    if (!eventToUpdate) return;
-
     try {
-      const updatedDrinks = [...(eventToUpdate.drinks || []), newDrink];
-      await updateDoc(doc(db, 'events', eventId), { drinks: updatedDrinks });
+      await addDrinks(eventId, [newDrink]);
     } catch (err) {
       console.error('Failed to add drink in Firestore:', err);
     }
@@ -483,12 +474,8 @@ function App() {
       })
     );
 
-    const eventToUpdate = events.find((e) => e.id === eventId);
-    if (!eventToUpdate) return;
-
     try {
-      const updatedDrinks = [...(eventToUpdate.drinks || []), ...newDrinks];
-      await updateDoc(doc(db, 'events', eventId), { drinks: updatedDrinks });
+      await addDrinks(eventId, newDrinks);
     } catch (err) {
       console.error('Failed to batch add drinks in Firestore:', err);
     }
@@ -514,7 +501,15 @@ function App() {
 
   const isAdmin = useIsAdmin(user);
 
-  const activeEvent = events.find((e) => e.id === activeEventId);
+  const baseActiveEvent = events.find((e) => e.id === activeEventId);
+  const { drinks: activeDrinks, loading: drinksLoading } = useEventDrinks(
+    baseActiveEvent ? baseActiveEvent.id : null,
+    baseActiveEvent?.drinks
+  );
+  const activeEvent = useMemo(
+    () => (baseActiveEvent ? { ...baseActiveEvent, drinks: activeDrinks } : undefined),
+    [baseActiveEvent, activeDrinks]
+  );
 
   if (authLoading) {
     return (
@@ -629,17 +624,20 @@ function App() {
         </header>
 
         <main className="app-main">
-          <EventDetailScreen
-            event={activeEvent}
-            user={user}
-            onBack={() => setActiveEventId(null)}
-            onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-            onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId) =>
-              handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId)
-            }
-            onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
-            onToggleAttendance={handleToggleAttendance}
-          />
+          <Suspense fallback={<ScreenFallback />}>
+            <EventDetailScreen
+              event={activeEvent}
+              drinksLoading={drinksLoading}
+              user={user}
+              onBack={() => setActiveEventId(null)}
+              onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
+              onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId) =>
+                handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId)
+              }
+              onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
+              onToggleAttendance={handleToggleAttendance}
+            />
+          </Suspense>
         </main>
 
         <footer className="app-footer">
@@ -836,28 +834,32 @@ function App() {
       {/* Main Content Area */}
       <main className="app-main">
         {showAdmin ? (
-          <AdminScreen
-            isAdmin={isAdmin}
-            locations={locations}
-            onBack={() => setShowAdmin(false)}
-            onSaveLocation={handleSaveLocation}
-            onDeleteLocation={handleDeleteLocation}
-          />
+          <Suspense fallback={<ScreenFallback />}>
+            <AdminScreen
+              isAdmin={isAdmin}
+              locations={locations}
+              onBack={() => setShowAdmin(false)}
+              onSaveLocation={handleSaveLocation}
+              onDeleteLocation={handleDeleteLocation}
+            />
+          </Suspense>
         ) : showProfile ? (
-          <UserProfileScreen
-            user={user}
-            userProfile={userProfile}
-            allUsers={allUsers}
-            events={events}
-            onBack={() => setShowProfile(false)}
-            onNavigateToEvent={(eventId) => {
-              setShowProfile(false);
-              setActiveEventId(eventId);
-            }}
-            onTogglePrivacy={handleTogglePrivacy}
-            onOpenSearchModal={() => setIsSearchModalOpen(true)}
-            onRemoveFriend={handleRemoveFriend}
-          />
+          <Suspense fallback={<ScreenFallback />}>
+            <UserProfileScreen
+              user={user}
+              userProfile={userProfile}
+              allUsers={allUsers}
+              events={events}
+              onBack={() => setShowProfile(false)}
+              onNavigateToEvent={(eventId) => {
+                setShowProfile(false);
+                setActiveEventId(eventId);
+              }}
+              onTogglePrivacy={handleTogglePrivacy}
+              onOpenSearchModal={() => setIsSearchModalOpen(true)}
+              onRemoveFriend={handleRemoveFriend}
+            />
+          </Suspense>
         ) : (
           <>
             {/* Statistics Dashboard */}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0c0a09"/>
+  <!-- handle -->
+  <path d="M352 188h36a48 48 0 0 1 48 48v44a48 48 0 0 1-48 48h-36" fill="none" stroke="#f59e0b" stroke-width="28" stroke-linecap="round"/>
+  <!-- glass -->
+  <path d="M120 176h240v212a36 36 0 0 1-36 36H156a36 36 0 0 1-36-36z" fill="#f59e0b"/>
+  <!-- beer highlights -->
+  <rect x="164" y="236" width="20" height="132" rx="10" fill="#fcd34d" opacity=".7"/>
+  <rect x="212" y="236" width="20" height="132" rx="10" fill="#fcd34d" opacity=".45"/>
+  <!-- foam -->
+  <circle cx="156" cy="162" r="40" fill="#fafaf9"/>
+  <circle cx="220" cy="146" r="48" fill="#fafaf9"/>
+  <circle cx="290" cy="156" r="44" fill="#fafaf9"/>
+  <circle cx="336" cy="174" r="30" fill="#fafaf9"/>
+</svg>
