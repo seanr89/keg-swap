@@ -4052,3 +4052,7 @@ button, input, select, textarea, a, label {
   white-space: nowrap;
   border: 0;
 }
+
+.share-btn.active {
+  color: var(--primary);
+}

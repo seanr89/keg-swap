@@ -90,9 +90,10 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 ## ✨ 3. Feature Additions & Enhancements
   - *Status:* Done. `vite-plugin-pwa` app-shell caching, cache-first Storage images, and Firestore persistent cache for offline reads and queued writes. Storage uploads (photos) still need a connection.
 
-- [ ] **[P1] Beer Wishlist / "Want to Try" Bookmark Toggle** `frontend-refactorer`
+- [x] **[P1] Beer Wishlist / "Want to Try" Bookmark Toggle** `frontend-refactorer`
   - Add a bookmark/heart icon on beer cards so attendees can flag beers they want to sample during a festival or swap night.
   - Filter toggle on event screen: `Show: All | Tried | Wishlist`.
+  - *Status:* Done. Bookmark button on each beer card (`useWishlist`, `src/utils/wishlist.ts`, `src/utils/showFilter.ts`), private `users/{uid}/wishlists/{eventId}` docs, and `All | Tried | Wishlist` tabs replacing "Reviewed Only". **Deploy `firestore.rules` before shipping** (`firebase deploy --only firestore:rules`); the rules were verified by reading only, not with the emulator.
 
 - [x] **[P1] Dietary & Allergen Badges (Vegan, Gluten-Free, Organic)** `frontend-refactorer` `beer-catalog-manager`
   - Update `BeerDrink` model to support flags: `isVegan?: boolean`, `isGlutenFree?: boolean`, `caskOrKeg?: 'Cask' | 'Keg' | 'Can' | 'Bottle'`.
@@ -172,5 +173,5 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | Setup Vitest + RTL test suite | P1 | `qa-auditor` | Pending |
 | Extract custom hooks (`useAuth`, `useEvents`) | P1 | `frontend-refactorer` | Pending |
 | Deconstruct `EventDetailScreen.tsx` | P1 | `frontend-refactorer` | Pending |
-| Beer wishlist / "Want to try" toggle | P1 | `frontend-refactorer` | Pending |
+| Beer wishlist / "Want to try" toggle | P1 | `frontend-refactorer` | Completed (deploy rules) |
 | Dietary badges (Vegan, Gluten-Free) | P1 | `beer-catalog-manager` | Completed |

@@ -3,6 +3,8 @@ import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type ServingFormat } f
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
 import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
+import { useWishlist } from '../hooks/useWishlist';
+import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
 import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
 import {
   ArrowLeft, 
@@ -22,7 +24,8 @@ import {
   Camera,
   Image as ImageIcon,
   Maximize2,
-  Trash2
+  Trash2,
+  Bookmark
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ShareButton } from './ShareButton';
@@ -85,7 +88,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   // Search and Filter states
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
-  const [filterHasReviews, setFilterHasReviews] = useState<'all' | 'with-reviews'>('all');
+  const [selectedShow, setSelectedShow] = useState<ShowFilter>('all');
+  const { wishlist, toggle: toggleWishlist } = useWishlist(user.uid, event.id);
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
   const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
@@ -390,12 +394,12 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       drink.name.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
-    const matchesReviews = filterHasReviews === 'all' || (drink.reviews && drink.reviews.length > 0);
+    const matchesShow = matchesShowFilter(drink, selectedShow, user.uid, wishlist);
     const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
     const matchesAbv = selectedAbv === 'all' || getAbvBracket(drink.abv) === selectedAbv;
     const matchesDietary = matchesDietaryFilter(drink, selectedDietary);
     const matchesFormat = selectedFormat === 'all' || drink.caskOrKeg === selectedFormat;
-    return matchesSearch && matchesReviews && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
+    return matchesSearch && matchesShow && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
   });
 
   const sortedDrinks = [...filteredDrinks].sort((a, b) => {
@@ -857,23 +861,25 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   </select>
                 </div>
 
-                <div className="filter-tabs">
-                  <button
-                    type="button"
-                    className={`filter-tab-btn ${filterHasReviews === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilterHasReviews('all')}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    All Drinks
-                  </button>
-                  <button
-                    type="button"
-                    className={`filter-tab-btn ${filterHasReviews === 'with-reviews' ? 'active' : ''}`}
-                    onClick={() => setFilterHasReviews('with-reviews')}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    Reviewed Only ({event.drinks?.filter(d => d.reviews && d.reviews.length > 0).length || 0})
-                  </button>
+                <div className="filter-tabs" role="group" aria-label="Show">
+                  {(
+                    [
+                      { id: 'all', label: 'All', count: event.drinks?.length ?? 0 },
+                      { id: 'tried', label: 'Tried', count: countMatching(event.drinks ?? [], 'tried', user.uid, wishlist) },
+                      { id: 'wishlist', label: 'Wishlist', count: countMatching(event.drinks ?? [], 'wishlist', user.uid, wishlist) },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`filter-tab-btn ${selectedShow === tab.id ? 'active' : ''}`}
+                      aria-pressed={selectedShow === tab.id}
+                      onClick={() => setSelectedShow(tab.id)}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      {tab.label} ({tab.count})
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -885,6 +891,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     key={drink.id}
                     drink={drink}
                     eventName={event.name}
+                    isWishlisted={wishlist.has(drink.id)}
+                    onToggleWishlist={() => toggleWishlist(drink.id)}
                     onTriggerReview={() => {
                       setActiveReviewDrink(drink);
                       setReviewImageUrl('');
@@ -1174,9 +1182,18 @@ interface BeerDrinkCardProps {
   onTriggerReview: () => void;
   onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
   eventName: string;
+  isWishlisted: boolean;
+  onToggleWishlist: () => void;
 }
 
-const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, eventName, onTriggerReview, onOpenLightbox }) => {
+const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
+  drink,
+  eventName,
+  isWishlisted,
+  onToggleWishlist,
+  onTriggerReview,
+  onOpenLightbox,
+}) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
   // Calculate Average Rating
@@ -1256,6 +1273,17 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, eventName, onTrigg
           >
             <MessageSquare size={14} />
             <span>Reviews ({drink.reviews.length})</span>
+          </button>
+
+          <button
+            type="button"
+            className={`share-btn ${isWishlisted ? 'active' : ''}`}
+            onClick={onToggleWishlist}
+            aria-pressed={isWishlisted}
+            aria-label={isWishlisted ? `Remove ${drink.name} from wishlist` : `Add ${drink.name} to wishlist`}
+            title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <Bookmark size={15} fill={isWishlisted ? 'currentColor' : 'none'} />
           </button>
 
           <ShareButton

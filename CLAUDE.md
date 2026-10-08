@@ -28,6 +28,8 @@ Events created before this still hold an embedded `drinks` array. The events sna
 
 Other collections: `users/{uid}` (`UserProfile`, with `isPublic`, `friends`), `locations/{id}` (`EventLocation`, admin-managed).
 
+Wishlist bookmarks are private per-user data at `users/{uid}/wishlists/{eventId}` (`{ drinkIds, updatedAt }`), read by `useWishlist` only while an event is open and governed by an owner-only rule in `firestore.rules`. Deleting an event leaves these small docs behind (an owner cannot delete other users' private docs); nothing reads them. "Tried" in the event filter means the user has a review on the drink (`review.userId`).
+
 ### Images
 Images go to Firebase Storage under `events/{eventId}/...` and only the download URL is stored in Firestore. `src/utils/imageUtils.ts` handles canvas compression (WebP, max 600px, quality 0.75, with a JPEG fallback where the browser cannot encode WebP; the storage path extension follows the real format), upload, and migration of legacy base64 `data:` URLs (run as part of `migrateLegacyEvent`). `storage.rules` restricts uploads to authenticated users, images only, under 5MB. Firestore access is governed by `firestore.rules` (deploy with `firebase deploy --only firestore:rules,firestore:indexes,storage`; deploy these before shipping client changes that depend on them).
 
