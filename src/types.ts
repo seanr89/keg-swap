@@ -23,6 +23,10 @@ export interface BeerReviewDoc extends BeerReview {
   style: string;
 }
 
+/** How a drink is served; the tuple is shared by the type, the add form and the batch importer. */
+export const SERVING_FORMATS = ['Cask', 'Keg', 'Can', 'Bottle'] as const;
+export type ServingFormat = (typeof SERVING_FORMATS)[number];
+
 export interface BeerDrink {
   id: string;
   name: string;
@@ -33,6 +37,9 @@ export interface BeerDrink {
   description: string;
   reviews: BeerReview[];
   imageUrl?: string;
+  isVegan?: boolean; // absent means unknown, not "no"
+  isGlutenFree?: boolean; // absent means unknown, not "no"
+  caskOrKeg?: ServingFormat;
   createdAt?: string; // used to keep the drinks list in insertion order
 }
 

@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { BeerEvent, BeerDrink } from '../types';
+import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
-import { 
+import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
+import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
+import {
   ArrowLeft, 
   MapPin, 
   Calendar, 
@@ -23,6 +25,8 @@ import {
   Trash2
 } from 'lucide-react';
 import { StarRating } from './StarRating';
+import { ShareButton } from './ShareButton';
+import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
   sanitizeOrUploadImageUrl, 
@@ -67,6 +71,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
   const [newDrinkImageUrl, setNewDrinkImageUrl] = useState('');
+  const [newDrinkVegan, setNewDrinkVegan] = useState(false);
+  const [newDrinkGlutenFree, setNewDrinkGlutenFree] = useState(false);
+  const [newDrinkFormat, setNewDrinkFormat] = useState<ServingFormat | ''>('');
   const [drinkDraftId, setDrinkDraftId] = useState(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
   );
@@ -80,6 +87,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
   const [filterHasReviews, setFilterHasReviews] = useState<'all' | 'with-reviews'>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
+  const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
+  const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
+  const [selectedFormat, setSelectedFormat] = useState<'all' | ServingFormat>('all');
   const [selectedSort, setSelectedSort] = useState<string>('default');
 
   // Add Review Dialog Modal states
@@ -279,6 +289,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
       imageUrl: finalImageUrl,
+      ...(newDrinkVegan ? { isVegan: true } : {}),
+      ...(newDrinkGlutenFree ? { isGlutenFree: true } : {}),
+      ...(newDrinkFormat ? { caskOrKeg: newDrinkFormat } : {}),
     });
 
     // Reset Form
@@ -289,6 +302,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setNewDrinkStyle('');
     setNewDrinkDesc('');
     setNewDrinkImageUrl('');
+    setNewDrinkVegan(false);
+    setNewDrinkGlutenFree(false);
+    setNewDrinkFormat('');
     setAddDrinkError('');
     setShowAddForm(false);
     setDrinkDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
@@ -332,6 +348,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               style: item.style.trim(),
               description: item.description.trim(),
               ...(typeof item.imageUrl === 'string' && item.imageUrl.trim() ? { imageUrl: item.imageUrl.trim() } : {}),
+              ...parseDrinkFlags(item),
             });
           }
         }
@@ -375,7 +392,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
     const matchesReviews = filterHasReviews === 'all' || (drink.reviews && drink.reviews.length > 0);
     const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
-    return matchesSearch && matchesReviews && matchesStyle;
+    const matchesAbv = selectedAbv === 'all' || getAbvBracket(drink.abv) === selectedAbv;
+    const matchesDietary = matchesDietaryFilter(drink, selectedDietary);
+    const matchesFormat = selectedFormat === 'all' || drink.caskOrKeg === selectedFormat;
+    return matchesSearch && matchesReviews && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
   });
 
   const sortedDrinks = [...filteredDrinks].sort((a, b) => {
@@ -637,6 +657,48 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             </div>
           </div>
 
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="drink-format" className="form-label">Serving Format (Optional)</label>
+              <div className="form-select-wrapper">
+                <select
+                  id="drink-format"
+                  className="form-select"
+                  value={newDrinkFormat}
+                  onChange={(e) => setNewDrinkFormat(parseServingFormat(e.target.value) ?? '')}
+                >
+                  <option value="">Not specified</option>
+                  {SERVING_FORMATS.map((format) => (
+                    <option key={format} value={format}>{format}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <span className="form-label">Dietary (Optional)</span>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', paddingTop: '8px' }}>
+                <label htmlFor="drink-vegan" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    id="drink-vegan"
+                    checked={newDrinkVegan}
+                    onChange={(e) => setNewDrinkVegan(e.target.checked)}
+                  />
+                  Vegan
+                </label>
+                <label htmlFor="drink-gluten-free" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    id="drink-gluten-free"
+                    checked={newDrinkGlutenFree}
+                    onChange={(e) => setNewDrinkGlutenFree(e.target.checked)}
+                  />
+                  Gluten-free
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Photo / Image Attachment Section for New Drink */}
           <div className="form-group image-upload-group" style={{ marginTop: '12px', marginBottom: '16px' }}>
             <label className="form-label d-flex align-items-center" style={{ gap: '6px' }}>
@@ -728,6 +790,58 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   </select>
                 </div>
 
+                {/* ABV Bracket Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '140px' }}>
+                  <select
+                    value={selectedAbv}
+                    onChange={(e) => setSelectedAbv(e.target.value as 'all' | AbvBracket)}
+                    className="form-select"
+                    aria-label="Filter by ABV"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="all">All ABV</option>
+                    {ABV_BRACKETS.map((bracket) => (
+                      <option key={bracket.id} value={bracket.id}>
+                        {bracket.label} ({event.drinks?.filter(d => getAbvBracket(d.abv) === bracket.id).length || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Serving Format Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
+                  <select
+                    value={selectedFormat}
+                    onChange={(e) => setSelectedFormat(e.target.value as 'all' | ServingFormat)}
+                    className="form-select"
+                    aria-label="Filter by serving format"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="all">All Formats</option>
+                    {SERVING_FORMATS.map((format) => (
+                      <option key={format} value={format}>
+                        {format} ({event.drinks?.filter(d => d.caskOrKeg === format).length || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dietary Dropdown Filter (only drinks that list the flag match) */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '150px' }}>
+                  <select
+                    value={selectedDietary}
+                    onChange={(e) => setSelectedDietary(e.target.value as DietaryFilter)}
+                    className="form-select"
+                    aria-label="Filter by dietary info (where listed)"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="any">Dietary (where listed)</option>
+                    <option value="vegan">Vegan ({event.drinks?.filter(d => matchesDietaryFilter(d, 'vegan')).length || 0})</option>
+                    <option value="gluten-free">Gluten-free ({event.drinks?.filter(d => matchesDietaryFilter(d, 'gluten-free')).length || 0})</option>
+                    <option value="both">Vegan + GF ({event.drinks?.filter(d => matchesDietaryFilter(d, 'both')).length || 0})</option>
+                  </select>
+                </div>
+
                 {/* Sort Dropdown Filter */}
                 <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
                   <select
@@ -770,6 +884,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   <BeerDrinkCard
                     key={drink.id}
                     drink={drink}
+                    eventName={event.name}
                     onTriggerReview={() => {
                       setActiveReviewDrink(drink);
                       setReviewImageUrl('');
@@ -1058,9 +1173,10 @@ interface BeerDrinkCardProps {
   drink: BeerDrink;
   onTriggerReview: () => void;
   onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
+  eventName: string;
 }
 
-const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, onOpenLightbox }) => {
+const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, eventName, onTriggerReview, onOpenLightbox }) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
   // Calculate Average Rating
@@ -1091,6 +1207,9 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
           <div className="beer-card-top">
             <span className="beer-style-badge">{drink.style}</span>
             <span className="beer-abv-badge">{drink.abv}</span>
+            {drink.caskOrKeg && <span className="beer-abv-badge">{drink.caskOrKeg}</span>}
+            {drink.isVegan && <span className="beer-abv-badge" title="Vegan">Vegan</span>}
+            {drink.isGlutenFree && <span className="beer-abv-badge" title="Gluten-free">GF</span>}
             {drink.imageUrl && (
               <span className="photo-attached-badge" title="Drink has photo attached">
                 <ImageIcon size={12} /> Photo
@@ -1138,6 +1257,13 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
             <MessageSquare size={14} />
             <span>Reviews ({drink.reviews.length})</span>
           </button>
+
+          <ShareButton
+            label={`Share ${drink.name}`}
+            title="Keg Swap"
+            text={`${drink.name} by ${drink.brewery} (${drink.abv}), at ${eventName} on Keg Swap`}
+            url={getAppShareUrl()}
+          />
         </div>
       </div>
 

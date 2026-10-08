@@ -18,10 +18,12 @@ import {
   UserMinus,
   MapPin,
   Camera,
+  Download,
   X
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { useUserReviews } from '../hooks/useUserReviews';
+import { buildDiaryCsv, downloadTextFile } from '../utils/exportDiary';
 
 interface UserProfileScreenProps {
   user: User;
@@ -91,6 +93,27 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
   // Sort reviews by creation date descending
   userReviews.sort((a, b) => new Date(b.review.createdAt).getTime() - new Date(a.review.createdAt).getTime());
+
+  const handleExportDiary = () => {
+    const eventDates = new Map(events.map((event) => [event.id, event.date]));
+    const rows = userReviews.map(({ review, drinkName, brewery, style, eventName, eventId }) => ({
+      beer: drinkName,
+      brewery,
+      style,
+      event: eventName,
+      eventDate: eventDates.get(eventId) ?? '',
+      reviewDate: review.createdAt,
+      rating: review.rating,
+      servingSize: review.servingSize ?? '',
+      price: review.price ?? '',
+      notes: review.comment,
+    }));
+    const today = new Date();
+    const stamp = [today.getFullYear(), today.getMonth() + 1, today.getDate()]
+      .map((part) => String(part).padStart(2, '0'))
+      .join('-');
+    downloadTextFile(`keg-swap-diary-${stamp}.csv`, 'text/csv', buildDiaryCsv(rows));
+  };
 
   // Take the last 10 reviews
   const recentReviews = userReviews.slice(0, 10);
@@ -444,7 +467,28 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
           <div className="profile-feed-section">
             <div className="feed-header-row">
               <h3 className="section-title" style={{ margin: 0 }}>Recent Reviews</h3>
-              <span className="feed-count-badge">Showing last {recentReviews.length} of {totalReviews}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                <span className="feed-count-badge">Showing last {recentReviews.length} of {totalReviews}</span>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={handleExportDiary}
+                  disabled={totalReviews === 0}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    fontSize: '13px',
+                    opacity: totalReviews === 0 ? 0.5 : 1,
+                    cursor: totalReviews === 0 ? 'not-allowed' : 'pointer',
+                  }}
+                  title="Download all your reviews as a CSV file"
+                >
+                  <Download size={14} />
+                  <span>Export My Reviews</span>
+                </button>
+              </div>
             </div>
 
             {recentReviews.length > 0 ? (

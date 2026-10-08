@@ -23,10 +23,15 @@ The batch beer uploader expects JSON items adhering strictly to this format:
     "abv": "5.4%",
     "style": "Hazy Pale Ale",
     "description": "Juicy, tropical pale ale packed with Citra and Mosaic hops.",
-    "imageUrl": "https://example.com/images/faith.jpg"
+    "imageUrl": "https://example.com/images/faith.jpg",
+    "isVegan": true,
+    "isGlutenFree": false,
+    "caskOrKeg": "Keg"
   }
 ]
 ```
+
+`imageUrl`, `isVegan`, `isGlutenFree` and `caskOrKeg` are optional. `isVegan`/`isGlutenFree` are kept only when they are `true` (absent means unknown, and a dietary filter never matches unknown). `caskOrKeg` must be `Cask`, `Keg`, `Can` or `Bottle` (case-insensitive); anything else is dropped, not rejected. Parsing lives in `src/utils/drinkFlags.ts`.
 
 ### Data Normalization Rules:
 1. **ABV Validation**:

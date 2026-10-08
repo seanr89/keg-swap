@@ -94,20 +94,22 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - Add a bookmark/heart icon on beer cards so attendees can flag beers they want to sample during a festival or swap night.
   - Filter toggle on event screen: `Show: All | Tried | Wishlist`.
 
-- [ ] **[P1] Dietary & Allergen Badges (Vegan, Gluten-Free, Organic)** `frontend-refactorer` `beer-catalog-manager`
+- [x] **[P1] Dietary & Allergen Badges (Vegan, Gluten-Free, Organic)** `frontend-refactorer` `beer-catalog-manager`
   - Update `BeerDrink` model to support flags: `isVegan?: boolean`, `isGlutenFree?: boolean`, `caskOrKeg?: 'Cask' | 'Keg' | 'Can' | 'Bottle'`.
   - Add badge indicators and filters to [`EventDetailScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/EventDetailScreen.tsx).
+  - *Status:* Done. Optional fields on `BeerDrink`, checkboxes and a format select on the add-drink form, optional keys in the batch importer (`src/utils/drinkFlags.ts`), badges on the card, and Format and Dietary filters. An unset flag means unknown, so dietary filters only match drinks that list the flag. There is still no edit-drink form, so flags can only be set when adding or importing.
 
 - [ ] **[P2] Flavor & Tasting Notes Tag Cloud** `beer-catalog-manager` `frontend-refactorer`
   - Allow reviewers to pick or enter taste descriptor tags (e.g. `Hoppy`, `Citrus`, `Roasty`, `Chocolate`, `Hazy`, `Sour`, `Piney`, `Smoky`).
   - Display aggregate top-3 tags on the beer card.
 
-- [ ] **[P2] ABV Range & Style Filtering** `frontend-refactorer`
+- [x] **[P2] ABV Range & Style Filtering** `frontend-refactorer`
   - Add a slider or segmented control to filter drinks by ABV brackets:
     - Low / Session (< 4.0%)
     - Mid-range (4.0% – 6.0%)
     - Strong (6.1% – 8.5%)
     - Imperial / High Gravity (> 8.5%)
+  - *Status:* Done as a dropdown beside the style filter. Brackets live in `src/utils/abvUtils.ts` and are gap-free: Low < 4.0, Mid 4.0–5.99, Strong 6.0–8.5, Imperial > 8.5. Drinks whose ABV cannot be parsed only appear under "All ABV".
 
 - [ ] **[P2] Social Tasting Feed & Friend Comparison** `firebase-specialist` `frontend-refactorer`
   - Friend activity tab showing real-time reviews from user friends.
@@ -116,9 +118,11 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 - [ ] **[P3] Web Share API & Deep Linking** `frontend-refactorer`
   - Add native share buttons on event cards and drinks cards using `navigator.share` with fallback to clipboard URL copy.
   - Support query param deep linking: `?event=<id>&drink=<drinkId>`.
+  - *Status:* Share buttons are done (`ShareButton`, `src/utils/shareUtils.ts`; native share sheet, clipboard fallback with a brief "Link copied" confirmation). They share descriptive text plus the app root URL. **Deep linking is still open**: once `?event=&drink=` is supported, pass the deep link as `url` in the two `ShareButton` call sites (`EventCard.tsx`, `EventDetailScreen.tsx`).
 
-- [ ] **[P3] Export Tasting Diary (CSV / JSON)** `frontend-refactorer`
+- [x] **[P3] Export Tasting Diary (CSV / JSON)** `frontend-refactorer`
   - In [`UserProfileScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/UserProfileScreen.tsx), provide an "Export My Reviews" button exporting drink names, breweries, ratings, dates, and tasting notes to CSV.
+  - *Status:* Done, CSV only (`src/utils/exportDiary.ts`). Exports all of the signed-in user's reviews (not just the 10 shown), quoted and with a UTF-8 BOM, and neutralises leading `=`, `+`, `-`, `@` against spreadsheet formula injection. No JSON export, and no tag column until the flavor tags item lands.
 
 ---
 
@@ -169,4 +173,4 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | Extract custom hooks (`useAuth`, `useEvents`) | P1 | `frontend-refactorer` | Pending |
 | Deconstruct `EventDetailScreen.tsx` | P1 | `frontend-refactorer` | Pending |
 | Beer wishlist / "Want to try" toggle | P1 | `frontend-refactorer` | Pending |
-| Dietary badges (Vegan, Gluten-Free) | P1 | `beer-catalog-manager` | Pending |
+| Dietary badges (Vegan, Gluten-Free) | P1 | `beer-catalog-manager` | Completed |
