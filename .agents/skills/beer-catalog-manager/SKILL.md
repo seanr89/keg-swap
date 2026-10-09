@@ -23,10 +23,15 @@ The batch beer uploader expects JSON items adhering strictly to this format:
     "abv": "5.4%",
     "style": "Hazy Pale Ale",
     "description": "Juicy, tropical pale ale packed with Citra and Mosaic hops.",
-    "imageUrl": "https://example.com/images/faith.jpg"
+    "imageUrl": "https://example.com/images/faith.jpg",
+    "isVegan": true,
+    "isGlutenFree": false,
+    "caskOrKeg": "Keg"
   }
 ]
 ```
+
+`imageUrl`, `isVegan`, `isGlutenFree` and `caskOrKeg` are optional. `isVegan`/`isGlutenFree` are kept only when they are `true` (absent means unknown, and a dietary filter never matches unknown). `caskOrKeg` must be `Cask`, `Keg`, `Can` or `Bottle` (case-insensitive); anything else is dropped, not rejected. Parsing lives in `src/utils/drinkFlags.ts`.
 
 ### Data Normalization Rules:
 1. **ABV Validation**:
@@ -46,6 +51,9 @@ Keg Swap utilizes a 10-point scale with 0.5 step increments (displayed via beer 
 - Minimum valid rating: `0.5`
 - Maximum valid rating: `10.0`
 - Half-step support: `(index + 0.5)` or `(index + 1.0)`
+
+### Flavor Tags:
+Reviews may carry `tags?: string[]`. Always pass them through `cleanTags` (`src/utils/tastingTags.ts`) before writing: it trims, capitalises each word, caps tags at 24 characters and 8 per review, and drops case-insensitive duplicates. Aggregate with `topTags(reviews, limit)`, which counts a tag at most once per review and breaks ties alphabetically. Suggested presets live in `TASTING_TAGS` in `src/types.ts`.
 
 ### Average Rating Calculation:
 ```typescript

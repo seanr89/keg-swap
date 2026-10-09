@@ -1,8 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { BeerEvent, BeerDrink } from '../types';
+import { SERVING_FORMATS, TASTING_TAGS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
-import { 
+import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
+import { useWishlist } from '../hooks/useWishlist';
+import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
+import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
+import { MAX_TAG_LENGTH, MAX_TAGS_PER_REVIEW, tagKey, toggleTag, topTags } from '../utils/tastingTags';
+import {
   ArrowLeft, 
   MapPin, 
   Calendar, 
@@ -20,9 +25,12 @@ import {
   Camera,
   Image as ImageIcon,
   Maximize2,
-  Trash2
+  Trash2,
+  Bookmark
 } from 'lucide-react';
 import { StarRating } from './StarRating';
+import { ShareButton } from './ShareButton';
+import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
   sanitizeOrUploadImageUrl, 
@@ -43,7 +51,8 @@ interface EventDetailScreenProps {
     price?: string, 
     servingSize?: string,
     imageUrl?: string,
-    reviewId?: string
+    reviewId?: string,
+    tags?: string[]
   ) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
@@ -67,6 +76,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkStyle, setNewDrinkStyle] = useState('');
   const [newDrinkDesc, setNewDrinkDesc] = useState('');
   const [newDrinkImageUrl, setNewDrinkImageUrl] = useState('');
+  const [newDrinkVegan, setNewDrinkVegan] = useState(false);
+  const [newDrinkGlutenFree, setNewDrinkGlutenFree] = useState(false);
+  const [newDrinkFormat, setNewDrinkFormat] = useState<ServingFormat | ''>('');
   const [drinkDraftId, setDrinkDraftId] = useState(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
   );
@@ -78,8 +90,12 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   // Search and Filter states
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
-  const [filterHasReviews, setFilterHasReviews] = useState<'all' | 'with-reviews'>('all');
+  const [selectedShow, setSelectedShow] = useState<ShowFilter>('all');
+  const { wishlist, toggle: toggleWishlist } = useWishlist(user.uid, event.id);
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
+  const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
+  const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
+  const [selectedFormat, setSelectedFormat] = useState<'all' | ServingFormat>('all');
   const [selectedSort, setSelectedSort] = useState<string>('default');
 
   // Add Review Dialog Modal states
@@ -91,6 +107,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewServingSize, setReviewServingSize] = useState('');
   const [customServingSize, setCustomServingSize] = useState('');
   const [reviewImageUrl, setReviewImageUrl] = useState('');
+  const [reviewTags, setReviewTags] = useState<string[]>([]);
+  const [customTagInput, setCustomTagInput] = useState('');
   const [reviewDraftId, setReviewDraftId] = useState(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
   );
@@ -120,6 +138,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         setReviewServingSize('');
         setCustomServingSize('');
         setReviewImageUrl('');
+        setReviewTags([]);
+        setCustomTagInput('');
         setReviewImageUploading(false);
         setReviewError('');
       }
@@ -190,6 +210,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
   };
 
+  const handleAddCustomTag = () => {
+    if (!customTagInput.trim()) return;
+    if (!reviewTags.some((t) => tagKey(t) === tagKey(customTagInput))) {
+      setReviewTags((tags) => toggleTag(tags, customTagInput));
+    }
+    setCustomTagInput('');
+  };
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeReviewDrink) return;
@@ -225,7 +253,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       reviewPrice.trim() || undefined,
       effectiveServingSize || undefined,
       finalImageUrl,
-      reviewDraftId
+      reviewDraftId,
+      reviewTags
     );
 
     // Reset Form & Close Modal
@@ -236,6 +265,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setReviewServingSize('');
     setCustomServingSize('');
     setReviewImageUrl('');
+    setReviewTags([]);
+    setCustomTagInput('');
     setReviewError('');
     setActiveReviewDrink(null);
     setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
@@ -279,6 +310,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
       imageUrl: finalImageUrl,
+      ...(newDrinkVegan ? { isVegan: true } : {}),
+      ...(newDrinkGlutenFree ? { isGlutenFree: true } : {}),
+      ...(newDrinkFormat ? { caskOrKeg: newDrinkFormat } : {}),
     });
 
     // Reset Form
@@ -289,6 +323,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setNewDrinkStyle('');
     setNewDrinkDesc('');
     setNewDrinkImageUrl('');
+    setNewDrinkVegan(false);
+    setNewDrinkGlutenFree(false);
+    setNewDrinkFormat('');
     setAddDrinkError('');
     setShowAddForm(false);
     setDrinkDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
@@ -332,6 +369,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               style: item.style.trim(),
               description: item.description.trim(),
               ...(typeof item.imageUrl === 'string' && item.imageUrl.trim() ? { imageUrl: item.imageUrl.trim() } : {}),
+              ...parseDrinkFlags(item),
             });
           }
         }
@@ -373,9 +411,12 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       drink.name.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
-    const matchesReviews = filterHasReviews === 'all' || (drink.reviews && drink.reviews.length > 0);
+    const matchesShow = matchesShowFilter(drink, selectedShow, user.uid, wishlist);
     const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
-    return matchesSearch && matchesReviews && matchesStyle;
+    const matchesAbv = selectedAbv === 'all' || getAbvBracket(drink.abv) === selectedAbv;
+    const matchesDietary = matchesDietaryFilter(drink, selectedDietary);
+    const matchesFormat = selectedFormat === 'all' || drink.caskOrKeg === selectedFormat;
+    return matchesSearch && matchesShow && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
   });
 
   const sortedDrinks = [...filteredDrinks].sort((a, b) => {
@@ -637,6 +678,48 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             </div>
           </div>
 
+          <div className="form-grid">
+            <div className="form-group">
+              <label htmlFor="drink-format" className="form-label">Serving Format (Optional)</label>
+              <div className="form-select-wrapper">
+                <select
+                  id="drink-format"
+                  className="form-select"
+                  value={newDrinkFormat}
+                  onChange={(e) => setNewDrinkFormat(parseServingFormat(e.target.value) ?? '')}
+                >
+                  <option value="">Not specified</option>
+                  {SERVING_FORMATS.map((format) => (
+                    <option key={format} value={format}>{format}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
+              <span className="form-label">Dietary (Optional)</span>
+              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', paddingTop: '8px' }}>
+                <label htmlFor="drink-vegan" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    id="drink-vegan"
+                    checked={newDrinkVegan}
+                    onChange={(e) => setNewDrinkVegan(e.target.checked)}
+                  />
+                  Vegan
+                </label>
+                <label htmlFor="drink-gluten-free" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    id="drink-gluten-free"
+                    checked={newDrinkGlutenFree}
+                    onChange={(e) => setNewDrinkGlutenFree(e.target.checked)}
+                  />
+                  Gluten-free
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Photo / Image Attachment Section for New Drink */}
           <div className="form-group image-upload-group" style={{ marginTop: '12px', marginBottom: '16px' }}>
             <label className="form-label d-flex align-items-center" style={{ gap: '6px' }}>
@@ -728,6 +811,58 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   </select>
                 </div>
 
+                {/* ABV Bracket Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '140px' }}>
+                  <select
+                    value={selectedAbv}
+                    onChange={(e) => setSelectedAbv(e.target.value as 'all' | AbvBracket)}
+                    className="form-select"
+                    aria-label="Filter by ABV"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="all">All ABV</option>
+                    {ABV_BRACKETS.map((bracket) => (
+                      <option key={bracket.id} value={bracket.id}>
+                        {bracket.label} ({event.drinks?.filter(d => getAbvBracket(d.abv) === bracket.id).length || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Serving Format Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
+                  <select
+                    value={selectedFormat}
+                    onChange={(e) => setSelectedFormat(e.target.value as 'all' | ServingFormat)}
+                    className="form-select"
+                    aria-label="Filter by serving format"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="all">All Formats</option>
+                    {SERVING_FORMATS.map((format) => (
+                      <option key={format} value={format}>
+                        {format} ({event.drinks?.filter(d => d.caskOrKeg === format).length || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Dietary Dropdown Filter (only drinks that list the flag match) */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '150px' }}>
+                  <select
+                    value={selectedDietary}
+                    onChange={(e) => setSelectedDietary(e.target.value as DietaryFilter)}
+                    className="form-select"
+                    aria-label="Filter by dietary info (where listed)"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="any">Dietary (where listed)</option>
+                    <option value="vegan">Vegan ({event.drinks?.filter(d => matchesDietaryFilter(d, 'vegan')).length || 0})</option>
+                    <option value="gluten-free">Gluten-free ({event.drinks?.filter(d => matchesDietaryFilter(d, 'gluten-free')).length || 0})</option>
+                    <option value="both">Vegan + GF ({event.drinks?.filter(d => matchesDietaryFilter(d, 'both')).length || 0})</option>
+                  </select>
+                </div>
+
                 {/* Sort Dropdown Filter */}
                 <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
                   <select
@@ -743,23 +878,25 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   </select>
                 </div>
 
-                <div className="filter-tabs">
-                  <button
-                    type="button"
-                    className={`filter-tab-btn ${filterHasReviews === 'all' ? 'active' : ''}`}
-                    onClick={() => setFilterHasReviews('all')}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    All Drinks
-                  </button>
-                  <button
-                    type="button"
-                    className={`filter-tab-btn ${filterHasReviews === 'with-reviews' ? 'active' : ''}`}
-                    onClick={() => setFilterHasReviews('with-reviews')}
-                    style={{ padding: '6px 12px', fontSize: '13px' }}
-                  >
-                    Reviewed Only ({event.drinks?.filter(d => d.reviews && d.reviews.length > 0).length || 0})
-                  </button>
+                <div className="filter-tabs" role="group" aria-label="Show">
+                  {(
+                    [
+                      { id: 'all', label: 'All', count: event.drinks?.length ?? 0 },
+                      { id: 'tried', label: 'Tried', count: countMatching(event.drinks ?? [], 'tried', user.uid, wishlist) },
+                      { id: 'wishlist', label: 'Wishlist', count: countMatching(event.drinks ?? [], 'wishlist', user.uid, wishlist) },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      className={`filter-tab-btn ${selectedShow === tab.id ? 'active' : ''}`}
+                      aria-pressed={selectedShow === tab.id}
+                      onClick={() => setSelectedShow(tab.id)}
+                      style={{ padding: '6px 12px', fontSize: '13px' }}
+                    >
+                      {tab.label} ({tab.count})
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
@@ -770,6 +907,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                   <BeerDrinkCard
                     key={drink.id}
                     drink={drink}
+                    eventName={event.name}
+                    isWishlisted={wishlist.has(drink.id)}
+                    onToggleWishlist={() => toggleWishlist(drink.id)}
                     onTriggerReview={() => {
                       setActiveReviewDrink(drink);
                       setReviewImageUrl('');
@@ -947,6 +1087,61 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 </div>
               )}
 
+              <fieldset className="form-group tag-picker">
+                <legend className="form-label">
+                  Flavor Tags (Optional, up to {MAX_TAGS_PER_REVIEW})
+                </legend>
+                <div className="tag-chip-list">
+                  {[
+                    ...TASTING_TAGS,
+                    ...reviewTags.filter((t) => !TASTING_TAGS.some((preset) => tagKey(preset) === tagKey(t))),
+                  ].map((tag) => {
+                    const selected = reviewTags.some((t) => tagKey(t) === tagKey(tag));
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`tag-chip ${selected ? 'selected' : ''}`}
+                        aria-pressed={selected}
+                        disabled={!selected && reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                        onClick={() => setReviewTags((tags) => toggleTag(tags, tag))}
+                      >
+                        {selected && <Check size={12} />}
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="tag-custom-row">
+                  <input
+                    type="text"
+                    id="rev-custom-tag"
+                    className="form-input"
+                    aria-label="Add your own flavor tag"
+                    placeholder="Add your own, e.g. Stone Fruit"
+                    maxLength={MAX_TAG_LENGTH}
+                    value={customTagInput}
+                    onChange={(e) => setCustomTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomTag();
+                      }
+                    }}
+                    disabled={reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleAddCustomTag}
+                    disabled={!customTagInput.trim() || reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                  >
+                    <Plus size={14} />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </fieldset>
+
               <div className="form-group">
                 <label htmlFor="rev-comment" className="form-label">
                   Tasting Notes / Comments <span style={{ color: '#ef4444' }}>*</span>
@@ -1058,15 +1253,26 @@ interface BeerDrinkCardProps {
   drink: BeerDrink;
   onTriggerReview: () => void;
   onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
+  eventName: string;
+  isWishlisted: boolean;
+  onToggleWishlist: () => void;
 }
 
-const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, onOpenLightbox }) => {
+const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
+  drink,
+  eventName,
+  isWishlisted,
+  onToggleWishlist,
+  onTriggerReview,
+  onOpenLightbox,
+}) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
   // Calculate Average Rating
   const avgRating = drink.reviews.length > 0
     ? (drink.reviews.reduce((acc, r) => acc + r.rating, 0) / drink.reviews.length).toFixed(1)
     : null;
+  const flavorTags = topTags(drink.reviews);
 
   return (
     <div className="beer-card">
@@ -1091,6 +1297,9 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
           <div className="beer-card-top">
             <span className="beer-style-badge">{drink.style}</span>
             <span className="beer-abv-badge">{drink.abv}</span>
+            {drink.caskOrKeg && <span className="beer-abv-badge">{drink.caskOrKeg}</span>}
+            {drink.isVegan && <span className="beer-abv-badge" title="Vegan">Vegan</span>}
+            {drink.isGlutenFree && <span className="beer-abv-badge" title="Gluten-free">GF</span>}
             {drink.imageUrl && (
               <span className="photo-attached-badge" title="Drink has photo attached">
                 <ImageIcon size={12} /> Photo
@@ -1104,6 +1313,20 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
             <span className="beer-location">{drink.location}</span>
           </div>
           <p className="beer-description">{drink.description}</p>
+          {flavorTags.length > 0 && (
+            <ul className="flavor-tags" aria-label="Top flavor tags from reviews">
+              {flavorTags.map(({ tag, count }) => (
+                <li
+                  key={tag}
+                  className="flavor-tag"
+                  title={`Tagged by ${count} reviewer${count === 1 ? '' : 's'}`}
+                >
+                  {tag}
+                  <span className="flavor-tag-count">{count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Right Side Metric / Star Dashboard */}
@@ -1138,6 +1361,24 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
             <MessageSquare size={14} />
             <span>Reviews ({drink.reviews.length})</span>
           </button>
+
+          <button
+            type="button"
+            className={`share-btn ${isWishlisted ? 'active' : ''}`}
+            onClick={onToggleWishlist}
+            aria-pressed={isWishlisted}
+            aria-label={isWishlisted ? `Remove ${drink.name} from wishlist` : `Add ${drink.name} to wishlist`}
+            title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <Bookmark size={15} fill={isWishlisted ? 'currentColor' : 'none'} />
+          </button>
+
+          <ShareButton
+            label={`Share ${drink.name}`}
+            title="Keg Swap"
+            text={`${drink.name} by ${drink.brewery} (${drink.abv}), at ${eventName} on Keg Swap`}
+            url={getAppShareUrl()}
+          />
         </div>
       </div>
 
@@ -1177,6 +1418,13 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({ drink, onTriggerReview, o
                   </div>
                   
                   <p className="review-comment">{rev.comment}</p>
+                  {rev.tags && rev.tags.length > 0 && (
+                    <div className="review-tags">
+                      {rev.tags.map((tag) => (
+                        <span key={tag} className="review-meta-tag">{tag}</span>
+                      ))}
+                    </div>
+                  )}
                   
                   {/* Photo of the drink the reviewer had */}
                   {rev.imageUrl && (

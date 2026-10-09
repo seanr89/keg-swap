@@ -24,6 +24,11 @@ service cloud.firestore {
         && (request.auth.uid == uid || resource.data.isPublic == true);
       allow create, update: if isSignedIn() && request.auth.uid == uid;
       allow delete: if false;
+
+      // Private bookmarks: one doc per event, readable and writable only by the owner.
+      match /wishlists/{eventId} {
+        allow read, write: if isSignedIn() && request.auth.uid == uid;
+      }
     }
 
     // Event venues: any signed-in user can read, only admins can change.

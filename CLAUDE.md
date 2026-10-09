@@ -28,6 +28,8 @@ Events created before this still hold an embedded `drinks` array. The events sna
 
 Other collections: `users/{uid}` (`UserProfile`, with `isPublic`, `friends`), `locations/{id}` (`EventLocation`, admin-managed).
 
+Wishlist bookmarks are private per-user data at `users/{uid}/wishlists/{eventId}` (`{ drinkIds, updatedAt }`), read by `useWishlist` only while an event is open and governed by an owner-only rule in `firestore.rules`. Deleting an event leaves these small docs behind (an owner cannot delete other users' private docs); nothing reads them. "Tried" in the event filter means the user has a review on the drink (`review.userId`).
+
 ### Images
 Images go to Firebase Storage under `events/{eventId}/...` and only the download URL is stored in Firestore. `src/utils/imageUtils.ts` handles canvas compression (WebP, max 600px, quality 0.75, with a JPEG fallback where the browser cannot encode WebP; the storage path extension follows the real format), upload, and migration of legacy base64 `data:` URLs (run as part of `migrateLegacyEvent`). `storage.rules` restricts uploads to authenticated users, images only, under 5MB. Firestore access is governed by `firestore.rules` (deploy with `firebase deploy --only firestore:rules,firestore:indexes,storage`; deploy these before shipping client changes that depend on them).
 
@@ -38,7 +40,7 @@ Theme is a `data-theme` attribute, persisted in `localStorage` key `keg_swap_the
 `vite-plugin-pwa` (config in `vite.config.ts`) precaches the app shell and cache-first caches Storage images; `src/firebase.ts` enables Firestore persistent local cache, which serves cached events/drinks/reviews offline and queues writes. Icons in `public/` are generated from `public/pwa-icon.svg` with `npx pwa-assets-generator`. The service worker only exists in production builds (`npm run build && npm run preview`).
 
 ### Ratings and ABV
-Ratings are 0.5–10.0 in 0.5 steps (`StarRating.tsx` renders beer glasses). `abv` is stored as a string like `"4.6%"`. `beers.json` is the sample/batch-import dataset in the shape `EventDetailScreen`'s batch uploader accepts.
+Ratings are 0.5–10.0 in 0.5 steps (`StarRating.tsx` renders beer glasses). Reviews may carry flavor `tags` (presets in `TASTING_TAGS`, or free text), normalised and compared case-insensitively by `src/utils/tastingTags.ts`; the drink card shows the top 3 via `topTags`. `abv` is stored as a string like `"4.6%"`. `beers.json` is the sample/batch-import dataset in the shape `EventDetailScreen`'s batch uploader accepts.
 
 ## Known gotchas (also tracked in `TODO.md`)
 

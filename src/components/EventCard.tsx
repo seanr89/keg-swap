@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { BeerEvent } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
+import { ShareButton } from './ShareButton';
+import { getAppShareUrl } from '../utils/shareUtils';
 import { MapPin, Calendar, Trash2, Clock, Play, CheckCircle, XCircle, UserCheck, Globe, ExternalLink } from 'lucide-react';
 
 interface EventCardProps {
@@ -235,6 +237,13 @@ export const EventCard: React.FC<EventCardProps> = ({ event, user, canDelete, on
               <UserCheck size={14} />
               <span>{event.attendees?.includes(user.uid) ? 'Attending' : 'Attend'}</span>
             </button>
+
+            <ShareButton
+              label={`Share ${event.name}`}
+              title="Keg Swap"
+              text={`Keg Swap: ${event.name}, ${formatFriendlyDate(event.date, event.endDate)}, ${event.address}`}
+              url={getAppShareUrl()}
+            />
 
             {canDelete && (
               <button

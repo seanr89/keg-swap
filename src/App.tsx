@@ -28,6 +28,7 @@ import {
 } from 'firebase/firestore';
 import { sanitizeOrUploadImageUrl, isBase64DataUrl } from './utils/imageUtils';
 import { addDrinks, addReview, deleteEventCascade, migrateLegacyEvent } from './utils/eventData';
+import { cleanTags } from './utils/tastingTags';
 import { useEventDrinks } from './hooks/useEventDrinks';
 import './App.css';
 
@@ -351,7 +352,8 @@ function App() {
     price?: string,
     servingSize?: string,
     imageUrl?: string,
-    reviewId?: string
+    reviewId?: string,
+    tags?: string[]
   ) => {
     const finalReviewId = reviewId || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
 
@@ -367,6 +369,7 @@ function App() {
       }
     }
 
+    const cleanedTags = cleanTags(tags);
     const newReview: BeerReview = {
       id: finalReviewId,
       reviewer,
@@ -377,6 +380,7 @@ function App() {
       ...(price?.trim() ? { price: price.trim() } : {}),
       ...(servingSize?.trim() ? { servingSize: servingSize.trim() } : {}),
       ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
+      ...(cleanedTags ? { tags: cleanedTags } : {}),
     };
 
     const drink = activeDrinks.find((d) => d.id === drinkId);
@@ -631,8 +635,8 @@ function App() {
               user={user}
               onBack={() => setActiveEventId(null)}
               onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-              onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId) =>
-                handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId)
+              onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags) =>
+                handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags)
               }
               onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
               onToggleAttendance={handleToggleAttendance}
