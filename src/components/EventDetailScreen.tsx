@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
+import { SERVING_FORMATS, TASTING_TAGS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
 import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
 import { useWishlist } from '../hooks/useWishlist';
 import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
 import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
+import { MAX_TAG_LENGTH, MAX_TAGS_PER_REVIEW, tagKey, toggleTag, topTags } from '../utils/tastingTags';
 import {
   ArrowLeft, 
   MapPin, 
@@ -50,7 +51,8 @@ interface EventDetailScreenProps {
     price?: string, 
     servingSize?: string,
     imageUrl?: string,
-    reviewId?: string
+    reviewId?: string,
+    tags?: string[]
   ) => void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
@@ -105,6 +107,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [reviewServingSize, setReviewServingSize] = useState('');
   const [customServingSize, setCustomServingSize] = useState('');
   const [reviewImageUrl, setReviewImageUrl] = useState('');
+  const [reviewTags, setReviewTags] = useState<string[]>([]);
+  const [customTagInput, setCustomTagInput] = useState('');
   const [reviewDraftId, setReviewDraftId] = useState(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
   );
@@ -134,6 +138,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         setReviewServingSize('');
         setCustomServingSize('');
         setReviewImageUrl('');
+        setReviewTags([]);
+        setCustomTagInput('');
         setReviewImageUploading(false);
         setReviewError('');
       }
@@ -204,6 +210,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
   };
 
+  const handleAddCustomTag = () => {
+    if (!customTagInput.trim()) return;
+    if (!reviewTags.some((t) => tagKey(t) === tagKey(customTagInput))) {
+      setReviewTags((tags) => toggleTag(tags, customTagInput));
+    }
+    setCustomTagInput('');
+  };
+
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeReviewDrink) return;
@@ -239,7 +253,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       reviewPrice.trim() || undefined,
       effectiveServingSize || undefined,
       finalImageUrl,
-      reviewDraftId
+      reviewDraftId,
+      reviewTags
     );
 
     // Reset Form & Close Modal
@@ -250,6 +265,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setReviewServingSize('');
     setCustomServingSize('');
     setReviewImageUrl('');
+    setReviewTags([]);
+    setCustomTagInput('');
     setReviewError('');
     setActiveReviewDrink(null);
     setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
@@ -1070,6 +1087,61 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 </div>
               )}
 
+              <fieldset className="form-group tag-picker">
+                <legend className="form-label">
+                  Flavor Tags (Optional, up to {MAX_TAGS_PER_REVIEW})
+                </legend>
+                <div className="tag-chip-list">
+                  {[
+                    ...TASTING_TAGS,
+                    ...reviewTags.filter((t) => !TASTING_TAGS.some((preset) => tagKey(preset) === tagKey(t))),
+                  ].map((tag) => {
+                    const selected = reviewTags.some((t) => tagKey(t) === tagKey(tag));
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`tag-chip ${selected ? 'selected' : ''}`}
+                        aria-pressed={selected}
+                        disabled={!selected && reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                        onClick={() => setReviewTags((tags) => toggleTag(tags, tag))}
+                      >
+                        {selected && <Check size={12} />}
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="tag-custom-row">
+                  <input
+                    type="text"
+                    id="rev-custom-tag"
+                    className="form-input"
+                    aria-label="Add your own flavor tag"
+                    placeholder="Add your own, e.g. Stone Fruit"
+                    maxLength={MAX_TAG_LENGTH}
+                    value={customTagInput}
+                    onChange={(e) => setCustomTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddCustomTag();
+                      }
+                    }}
+                    disabled={reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleAddCustomTag}
+                    disabled={!customTagInput.trim() || reviewTags.length >= MAX_TAGS_PER_REVIEW}
+                  >
+                    <Plus size={14} />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </fieldset>
+
               <div className="form-group">
                 <label htmlFor="rev-comment" className="form-label">
                   Tasting Notes / Comments <span style={{ color: '#ef4444' }}>*</span>
@@ -1200,6 +1272,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   const avgRating = drink.reviews.length > 0
     ? (drink.reviews.reduce((acc, r) => acc + r.rating, 0) / drink.reviews.length).toFixed(1)
     : null;
+  const flavorTags = topTags(drink.reviews);
 
   return (
     <div className="beer-card">
@@ -1240,6 +1313,20 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
             <span className="beer-location">{drink.location}</span>
           </div>
           <p className="beer-description">{drink.description}</p>
+          {flavorTags.length > 0 && (
+            <ul className="flavor-tags" aria-label="Top flavor tags from reviews">
+              {flavorTags.map(({ tag, count }) => (
+                <li
+                  key={tag}
+                  className="flavor-tag"
+                  title={`Tagged by ${count} reviewer${count === 1 ? '' : 's'}`}
+                >
+                  {tag}
+                  <span className="flavor-tag-count">{count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {/* Right Side Metric / Star Dashboard */}
@@ -1331,6 +1418,13 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
                   </div>
                   
                   <p className="review-comment">{rev.comment}</p>
+                  {rev.tags && rev.tags.length > 0 && (
+                    <div className="review-tags">
+                      {rev.tags.map((tag) => (
+                        <span key={tag} className="review-meta-tag">{tag}</span>
+                      ))}
+                    </div>
+                  )}
                   
                   {/* Photo of the drink the reviewer had */}
                   {rev.imageUrl && (

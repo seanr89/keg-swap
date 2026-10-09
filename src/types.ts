@@ -8,7 +8,14 @@ export interface BeerReview {
   price?: string;
   servingSize?: string;
   imageUrl?: string;
+  tags?: string[]; // tasting descriptors, normalised by `src/utils/tastingTags.ts`
 }
+
+/** Suggested tasting descriptors offered in the review form; reviewers can also enter their own. */
+export const TASTING_TAGS = [
+  'Hoppy', 'Citrus', 'Tropical', 'Piney', 'Malty', 'Roasty', 'Chocolate', 'Coffee',
+  'Caramel', 'Hazy', 'Crisp', 'Sour', 'Fruity', 'Smoky', 'Bitter', 'Sweet',
+] as const;
 
 /**
  * A review as stored at `events/{eventId}/drinks/{drinkId}/reviews/{reviewId}`.

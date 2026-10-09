@@ -52,6 +52,9 @@ Keg Swap utilizes a 10-point scale with 0.5 step increments (displayed via beer 
 - Maximum valid rating: `10.0`
 - Half-step support: `(index + 0.5)` or `(index + 1.0)`
 
+### Flavor Tags:
+Reviews may carry `tags?: string[]`. Always pass them through `cleanTags` (`src/utils/tastingTags.ts`) before writing: it trims, capitalises each word, caps tags at 24 characters and 8 per review, and drops case-insensitive duplicates. Aggregate with `topTags(reviews, limit)`, which counts a tag at most once per review and breaks ties alphabetically. Suggested presets live in `TASTING_TAGS` in `src/types.ts`.
+
 ### Average Rating Calculation:
 ```typescript
 export function computeAverageRating(reviews: BeerReview[]): { average: number; count: number } {

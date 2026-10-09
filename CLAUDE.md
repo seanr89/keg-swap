@@ -40,7 +40,7 @@ Theme is a `data-theme` attribute, persisted in `localStorage` key `keg_swap_the
 `vite-plugin-pwa` (config in `vite.config.ts`) precaches the app shell and cache-first caches Storage images; `src/firebase.ts` enables Firestore persistent local cache, which serves cached events/drinks/reviews offline and queues writes. Icons in `public/` are generated from `public/pwa-icon.svg` with `npx pwa-assets-generator`. The service worker only exists in production builds (`npm run build && npm run preview`).
 
 ### Ratings and ABV
-Ratings are 0.5–10.0 in 0.5 steps (`StarRating.tsx` renders beer glasses). `abv` is stored as a string like `"4.6%"`. `beers.json` is the sample/batch-import dataset in the shape `EventDetailScreen`'s batch uploader accepts.
+Ratings are 0.5–10.0 in 0.5 steps (`StarRating.tsx` renders beer glasses). Reviews may carry flavor `tags` (presets in `TASTING_TAGS`, or free text), normalised and compared case-insensitively by `src/utils/tastingTags.ts`; the drink card shows the top 3 via `topTags`. `abv` is stored as a string like `"4.6%"`. `beers.json` is the sample/batch-import dataset in the shape `EventDetailScreen`'s batch uploader accepts.
 
 ## Known gotchas (also tracked in `TODO.md`)
 

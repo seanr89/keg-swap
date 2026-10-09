@@ -100,9 +100,10 @@ This document tracks identified bugs, security vulnerabilities, performance bott
   - Add badge indicators and filters to [`EventDetailScreen.tsx`](file:///Users/seanrafferty/Documents/development/repos/keg-swap/src/components/EventDetailScreen.tsx).
   - *Status:* Done. Optional fields on `BeerDrink`, checkboxes and a format select on the add-drink form, optional keys in the batch importer (`src/utils/drinkFlags.ts`), badges on the card, and Format and Dietary filters. An unset flag means unknown, so dietary filters only match drinks that list the flag. There is still no edit-drink form, so flags can only be set when adding or importing.
 
-- [ ] **[P2] Flavor & Tasting Notes Tag Cloud** `beer-catalog-manager` `frontend-refactorer`
+- [x] **[P2] Flavor & Tasting Notes Tag Cloud** `beer-catalog-manager` `frontend-refactorer`
   - Allow reviewers to pick or enter taste descriptor tags (e.g. `Hoppy`, `Citrus`, `Roasty`, `Chocolate`, `Hazy`, `Sour`, `Piney`, `Smoky`).
   - Display aggregate top-3 tags on the beer card.
+  - *Status:* Done. Optional `tags` on `BeerReview` (so on the review doc too), preset chips (`TASTING_TAGS` in `src/types.ts`) plus free-text entry in the review dialog, up to 8 per review. `src/utils/tastingTags.ts` normalises and de-duplicates tags case-insensitively, and `topTags` counts each tag once per review for the card's top 3. Tags are not yet shown on the profile review list, in the diary CSV export, or usable as a filter.
 
 - [x] **[P2] ABV Range & Style Filtering** `frontend-refactorer`
   - Add a slider or segmented control to filter drinks by ABV brackets:
