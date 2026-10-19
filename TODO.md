@@ -176,3 +176,5 @@ This document tracks identified bugs, security vulnerabilities, performance bott
 | Deconstruct `EventDetailScreen.tsx` | P1 | `frontend-refactorer` | Pending |
 | Beer wishlist / "Want to try" toggle | P1 | `frontend-refactorer` | Completed (deploy rules) |
 | Dietary badges (Vegan, Gluten-Free) | P1 | `beer-catalog-manager` | Completed |
+| Mobile-friendly beer review controls & bottom sheet | P1 | `frontend-refactorer` | Completed |
+
