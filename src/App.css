@@ -4224,3 +4224,824 @@ button, input, select, textarea, a, label {
   gap: 4px;
   margin-top: 6px;
 }
+
+/* ==========================================================================
+   Mobile-First Beer Review Controls & Bottom Sheet
+   ========================================================================== */
+
+/* Visually Hidden helper (preserves accessibility tree) */
+.visually-hidden {
+  position: absolute;
+  clip-path: inset(50%);
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+
+.review-bottom-sheet {
+  overscroll-behavior: contain;
+  max-width: 520px;
+  width: 94%;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.sheet-drag-header {
+  padding: 10px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
+}
+
+.sheet-drag-header:active {
+  cursor: grabbing;
+}
+
+.sheet-drag-handle {
+  width: 42px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--text-muted);
+  opacity: 0.38;
+  margin: 2px auto 12px;
+}
+
+.review-sheet-title-row {
+  margin: 0;
+  padding: 0;
+  border: none;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.review-sheet-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.review-sheet-title-group h2 {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.review-sheet-subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.review-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 16px 20px 20px;
+}
+
+.draft-restored-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-glow);
+  border: 1px solid var(--border-focus);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.btn-reset-draft {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-focus);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Section Label Row */
+.review-section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.review-optional-hint {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* 1. RatingScrubber Styles */
+.rating-scrubber-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s ease;
+}
+
+.rating-scrubber-card.tier-outstanding,
+.rating-scrubber-card.tier-world-class {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.rating-scrubber-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rating-sentiment-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rating-mug-visual {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.rating-mug-liquid {
+  fill: var(--primary);
+  opacity: 0.85;
+  transition: y 0.15s ease, height 0.15s ease;
+}
+
+.rating-mug-foam {
+  fill: var(--primary);
+  opacity: 0.32;
+}
+
+.rating-sentiment-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rating-sentiment-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.sparkle-icon {
+  color: var(--primary);
+}
+
+.rating-sentiment-subtext {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.rating-score-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--primary-glow);
+  border: 1px solid var(--border-focus);
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.rating-score-number {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.rating-score-max {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.rating-scrubber-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-scrubber-step {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s ease, border-color 0.15s ease, background-color 0.15s ease;
+  touch-action: manipulation;
+}
+
+.btn-scrubber-step:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.btn-scrubber-step:active:not(:disabled) {
+  transform: scale(0.93);
+  background: var(--primary-glow);
+}
+
+.btn-scrubber-step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.rating-scrubber-track-hitarea {
+  flex: 1;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  padding: 0 14px;
+}
+
+.rating-scrubber-track-hitarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.rating-scrubber-track {
+  position: relative;
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  overflow: visible;
+}
+
+.rating-scrubber-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  pointer-events: none;
+}
+
+.rating-scrubber-ticks {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scrubber-tick {
+  position: absolute;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  opacity: 0.45;
+  transform: translate(-50%, -50%);
+}
+
+.rating-scrubber-thumb {
+  position: absolute;
+  top: 50%;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-card);
+  border: 3px solid var(--primary);
+  box-shadow: var(--shadow-md);
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: transform 0.12s ease;
+}
+
+.rating-scrubber-track-hitarea.dragging .rating-scrubber-thumb {
+  transform: translate(-50%, -50%) scale(1.18);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+
+.scrubber-thumb-inner {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+.rating-presets-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+}
+
+.rating-preset-pill {
+  min-height: 36px;
+  padding: 4px 2px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-variant-numeric: tabular-nums;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.rating-preset-pill:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.rating-preset-pill.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg-card);
+}
+
+/* 2. ServingFormatSelector Styles */
+.serving-format-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.serving-format-pill {
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.serving-format-pill:hover:not(:disabled) {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.serving-format-pill.selected {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg-card);
+  font-weight: 700;
+}
+
+.custom-serving-input-wrap {
+  margin-top: 10px;
+}
+
+.mobile-touch-input {
+  min-height: 44px;
+  font-size: 16px !important; /* Prevents iOS Safari auto-zoom on focus */
+}
+
+.price-control-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.price-input-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 115px;
+  flex-shrink: 0;
+}
+
+.price-currency-prefix {
+  position: absolute;
+  left: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.price-decimal-input {
+  padding-left: 28px !important;
+  min-height: 42px;
+  font-size: 16px !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.price-preset-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+
+.price-preset-pill {
+  min-height: 38px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.price-preset-pill.selected {
+  background: var(--primary-glow);
+  border-color: var(--border-focus);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* 3. TastingTagPicker Styles */
+.tag-picker-mobile {
+  border: none;
+  padding: 0;
+  min-width: 0;
+}
+
+.tag-counter-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+}
+
+.tag-counter-badge.limit-reached {
+  background: var(--primary-glow);
+  border-color: var(--border-focus);
+  color: var(--primary);
+}
+
+.tag-category-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.tag-category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tag-category-tab {
+  min-height: 34px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tag-category-tab.active {
+  background: var(--primary-glow);
+  border-color: var(--border-focus);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.mobile-tag-cloud {
+  gap: 8px;
+}
+
+.mobile-tag-chip {
+  min-height: 38px;
+  padding: 6px 12px;
+  font-size: 13px;
+  touch-action: manipulation;
+}
+
+.btn-add-tag {
+  min-height: 44px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* 4. TastingNotesInput Styles */
+.notes-meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-clear-notes {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.quick-impressions-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+  scrollbar-width: none;
+}
+
+.quick-impressions-row::-webkit-scrollbar {
+  display: none;
+}
+
+.quick-impression-chip {
+  min-height: 34px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px dashed var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.quick-impression-chip.active {
+  border-style: solid;
+  border-color: var(--border-focus);
+  background: var(--primary-glow);
+  color: var(--primary);
+}
+
+.review-textarea-mobile {
+  font-size: 16px !important;
+  min-height: 72px;
+  resize: vertical;
+  field-sizing: content;
+  scroll-margin-bottom: 90px;
+}
+
+/* 5. ReviewPhotoControl Styles */
+.review-photo-trigger-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.btn-camera-snap {
+  flex: 1;
+  min-height: 46px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-focus);
+  background: var(--primary-glow);
+  color: var(--primary);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  touch-action: manipulation;
+}
+
+.btn-camera-snap:hover {
+  background: var(--primary);
+  color: var(--bg-card);
+}
+
+.btn-toggle-photo-url {
+  min-height: 46px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.btn-toggle-photo-url.active {
+  border-color: var(--border-focus);
+  color: var(--primary);
+}
+
+.review-photo-empty-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-photo-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+}
+
+.review-photo-preview-img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.review-photo-preview-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.review-photo-ready-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.review-photo-btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-photo-action {
+  min-height: 36px;
+  padding: 6px 10px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.reviewer-attribution-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-top: 2px;
+}
+
+.review-sheet-actions {
+  margin-top: 4px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-sheet-cancel {
+  min-height: 48px;
+  padding: 0 18px;
+}
+
+.btn-sheet-submit {
+  flex: 1;
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 800;
+  justify-content: center;
+}
+
+/* Drink Card Secondary Actions & User Rated State */
+.beer-card-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn-add-review-trigger.has-user-rating {
+  background: var(--primary-glow);
+  border-color: var(--border-focus);
+  color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .review-bottom-sheet {
+    max-height: 90vh !important;
+    max-height: 90dvh !important;
+  }
+
+  .review-sheet-form {
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .rating-presets-row {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .beer-card-rating-dash {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .btn-add-review-trigger {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .beer-card-secondary-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+

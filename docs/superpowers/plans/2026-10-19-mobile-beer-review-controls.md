@@ -48,7 +48,7 @@ Verification gates: `npm run lint` and `npm run build` after every task.
 - Create: `src/components/review/RatingScrubber.tsx`
 - Modify: `src/App.css` (rating scrubber styles)
 
-- [ ] **Step 1: Implement RatingScrubber component**
+- [x] **Step 1: Implement RatingScrubber component**
   - Implement 0.5 to 10.0 scale slider with 0.5 snapping.
   - Implement touch/pointer events (`onPointerDown`, `onPointerMove`, `onPointerUp`) with `setPointerCapture`.
   - Add sentiment text helper:
@@ -63,12 +63,12 @@ Verification gates: `npm run lint` and `npm run build` after every task.
   - Add subtle haptic vibration tick `if (navigator.vibrate) navigator.vibrate(8)` on change.
   - Full ARIA attributes (`role="slider"`, `aria-valuenow`, `aria-valuemin="0.5"`, `aria-valuemax="10.0"`, `aria-valuetext`).
 
-- [ ] **Step 2: Add styles to `src/App.css`**
+- [x] **Step 2: Add styles to `src/App.css`**
   - Track styling with gradient progress fill.
   - Thumb knob with 44px hit-box and active state pulse.
   - Light/Dark theme token compatibility.
 
-- [ ] **Step 3: Verification Gate**
+- [x] **Step 3: Verification Gate**
   - Run `npm run lint` and `npm run build`.
 
 ---
@@ -82,26 +82,26 @@ Verification gates: `npm run lint` and `npm run build` after every task.
 - Create: `src/components/review/ReviewPhotoControl.tsx`
 - Modify: `src/App.css`
 
-- [ ] **Step 1: Implement ServingFormatSelector**
+- [x] **Step 1: Implement ServingFormatSelector**
   - Format chips: `Pint`, `Half Pint`, `Third Pint`, `Can`, `Bottle`, `Flight / Sample`, `Other`.
   - Price field with `inputmode="decimal"`, currency prefix `£`, and quick-tap price presets `[ £3.50, £4.50, £5.50, £6.50 ]`.
 
-- [ ] **Step 2: Implement TastingTagPicker**
+- [x] **Step 2: Implement TastingTagPicker**
   - Categorized sensory tabs: `All`, `Hops & Fruit`, `Malt & Dark`, `Yeast & Finish`.
   - Chip toggle with checkmark indicator and 8-tag limit enforcement.
   - Integrated custom tag input utilizing `src/utils/tastingTags.ts`.
 
-- [ ] **Step 3: Implement TastingNotesInput**
+- [x] **Step 3: Implement TastingNotesInput**
   - Auto-growing textarea with `field-sizing: content;`.
   - 1-tap quick impression chips: `[ "Juicy & tropical", "Crisp, clean finish", "Heavy roasty bitterness", "Smooth creamy mouthfeel", "Pleasant tart acidity" ]`.
   - Character counter and clear button.
 
-- [ ] **Step 4: Implement ReviewPhotoControl**
+- [x] **Step 4: Implement ReviewPhotoControl**
   - Large camera button with `capture="environment"`.
   - Canvas WebP compression via `src/utils/imageUtils.ts`.
   - Thumbnail preview card with Retake and Remove actions.
 
-- [ ] **Step 5: Verification Gate**
+- [x] **Step 5: Verification Gate**
   - Run `npm run lint` and `npm run build`.
 
 ---
@@ -113,18 +113,18 @@ Verification gates: `npm run lint` and `npm run build` after every task.
 - Create: `src/components/review/ReviewBottomSheet.tsx`
 - Modify: `src/App.css`
 
-- [ ] **Step 1: Implement `useReviewDraft` hook**
+- [x] **Step 1: Implement `useReviewDraft` hook**
   - Encapsulate form state: `rating`, `servingSize`, `price`, `tags`, `comment`, `imageUrl`.
   - Draft recovery: Cache in `sessionStorage` and restore if reopened.
   - Submission handler: Cleans tags, triggers Firestore write to `events/{eventId}/drinks/{drinkId}/reviews/{reviewId}`.
 
-- [ ] **Step 2: Implement `ReviewBottomSheet` component**
+- [x] **Step 2: Implement `ReviewBottomSheet` component**
   - Native `<dialog className="review-bottom-sheet" closedby="any">`.
   - Pull-to-dismiss drag handle with pointer event gesture tracking (drag down > 100px triggers dismiss).
   - Safe-area bottom padding for iPhone home indicator.
   - Sticky bottom action bar with high-contrast `Submit Review` CTA and `Cancel` button.
 
-- [ ] **Step 3: Verification Gate**
+- [x] **Step 3: Verification Gate**
   - Run `npm run lint` and `npm run build`.
 
 ---
@@ -136,16 +136,16 @@ Verification gates: `npm run lint` and `npm run build` after every task.
 - Modify: `src/App.css`
 - Modify: `TODO.md`
 
-- [ ] **Step 1: Refactor `EventDetailScreen.tsx`**
+- [x] **Step 1: Refactor `EventDetailScreen.tsx`**
   - Replace legacy `#add-review-dialog` markup (lines 945–1225) with `<ReviewBottomSheet />`.
   - Clean up unused review form state in `EventDetailScreen.tsx`.
   - Update `BeerDrinkCard`:
     - On mobile (`<= 600px`), display prominent primary action pill: `[ ⭐ Rate & Review ]`.
     - If already reviewed by current user, show: `[ ⭐ You rated: X.X/10 • Edit ]`.
 
-- [ ] **Step 2: Update `TODO.md`**
+- [x] **Step 2: Update `TODO.md`**
   - Mark mobile beer review controls item as completed/in progress.
 
-- [ ] **Step 3: Verification Gate**
+- [x] **Step 3: Verification Gate**
   - Run `npm run lint` and `npm run build`.
   - Test simulated mobile viewports (360px, 375px, 390px, 412px).

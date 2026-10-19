@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { SERVING_FORMATS, TASTING_TAGS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
+import React, { useState } from 'react';
+import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
 import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
 import { useWishlist } from '../hooks/useWishlist';
 import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
 import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
-import { MAX_TAG_LENGTH, MAX_TAGS_PER_REVIEW, tagKey, toggleTag, topTags } from '../utils/tastingTags';
+import { topTags } from '../utils/tastingTags';
 import {
   ArrowLeft, 
   MapPin, 
@@ -26,10 +26,12 @@ import {
   Image as ImageIcon,
   Maximize2,
   Trash2,
-  Bookmark
+  Bookmark,
+  Star
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ShareButton } from './ShareButton';
+import { ReviewBottomSheet } from './review/ReviewBottomSheet';
 import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
@@ -100,81 +102,13 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [selectedFormat, setSelectedFormat] = useState<'all' | ServingFormat>('all');
   const [selectedSort, setSelectedSort] = useState<string>('default');
 
-  // Add Review Dialog Modal states
+  // Review Bottom Sheet state
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
-  const [reviewerName, setReviewerName] = useState('');
-  const [ratingVal, setRatingVal] = useState(8);
-  const [reviewComment, setReviewComment] = useState('');
-  const [reviewPrice, setReviewPrice] = useState('');
-  const [reviewServingSize, setReviewServingSize] = useState('');
-  const [customServingSize, setCustomServingSize] = useState('');
-  const [reviewImageUrl, setReviewImageUrl] = useState('');
-  const [reviewTags, setReviewTags] = useState<string[]>([]);
-  const [customTagInput, setCustomTagInput] = useState('');
-  const [reviewDraftId, setReviewDraftId] = useState(() =>
-    typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
-  );
-  const [reviewImageUploading, setReviewImageUploading] = useState(false);
-  const [reviewError, setReviewError] = useState('');
 
   // Lightbox Modal state
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
 
-  const reviewDialogRef = useRef<HTMLDialogElement>(null);
-
   const mapsTargetUrl = event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`;
-
-  // Sync React open state with native dialog element
-  useEffect(() => {
-    const dialog = reviewDialogRef.current;
-    if (!dialog) return;
-
-    if (activeReviewDrink) {
-      if (!dialog.open) {
-        dialog.showModal();
-        // Reset form on open
-        setReviewerName(user.displayName || user.email || '');
-        setRatingVal(8);
-        setReviewComment('');
-        setReviewPrice('');
-        setReviewServingSize('');
-        setCustomServingSize('');
-        setReviewImageUrl('');
-        setReviewTags([]);
-        setCustomTagInput('');
-        setReviewImageUploading(false);
-        setReviewError('');
-      }
-    } else {
-      if (dialog.open) {
-        dialog.close();
-      }
-    }
-  }, [activeReviewDrink, user]);
-
-  // Handle native close events (e.g. Escape key) and backdrop clicks
-  useEffect(() => {
-    const dialog = reviewDialogRef.current;
-    if (!dialog) return;
-
-    const handleNativeClose = () => {
-      setActiveReviewDrink(null);
-    };
-
-    const handleBackdropClick = (event: MouseEvent) => {
-      if (event.target === dialog) {
-        dialog.close();
-      }
-    };
-
-    dialog.addEventListener('close', handleNativeClose);
-    dialog.addEventListener('click', handleBackdropClick);
-
-    return () => {
-      dialog.removeEventListener('close', handleNativeClose);
-      dialog.removeEventListener('click', handleBackdropClick);
-    };
-  }, []);
 
   const handleDrinkImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -192,86 +126,6 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       setDrinkImageUploading(false);
       e.target.value = '';
     }
-  };
-
-  const handleReviewImageFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setReviewImageUploading(true);
-    setReviewError('');
-    try {
-      const storagePath = `events/${event.id}/reviews/${reviewDraftId}.jpg`;
-      const downloadUrl = await uploadImageFile(file, storagePath);
-      setReviewImageUrl(downloadUrl);
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Failed to upload photo';
-      setReviewError(errMsg);
-    } finally {
-      setReviewImageUploading(false);
-      e.target.value = '';
-    }
-  };
-
-  const handleAddCustomTag = () => {
-    if (!customTagInput.trim()) return;
-    if (!reviewTags.some((t) => tagKey(t) === tagKey(customTagInput))) {
-      setReviewTags((tags) => toggleTag(tags, customTagInput));
-    }
-    setCustomTagInput('');
-  };
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!activeReviewDrink) return;
-    if (!reviewerName.trim()) return setReviewError('Your name is required');
-    if (!reviewComment.trim()) return setReviewError('Review comment is required');
-    if (ratingVal < 0.5 || ratingVal > 10) return setReviewError('Rating must be between 0.5 and 10');
-
-    const effectiveServingSize = reviewServingSize === 'Other' ? customServingSize.trim() : reviewServingSize;
-
-    let finalImageUrl = reviewImageUrl.trim() || undefined;
-    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
-      try {
-        setReviewImageUploading(true);
-        finalImageUrl = await sanitizeOrUploadImageUrl(
-          finalImageUrl,
-          `events/${event.id}/reviews/${reviewDraftId}.jpg`
-        );
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : 'Failed to process review photo';
-        setReviewError(errMsg);
-        setReviewImageUploading(false);
-        return;
-      } finally {
-        setReviewImageUploading(false);
-      }
-    }
-
-    onAddReview(
-      activeReviewDrink.id,
-      reviewerName.trim(),
-      ratingVal,
-      reviewComment.trim(),
-      reviewPrice.trim() || undefined,
-      effectiveServingSize || undefined,
-      finalImageUrl,
-      reviewDraftId,
-      reviewTags
-    );
-
-    // Reset Form & Close Modal
-    setReviewerName('');
-    setReviewComment('');
-    setRatingVal(8);
-    setReviewPrice('');
-    setReviewServingSize('');
-    setCustomServingSize('');
-    setReviewImageUrl('');
-    setReviewTags([]);
-    setCustomTagInput('');
-    setReviewError('');
-    setActiveReviewDrink(null);
-    setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
   };
 
   const handleDrinkSubmit = async (e: React.FormEvent) => {
@@ -1014,14 +868,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                             key={drink.id}
                             drink={drink}
                             eventName={event.name}
+                            userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                             isWishlisted={wishlist.has(drink.id)}
                             onToggleWishlist={() => toggleWishlist(drink.id)}
-                            onTriggerReview={() => {
-                              setActiveReviewDrink(drink);
-                              setReviewImageUrl('');
-                              setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-                              setReviewError('');
-                            }}
+                            onTriggerReview={() => setActiveReviewDrink(drink)}
                             onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
                           />
                         ))}
@@ -1036,14 +886,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       key={drink.id}
                       drink={drink}
                       eventName={event.name}
+                      userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                       isWishlisted={wishlist.has(drink.id)}
                       onToggleWishlist={() => toggleWishlist(drink.id)}
-                      onTriggerReview={() => {
-                        setActiveReviewDrink(drink);
-                        setReviewImageUrl('');
-                        setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-                        setReviewError('');
-                      }}
+                      onTriggerReview={() => setActiveReviewDrink(drink)}
                       onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
                     />
                   ))}
@@ -1071,287 +917,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         )}
       </div>
 
-      {/* Add Review Dialog Modal */}
-      <dialog
-        ref={reviewDialogRef}
-        className="event-modal-dialog"
-        id="add-review-dialog"
-        aria-labelledby="review-dialog-title"
-      >
-        {activeReviewDrink && (
-          <>
-            <div className="modal-header">
-              <h2 id="review-dialog-title">Review {activeReviewDrink.name}</h2>
-              <button 
-                type="button" 
-                className="modal-close-btn" 
-                onClick={() => setActiveReviewDrink(null)}
-                aria-label="Close dialog"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleReviewSubmit} className="modal-form">
-              {reviewError && (
-                <div className="form-alert review-alert" style={{ marginBottom: '16px' }}>
-                  <AlertCircle size={14} />
-                  <span>{reviewError}</span>
-                </div>
-              )}
-              
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span className="form-label" style={{ margin: 0 }}>Your Rating (1–10)</span>
-                  <span className="rating-score-badge">
-                    {ratingVal.toFixed(1)} <span style={{ fontSize: '13px', opacity: 0.7 }}>/ 10</span>
-                  </span>
-                </div>
-                
-                <div className="rating-input-box">
-                  <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <StarRating
-                      rating={ratingVal}
-                      maxStars={10}
-                      size={24}
-                      interactive={true}
-                      onChange={(val) => setRatingVal(val)}
-                    />
-                  </div>
-
-                  <div className="rating-slider-row">
-                    <button
-                      type="button"
-                      className="btn-rating-step"
-                      onClick={() => setRatingVal(prev => Math.max(0.5, prev - 0.5))}
-                      title="Decrease rating by 0.5"
-                    >
-                      -0.5
-                    </button>
-
-                    <input
-                      type="range"
-                      min="0.5"
-                      max="10"
-                      step="0.5"
-                      value={ratingVal}
-                      onChange={(e) => setRatingVal(parseFloat(e.target.value))}
-                      className="rating-range-slider"
-                    />
-
-                    <button
-                      type="button"
-                      className="btn-rating-step"
-                      onClick={() => setRatingVal(prev => Math.min(10, prev + 0.5))}
-                      title="Increase rating by 0.5"
-                    >
-                      +0.5
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="rev-name" className="form-label">Your Name</label>
-                <input
-                  type="text"
-                  id="rev-name"
-                  className="form-input"
-                  value={reviewerName}
-                  disabled
-                  readOnly
-                  required
-                />
-                <span className="form-input-help" style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                  Posting review as your authenticated profile account.
-                </span>
-              </div>
-
-              <div className="form-row-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label htmlFor="rev-size" className="form-label">Serving Size (Optional)</label>
-                  <select
-                    id="rev-size"
-                    className="form-input"
-                    value={reviewServingSize}
-                    onChange={(e) => setReviewServingSize(e.target.value)}
-                  >
-                    <option value="">Select size...</option>
-                    <option value="Pint">Pint</option>
-                    <option value="Half Pint">Half Pint</option>
-                    <option value="Third Pint">Third Pint</option>
-                    <option value="25cl">25cl</option>
-                    <option value="33cl">33cl</option>
-                    <option value="44cl">44cl</option>
-                    <option value="50cl">50cl</option>
-                    <option value="Flight / Sample">Flight / Sample</option>
-                    <option value="Other">Other...</option>
-                  </select>
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label htmlFor="rev-price" className="form-label">Price (Optional)</label>
-                  <input
-                    type="text"
-                    id="rev-price"
-                    className="form-input"
-                    placeholder="e.g. £5.50"
-                    value={reviewPrice}
-                    onChange={(e) => setReviewPrice(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {reviewServingSize === 'Other' && (
-                <div className="form-group" style={{ marginBottom: '16px' }}>
-                  <label htmlFor="rev-custom-size" className="form-label">Custom Serving Size</label>
-                  <input
-                    type="text"
-                    id="rev-custom-size"
-                    className="form-input"
-                    placeholder="e.g. 75cl Bottle"
-                    value={customServingSize}
-                    onChange={(e) => setCustomServingSize(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <fieldset className="form-group tag-picker">
-                <legend className="form-label">
-                  Flavor Tags (Optional, up to {MAX_TAGS_PER_REVIEW})
-                </legend>
-                <div className="tag-chip-list">
-                  {[
-                    ...TASTING_TAGS,
-                    ...reviewTags.filter((t) => !TASTING_TAGS.some((preset) => tagKey(preset) === tagKey(t))),
-                  ].map((tag) => {
-                    const selected = reviewTags.some((t) => tagKey(t) === tagKey(tag));
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={`tag-chip ${selected ? 'selected' : ''}`}
-                        aria-pressed={selected}
-                        disabled={!selected && reviewTags.length >= MAX_TAGS_PER_REVIEW}
-                        onClick={() => setReviewTags((tags) => toggleTag(tags, tag))}
-                      >
-                        {selected && <Check size={12} />}
-                        {tag}
-                      </button>
-                    );
-                  })}
-                </div>
-                <div className="tag-custom-row">
-                  <input
-                    type="text"
-                    id="rev-custom-tag"
-                    className="form-input"
-                    aria-label="Add your own flavor tag"
-                    placeholder="Add your own, e.g. Stone Fruit"
-                    maxLength={MAX_TAG_LENGTH}
-                    value={customTagInput}
-                    onChange={(e) => setCustomTagInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddCustomTag();
-                      }
-                    }}
-                    disabled={reviewTags.length >= MAX_TAGS_PER_REVIEW}
-                  />
-                  <button
-                    type="button"
-                    className="btn-secondary"
-                    onClick={handleAddCustomTag}
-                    disabled={!customTagInput.trim() || reviewTags.length >= MAX_TAGS_PER_REVIEW}
-                  >
-                    <Plus size={14} />
-                    <span>Add</span>
-                  </button>
-                </div>
-              </fieldset>
-
-              <div className="form-group">
-                <label htmlFor="rev-comment" className="form-label">
-                  Tasting Notes / Comments <span style={{ color: '#ef4444' }}>*</span>
-                </label>
-                <textarea
-                  id="rev-comment"
-                  className="form-input review-textarea"
-                  placeholder="Describe flavor notes, body, aroma, finish, etc..."
-                  value={reviewComment}
-                  onChange={(e) => setReviewComment(e.target.value)}
-                  rows={4}
-                  required
-                  style={{ minHeight: '100px' }}
-                />
-              </div>
-
-              {/* Photo / Image Attachment Section for Review */}
-              <div className="form-group image-upload-group" style={{ marginTop: '16px' }}>
-                <label className="form-label d-flex align-items-center" style={{ gap: '6px' }}>
-                  <Camera size={16} />
-                  <span>Attach Photo of Your Drink (Optional)</span>
-                </label>
-                <div className="image-attachment-wrapper">
-                  {reviewImageUrl ? (
-                    <div className="image-preview-card">
-                      <img src={reviewImageUrl} alt="Review Drink Preview" className="image-preview-thumb" />
-                      <button
-                        type="button"
-                        className="btn-remove-image"
-                        onClick={() => setReviewImageUrl('')}
-                        title="Remove attached photo"
-                      >
-                        <Trash2 size={14} />
-                        <span>Remove Photo</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="image-input-options">
-                      <label htmlFor="review-file-upload" className="btn-file-upload">
-                        <Camera size={16} />
-                        <span>{reviewImageUploading ? 'Processing Photo...' : 'Take Photo or Choose File'}</span>
-                        <input
-                          type="file"
-                          id="review-file-upload"
-                          accept="image/*"
-                          capture="environment"
-                          onChange={handleReviewImageFileSelect}
-                          style={{ display: 'none' }}
-                          disabled={reviewImageUploading}
-                        />
-                      </label>
-                      <span className="or-divider">or</span>
-                      <input
-                        type="url"
-                        className="form-input url-input"
-                        placeholder="Paste Image Link (https://...)"
-                        value={reviewImageUrl}
-                        onChange={(e) => setReviewImageUrl(e.target.value)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="modal-actions" style={{ marginTop: '24px' }}>
-                <button 
-                  type="button" 
-                  className="btn-secondary" 
-                  onClick={() => setActiveReviewDrink(null)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary" disabled={reviewImageUploading}>
-                  <Check size={16} />
-                  <span>Submit Review</span>
-                </button>
-              </div>
-            </form>
-          </>
-        )}
-      </dialog>
+      {/* Mobile-First Review Bottom Sheet Dialog */}
+      <ReviewBottomSheet
+        drink={activeReviewDrink}
+        eventId={event.id}
+        user={user}
+        onClose={() => setActiveReviewDrink(null)}
+        onSubmitReview={onAddReview}
+      />
 
       {/* Lightbox / Full-screen Image Preview Overlay */}
       {lightboxImage && (
@@ -1383,6 +956,7 @@ interface BeerDrinkCardProps {
   onTriggerReview: () => void;
   onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
   eventName: string;
+  userRating?: number;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
 }
@@ -1390,6 +964,7 @@ interface BeerDrinkCardProps {
 const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   drink,
   eventName,
+  userRating,
   isWishlisted,
   onToggleWishlist,
   onTriggerReview,
@@ -1476,40 +1051,51 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
           
           <button 
             type="button" 
-            className="btn-add-review-trigger"
+            className={`btn-add-review-trigger ${userRating !== undefined ? 'has-user-rating' : ''}`}
             onClick={onTriggerReview}
-            title="Write a review"
+            title={userRating !== undefined ? `You rated ${userRating.toFixed(1)}/10 — tap to edit` : 'Rate and review this beer'}
           >
-            <Plus size={14} />
-            <span>Add Review</span>
+            {userRating !== undefined ? (
+              <>
+                <Star size={14} fill="currentColor" />
+                <span>You rated: {userRating.toFixed(1)} • Edit</span>
+              </>
+            ) : (
+              <>
+                <Star size={14} />
+                <span>Rate &amp; Review</span>
+              </>
+            )}
           </button>
 
-          <button 
-            type="button" 
-            className="btn-toggle-reviews"
-            onClick={() => setIsReviewsOpen(!isReviewsOpen)}
-          >
-            <MessageSquare size={14} />
-            <span>Reviews ({drink.reviews.length})</span>
-          </button>
+          <div className="beer-card-secondary-actions">
+            <button 
+              type="button" 
+              className="btn-toggle-reviews"
+              onClick={() => setIsReviewsOpen(!isReviewsOpen)}
+            >
+              <MessageSquare size={14} />
+              <span>Reviews ({drink.reviews.length})</span>
+            </button>
 
-          <button
-            type="button"
-            className={`share-btn ${isWishlisted ? 'active' : ''}`}
-            onClick={onToggleWishlist}
-            aria-pressed={isWishlisted}
-            aria-label={isWishlisted ? `Remove ${drink.name} from wishlist` : `Add ${drink.name} to wishlist`}
-            title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-          >
-            <Bookmark size={15} fill={isWishlisted ? 'currentColor' : 'none'} />
-          </button>
+            <button
+              type="button"
+              className={`share-btn ${isWishlisted ? 'active' : ''}`}
+              onClick={onToggleWishlist}
+              aria-pressed={isWishlisted}
+              aria-label={isWishlisted ? `Remove ${drink.name} from wishlist` : `Add ${drink.name} to wishlist`}
+              title={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+            >
+              <Bookmark size={15} fill={isWishlisted ? 'currentColor' : 'none'} />
+            </button>
 
-          <ShareButton
-            label={`Share ${drink.name}`}
-            title="Keg Swap"
-            text={`${drink.name} by ${drink.brewery} (${drink.abv}), at ${eventName} on Keg Swap`}
-            url={getAppShareUrl()}
-          />
+            <ShareButton
+              label={`Share ${drink.name}`}
+              title="Keg Swap"
+              text={`${drink.name} by ${drink.brewery} (${drink.abv}), at ${eventName} on Keg Swap`}
+              url={getAppShareUrl()}
+            />
+          </div>
         </div>
       </div>
 
@@ -1548,7 +1134,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
                     </div>
                   </div>
                   
-                  <p className="review-comment">{rev.comment}</p>
+                  {rev.comment && <p className="review-comment">{rev.comment}</p>}
                   {rev.tags && rev.tags.length > 0 && (
                     <div className="review-tags">
                       {rev.tags.map((tag) => (
