@@ -47,6 +47,7 @@ export interface BeerDrink {
   isVegan?: boolean; // absent means unknown, not "no"
   isGlutenFree?: boolean; // absent means unknown, not "no"
   caskOrKeg?: ServingFormat;
+  type?: string; // Drink type/group: 'Cask', 'Rotating Keg', 'Cider', 'Unknown', etc.
   createdAt?: string; // used to keep the drinks list in insertion order
 }
 

@@ -79,6 +79,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [newDrinkVegan, setNewDrinkVegan] = useState(false);
   const [newDrinkGlutenFree, setNewDrinkGlutenFree] = useState(false);
   const [newDrinkFormat, setNewDrinkFormat] = useState<ServingFormat | ''>('');
+  const [newDrinkType, setNewDrinkType] = useState<string>('');
   const [drinkDraftId, setDrinkDraftId] = useState(() =>
     typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString()
   );
@@ -92,6 +93,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
   const [selectedShow, setSelectedShow] = useState<ShowFilter>('all');
   const { wishlist, toggle: toggleWishlist } = useWishlist(user.uid, event.id);
+  const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
   const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
@@ -310,6 +312,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       style: newDrinkStyle.trim(),
       description: newDrinkDesc.trim(),
       imageUrl: finalImageUrl,
+      type: newDrinkType.trim() || 'Unknown',
       ...(newDrinkVegan ? { isVegan: true } : {}),
       ...(newDrinkGlutenFree ? { isGlutenFree: true } : {}),
       ...(newDrinkFormat ? { caskOrKeg: newDrinkFormat } : {}),
@@ -323,6 +326,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setNewDrinkStyle('');
     setNewDrinkDesc('');
     setNewDrinkImageUrl('');
+    setNewDrinkType('');
     setNewDrinkVegan(false);
     setNewDrinkGlutenFree(false);
     setNewDrinkFormat('');
@@ -342,7 +346,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         const parsed = JSON.parse(text);
 
         if (!Array.isArray(parsed)) {
-          alert('Invalid file format. The beers.json file must contain an array of drink objects.');
+          alert('Invalid file format. The file must contain an array of drink objects matching 2026_beers.json or beers.json.');
           return;
         }
 
@@ -369,13 +373,13 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               style: item.style.trim(),
               description: item.description.trim(),
               ...(typeof item.imageUrl === 'string' && item.imageUrl.trim() ? { imageUrl: item.imageUrl.trim() } : {}),
-              ...parseDrinkFlags(item),
+              ...parseDrinkFlags(item as Record<string, unknown>),
             });
           }
         }
 
         if (validatedDrinks.length === 0) {
-          alert('No valid beers were found in the uploaded file. Check the fields in beers.json.');
+          alert('No valid beers were found in the uploaded file. Check the fields in 2026_beers.json / beers.json.');
           return;
         }
 
@@ -401,25 +405,54 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     new Set((event.drinks || []).map((drink) => drink.style).filter(Boolean))
   ).sort();
 
+  const availableTypes = React.useMemo(() => {
+    const typesSet = new Set<string>();
+    (event.drinks || []).forEach((drink) => {
+      typesSet.add(drink.type?.trim() || 'Unknown');
+    });
+    // Ensure 'Unknown' is always available so beers with an unknown status can be filtered/grouped
+    typesSet.add('Unknown');
+    return Array.from(typesSet).sort((a, b) => {
+      if (a.toLowerCase() === 'unknown') return 1;
+      if (b.toLowerCase() === 'unknown') return -1;
+      return a.localeCompare(b);
+    });
+  }, [event.drinks]);
+
   const getAvgRatingNum = (drink: BeerDrink): number => {
     if (!drink.reviews || drink.reviews.length === 0) return 0;
     return drink.reviews.reduce((acc, r) => acc + r.rating, 0) / drink.reviews.length;
   };
 
   const filteredDrinks = (event.drinks || []).filter((drink) => {
+    const effectiveType = drink.type?.trim() || 'Unknown';
     const matchesSearch =
       drink.name.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
-      drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase());
+      drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
+      effectiveType.toLowerCase().includes(drinkSearchQuery.toLowerCase());
     const matchesShow = matchesShowFilter(drink, selectedShow, user.uid, wishlist);
+    const matchesType =
+      selectedType === 'all' ||
+      effectiveType.toLowerCase() === selectedType.toLowerCase();
     const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
     const matchesAbv = selectedAbv === 'all' || getAbvBracket(drink.abv) === selectedAbv;
     const matchesDietary = matchesDietaryFilter(drink, selectedDietary);
     const matchesFormat = selectedFormat === 'all' || drink.caskOrKeg === selectedFormat;
-    return matchesSearch && matchesShow && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
+    return matchesSearch && matchesShow && matchesType && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
   });
 
   const sortedDrinks = [...filteredDrinks].sort((a, b) => {
+    if (selectedSort === 'type') {
+      const typeA = (a.type?.trim() || 'Unknown').toLowerCase();
+      const typeB = (b.type?.trim() || 'Unknown').toLowerCase();
+      if (typeA !== typeB) {
+        if (typeA === 'unknown') return 1;
+        if (typeB === 'unknown') return -1;
+        return typeA.localeCompare(typeB);
+      }
+      return a.name.localeCompare(b.name);
+    }
     if (selectedSort === 'rating-desc') {
       return getAvgRatingNum(b) - getAvgRatingNum(a);
     }
@@ -435,6 +468,18 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
     return 0;
   });
+
+  const groupedDrinksByType = React.useMemo(() => {
+    if (selectedSort !== 'type') return null;
+    const map = new Map<string, BeerDrink[]>();
+    for (const drink of sortedDrinks) {
+      const groupKey = drink.type?.trim() || 'Unknown';
+      const existing = map.get(groupKey) || [];
+      existing.push(drink);
+      map.set(groupKey, existing);
+    }
+    return Array.from(map.entries());
+  }, [selectedSort, sortedDrinks]);
 
   const formatFriendlyDate = (startDateString: string, endDateString?: string) => {
     if (!startDateString) return '';
@@ -680,6 +725,28 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
           <div className="form-grid">
             <div className="form-group">
+              <label htmlFor="drink-type" className="form-label">Drink Type</label>
+              <div className="form-select-wrapper">
+                <select
+                  id="drink-type"
+                  className="form-select"
+                  value={newDrinkType}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setNewDrinkType(val);
+                    if (val === 'Cask') setNewDrinkFormat('Cask');
+                    else if (val === 'Rotating Keg' || val === 'Keg') setNewDrinkFormat('Keg');
+                  }}
+                >
+                  <option value="">Unknown (or select type...)</option>
+                  <option value="Cask">Cask</option>
+                  <option value="Rotating Keg">Rotating Keg</option>
+                  <option value="Cider">Cider</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-group">
               <label htmlFor="drink-format" className="form-label">Serving Format (Optional)</label>
               <div className="form-select-wrapper">
                 <select
@@ -695,28 +762,29 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 </select>
               </div>
             </div>
-            <div className="form-group">
-              <span className="form-label">Dietary (Optional)</span>
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', paddingTop: '8px' }}>
-                <label htmlFor="drink-vegan" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    id="drink-vegan"
-                    checked={newDrinkVegan}
-                    onChange={(e) => setNewDrinkVegan(e.target.checked)}
-                  />
-                  Vegan
-                </label>
-                <label htmlFor="drink-gluten-free" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    id="drink-gluten-free"
-                    checked={newDrinkGlutenFree}
-                    onChange={(e) => setNewDrinkGlutenFree(e.target.checked)}
-                  />
-                  Gluten-free
-                </label>
-              </div>
+          </div>
+
+          <div className="form-group" style={{ marginTop: '8px' }}>
+            <span className="form-label">Dietary (Optional)</span>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', paddingTop: '8px' }}>
+              <label htmlFor="drink-vegan" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  id="drink-vegan"
+                  checked={newDrinkVegan}
+                  onChange={(e) => setNewDrinkVegan(e.target.checked)}
+                />
+                Vegan
+              </label>
+              <label htmlFor="drink-gluten-free" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  id="drink-gluten-free"
+                  checked={newDrinkGlutenFree}
+                  onChange={(e) => setNewDrinkGlutenFree(e.target.checked)}
+                />
+                Gluten-free
+              </label>
             </div>
           </div>
 
@@ -794,6 +862,29 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               </div>
               
               <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                {/* Drink Type Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '130px' }}>
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="form-select"
+                    aria-label="Filter drinks by type"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="all">All Types ({event.drinks?.length || 0})</option>
+                    {availableTypes.map((type) => {
+                      const count = (event.drinks || []).filter(
+                        (d) => (d.type?.trim() || 'Unknown').toLowerCase() === type.toLowerCase()
+                      ).length;
+                      return (
+                        <option key={type} value={type}>
+                          {type} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
                 {/* Beer Type/Style Dropdown Filter */}
                 <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '140px' }}>
                   <select
@@ -872,6 +963,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
                   >
                     <option value="default">Default Sort</option>
+                    <option value="type">Group by Type</option>
                     <option value="rating-desc">Highest Rating</option>
                     <option value="rating-asc">Lowest Rating</option>
                     <option value="reviews-desc">Most Reviewed</option>
@@ -902,24 +994,61 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             </div>
 
             {sortedDrinks.length > 0 ? (
-              <div className="drinks-grid">
-                {sortedDrinks.map((drink) => (
-                  <BeerDrinkCard
-                    key={drink.id}
-                    drink={drink}
-                    eventName={event.name}
-                    isWishlisted={wishlist.has(drink.id)}
-                    onToggleWishlist={() => toggleWishlist(drink.id)}
-                    onTriggerReview={() => {
-                      setActiveReviewDrink(drink);
-                      setReviewImageUrl('');
-                      setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-                      setReviewError('');
-                    }}
-                    onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
-                  />
-                ))}
-              </div>
+              groupedDrinksByType ? (
+                <div className="drinks-grouped-container">
+                  {groupedDrinksByType.map(([typeGroup, groupDrinks]) => (
+                    <div key={typeGroup} className="drink-type-group-section">
+                      <div className="drink-type-group-header">
+                        <h4 className="drink-type-group-title">
+                          <span className={`drink-type-group-badge ${typeGroup.toLowerCase() === 'unknown' ? 'badge-unknown' : ''}`}>
+                            {typeGroup}
+                          </span>
+                          <span className="drink-type-group-count">
+                            ({groupDrinks.length} {groupDrinks.length === 1 ? 'drink' : 'drinks'})
+                          </span>
+                        </h4>
+                      </div>
+                      <div className="drinks-grid">
+                        {groupDrinks.map((drink) => (
+                          <BeerDrinkCard
+                            key={drink.id}
+                            drink={drink}
+                            eventName={event.name}
+                            isWishlisted={wishlist.has(drink.id)}
+                            onToggleWishlist={() => toggleWishlist(drink.id)}
+                            onTriggerReview={() => {
+                              setActiveReviewDrink(drink);
+                              setReviewImageUrl('');
+                              setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
+                              setReviewError('');
+                            }}
+                            onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="drinks-grid">
+                  {sortedDrinks.map((drink) => (
+                    <BeerDrinkCard
+                      key={drink.id}
+                      drink={drink}
+                      eventName={event.name}
+                      isWishlisted={wishlist.has(drink.id)}
+                      onToggleWishlist={() => toggleWishlist(drink.id)}
+                      onTriggerReview={() => {
+                        setActiveReviewDrink(drink);
+                        setReviewImageUrl('');
+                        setReviewDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
+                        setReviewError('');
+                      }}
+                      onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
+                    />
+                  ))}
+                </div>
+              )
             ) : (
               <div className="empty-state drinks-empty">
                 <X size={32} />
@@ -1297,7 +1426,9 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
           <div className="beer-card-top">
             <span className="beer-style-badge">{drink.style}</span>
             <span className="beer-abv-badge">{drink.abv}</span>
-            {drink.caskOrKeg && <span className="beer-abv-badge">{drink.caskOrKeg}</span>}
+            <span className={`beer-abv-badge beer-type-badge ${(drink.type?.trim() || (!drink.caskOrKeg ? 'Unknown' : drink.caskOrKeg)).toLowerCase() === 'unknown' ? 'badge-unknown' : ''}`}>
+              {drink.type?.trim() || drink.caskOrKeg || 'Unknown'}
+            </span>
             {drink.isVegan && <span className="beer-abv-badge" title="Vegan">Vegan</span>}
             {drink.isGlutenFree && <span className="beer-abv-badge" title="Gluten-free">GF</span>}
             {drink.imageUrl && (

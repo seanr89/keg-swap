@@ -1655,6 +1655,79 @@ a.detail-meta-link:hover {
   border-radius: 4px;
 }
 
+.beer-type-badge {
+  background: var(--primary-glow);
+  color: var(--primary-hover);
+  border: 1px solid var(--border-focus);
+}
+
+:root[data-theme='dark'] .beer-type-badge {
+  color: var(--primary);
+  border-color: var(--border-focus);
+}
+
+.beer-type-badge.badge-unknown {
+  background: var(--border-color);
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+
+.drinks-grouped-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.drink-type-group-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.drink-type-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.drink-type-group-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.drink-type-group-badge {
+  background: var(--primary-glow);
+  color: var(--primary-hover);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  border: 1px solid var(--border-focus);
+}
+
+:root[data-theme='dark'] .drink-type-group-badge {
+  color: var(--primary);
+  border-color: var(--border-focus);
+}
+
+.drink-type-group-badge.badge-unknown {
+  background: var(--border-color);
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+
+.drink-type-group-count {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
 .beer-name {
   font-size: 20px;
   font-weight: 800;
