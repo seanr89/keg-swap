@@ -157,7 +157,7 @@ This document tracks identified bugs, security vulnerabilities, performance bott
     - `DrinkCard.tsx`: Drink item display, rating badge, review toggle.
     - `ReviewModal.tsx`: Review form dialog with star rating picker.
     - `DrinkFormModal.tsx`: Add/edit beer dialog.
-    - `BatchUploadModal.tsx`: Batch JSON import dialog.
+    - `BatchUploadModal.tsx`: Batch JSON import dialog with record count & preview list (Completed).
     - `ImageLightbox.tsx`: Fullscreen photo modal.
 
 ---

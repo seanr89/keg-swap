@@ -25,8 +25,10 @@ Keg Swap features a rich, responsive, and tactile interface styled with **Vanill
 ## 🛠️ Technology Stack
 
 - **Core & Build:** [React 19](https://react.dev/), [Vite 8](https://vite.dev/), [TypeScript 6](https://www.typescriptlang.org/)
+- **Backend & Cloud:** [Firebase v12](https://firebase.google.com/) (Firebase Authentication, Cloud Firestore subcollections, Cloud Storage)
+- **PWA & Offline:** [vite-plugin-pwa](https://vite-pwa-org.netlify.app/) (Workbox service worker precaching, offline Firestore persistent cache)
 - **Icons:** [Lucide React](https://lucide.dev/)
-- **Styling:** Custom Vanilla CSS with CSS Custom Properties, layout utilities, and modern selectors (e.g. native backdrop filters and grid auto-fill)
+- **Styling:** Custom Vanilla CSS with CSS Custom Properties, layout tokens, theme loaders, and modern pseudo-selectors
 - **Linter:** [Oxlint](https://github.com/oxc-project/oxc) for lightning-fast linting checks
 
 ---
@@ -35,22 +37,58 @@ Keg Swap features a rich, responsive, and tactile interface styled with **Vanill
 
 ```bash
 keg-swap/
-├── index.html              # Entry HTML template (includes FOUC-prevention theme script)
-├── package.json            # Scripts, dependency mappings, and engine metadata
-├── tsconfig.json           # Global TypeScript configuration compiler options
-├── vite.config.ts          # Vite build pipeline and plugin declarations
+├── index.html                  # Entry HTML template (includes FOUC-prevention theme script)
+├── package.json                # Scripts, dependency mappings, and engine metadata
+├── tsconfig.json               # Global TypeScript configuration compiler options
+├── vite.config.ts              # Vite build pipeline, PWA plugins, and vendor chunking
+├── beers.json                  # Seed catalog dataset
+├── 2026_beers.json             # Festival batch sample dataset
 ├── src/
-│   ├── main.tsx            # Application entry mount point (strict-mode rendering)
-│   ├── App.tsx             # Main controller, holds filter state, event list, and theme toggling
-│   ├── App.css             # Layout-specific stylesheet (components, sections, headers)
-│   ├── index.css           # Global design tokens (fonts, margins, color palettes, scrollbars)
-│   ├── types.ts            # Core TypeScript model interfaces (BeerEvent, BeerDrink, BeerReview)
+│   ├── main.tsx                # Application entry mount point (strict-mode rendering)
+│   ├── App.tsx                 # Main controller (auth, event list, routing flags, modal state)
+│   ├── App.css                 # Layout-specific stylesheet (components, dialogs, bottom sheets)
+│   ├── index.css               # Global design tokens (fonts, color palettes, dark theme overrides)
+│   ├── types.ts                # Core TypeScript model interfaces (BeerEvent, BeerDrink, BeerReview)
+│   ├── firebase.ts             # Firebase client SDK initialization & offline cache setup
 │   ├── components/
-│   │   ├── StatsHeader.tsx # Header dashboard showing total, upcoming, active, and completed metrics
-│   │   ├── EventCard.tsx   # Individual event card with swipe-to-delete gesture & status changer
-│   │   ├── EventModal.tsx  # Native HTML5 dialog modal with form validation for creating events
-│   │   └── EventDetailScreen.tsx # Dedicated event detail view displaying beers, add beer form, and rating review sheets
-│   └── assets/             # Brand logos, static icons, and media files
+│   │   ├── AdminScreen.tsx        # Location management and admin CRUD interface
+│   │   ├── AuthScreen.tsx         # User authentication (email/password sign-in & registration)
+│   │   ├── BatchUploadModal.tsx   # Interactive batch beers.json dialog with record count & preview
+│   │   ├── ConfirmDialog.tsx      # Reusable confirmation dialog for destructive actions
+│   │   ├── CookieConsent.tsx      # Privacy & cookie consent management banner
+│   │   ├── EventCard.tsx          # Event card with touch swipe-to-delete gesture & status changer
+│   │   ├── EventDetailScreen.tsx  # Event view (beer list, filters, batch upload, and forms)
+│   │   ├── EventModal.tsx         # Native HTML5 dialog modal for creating events
+│   │   ├── PrivacyPolicyModal.tsx # GDPR privacy policy & settings dialog
+│   │   ├── ShareButton.tsx        # Web Share API button with clipboard fallback
+│   │   ├── StarRating.tsx         # 10-point beer glass rating widget (0.5 step increments)
+│   │   ├── StatsHeader.tsx        # Header metrics dashboard (total, upcoming, active, completed)
+│   │   ├── UserProfileScreen.tsx  # User profile, review history, and diary CSV export
+│   │   ├── UserSearchModal.tsx    # Friend discovery modal for public profiles
+│   │   └── review/                # Mobile-first review subcomponents
+│   │       ├── ReviewBottomSheet.tsx   # Draggable review sheet dialog
+│   │       ├── ReviewPhotoControl.tsx  # Camera and photo check-in control
+│   │       ├── ServingFormatSelector.tsx # Serving size and price presets
+│   │       ├── TastingNotesInput.tsx   # Tasting notes with quick-select impressions
+│   │       └── TastingTagPicker.tsx    # Flavor descriptor tag cloud picker
+│   ├── hooks/
+│   │   ├── useIsAdmin.ts       # Firestore role checker for admin actions
+│   │   ├── useReviewDraft.ts   # Review draft persistence & state manager
+│   │   └── useWishlist.ts      # Private user wishlist bookmarking hook
+│   ├── utils/
+│   │   ├── abvUtils.ts         # ABV bracket definitions and range matchers
+│   │   ├── batchBeerParser.ts  # Batch JSON validation, normalization, and error reporting
+│   │   ├── dateUtils.ts        # Calendar-safe local date parsing
+│   │   ├── drinkFlags.ts       # Dietary flags, drink groups, and serving format parsers
+│   │   ├── eventData.ts        # Firestore subcollection operations and cascade deletes
+│   │   ├── exportDiary.ts      # CSV export generator with formula sanitization
+│   │   ├── imageUtils.ts       # Canvas WebP compression and Firebase Storage uploads
+│   │   ├── ratingUtils.ts      # Rating clamping and sentiment calculations
+│   │   ├── shareUtils.ts       # Share text and URL builders
+│   │   ├── showFilter.ts       # All / Tried / Wishlist filter predicate
+│   │   ├── tastingTags.ts      # Flavor tag cleaning, de-duplication, and top-3 aggregation
+│   │   └── wishlist.ts         # Wishlist document read/write utilities
+│   └── assets/                 # Brand logos, screenshots, and media files
 ```
 
 ---
@@ -58,28 +96,38 @@ keg-swap/
 ## 📋 Data Schemas & Structures
 
 ### 1. Drink Schema
-Available drinks are modeled inside events following this exact structure:
+Available drinks in events adhere to this domain structure:
 ```json
 {
   "id": "d1-1",
-  "name": "Amethyst",
-  "brewery": "Amity Brew Co",
+  "name": "Northern Monk Faith",
+  "brewery": "Northern Monk Brew Co",
   "location": "Leeds",
-  "abv": "4.6%",
-  "style": "Porter",
-  "description": "Dark, plums, berries, full-bodied",
+  "abv": "5.4%",
+  "style": "Hazy Pale Ale",
+  "description": "Juicy, tropical pale ale packed with Citra and Mosaic hops.",
+  "type": "Cask",
+  "caskOrKeg": "Keg",
+  "isVegan": true,
+  "isGlutenFree": false,
+  "imageUrl": "https://firebasestorage.googleapis.com/.../faith.webp",
   "reviews": []
 }
 ```
 
 ### 2. Review Schema
-Each review submitted by users follows this schema:
+Tasting reviews submitted by attendees support 10-point ratings, flavor tags, photos, and serving metadata:
 ```json
 {
   "id": "r1",
+  "userId": "usr_abc123",
   "reviewer": "Sarah M.",
-  "rating": 5,
-  "comment": "Incredibly smooth porter. The plum notes really shine through without being overly sweet.",
+  "rating": 9.5,
+  "comment": "Incredibly smooth and juicy. Massive citrus notes with a velvety mouthfeel.",
+  "servingSize": "Pint",
+  "price": "£5.40",
+  "imageUrl": "https://firebasestorage.googleapis.com/.../checkin.webp",
+  "tags": ["Hazy", "Citrus", "Tropical"],
   "createdAt": "2026-07-12T16:00:00.000Z"
 }
 ```
@@ -117,19 +165,47 @@ The top section features a summary dashboard displaying key metrics:
 - **Mobile Swipe-to-Delete:** Touch-enabled gesture swiping left to reveal the red delete drawer (designed for mobile touch precision).
 
 ### 5. Detailed Event Screen & Drinks List
-- **Detailed Event Metadata:** Shows status, date, and venue details.
-- **Batch Beer Uploader:** Instantly load a full batch lists of craft beers (matching the `beers.json` format) into the event in a single file-upload action.
-- **Advanced Searching & Filters:** Renders a search input to filter drinks by Name, Brewery, or Style alongside a style/type dropdown selector showing registered item counts (e.g. `IPA (3)`).
-- **Rating Sort Controls:** Dropdown selector to sort drinks by Average Rating (Highest to Lowest, Lowest to Highest) and total review counts (Most Reviewed).
+- **Detailed Event Metadata:** Shows status, dates (multi-day or single-day), venue addresses, and website links.
+- **Beer Wishlist / "Want to Try":** Attendees can bookmark beers to build a personal tasting trail. Features quick toolbar tabs (`All | Tried | Wishlist`) backed by private user subdocuments.
+- **Dietary & Serving Format Badges:** Clear visual badges for Vegan (`🌱`), Gluten-Free (`🌾`), and formats (`Cask`, `Keg`, `Can`, `Bottle`), with dedicated filter controls.
+- **ABV Range Filter:** Dropdown filtering by gap-free ABV brackets:
+  - *Low / Session:* `< 4.0%`
+  - *Mid-range:* `4.0% – 5.9%`
+  - *Strong:* `6.0% – 8.5%`
+  - *Imperial / High Gravity:* `> 8.5%`
+- **Advanced Searching & Sorting:** Instant search across beer names, breweries, styles, and descriptions, alongside average rating and review count sorting.
 
-### 6. Interactive Review Dialog Overlay
-- Displays average star ratings (`★ ★ ★ ★ ☆`) computed dynamically from user reviews.
-- Expandable reviews drawers showing reviewer names, star ratings, date, and comments.
-- **Viewport Dialog Portal:** Submit review forms open in a full backdrop overlay rendered at the root layer to avoid stacking context layouts container clipping. Includes review comment inputs and rating star buttons (1-5 stars selector).
+### 6. Interactive Batch Upload & Preview Dialog (`BatchUploadModal`)
+Instead of blind, unconfirmed imports, clicking **"Upload beers.json"** opens a custom `<dialog>` control to preview and verify records before saving:
+- **Drag-and-Drop Dropzone:** Drop `.json` files directly onto the modal (or onto the screen's upload button) or click to browse.
+- **Expandable Schema Guide:** Live schema preview detailing mandatory keys (`name`, `brewery`, `location`, `abv`, `style`, `description`) and optional flags.
+- **Potential Count Banner:** Prominently displays the total valid records ready to be imported (e.g. *"24 Beers Ready to Upload"*), the destination event, and summary stats (styles, vegan counts).
+- **Duplicate Detection:** Compares incoming items against existing event drinks by name and brewery, tagging duplicates clearly.
+- **Diagnostic Skipping:** Gracefully catches malformed entries, reporting skipped item counts without aborting the entire upload.
+- **In-Modal Search & Style Filters:** Filter the preview list to inspect specific beers before saving.
+- **Record Exclusion:** Organizers can remove individual beers from the preview with a single click prior to committing.
+- **Safe Confirmation Action:** Explicit `"Upload {N} Beers"` action that batches records into Firestore with an in-app success notification, plus an escape/cancel button to exit without saving.
 
-### 7. CI/CD Pipeline (Azure Static Web Apps)
-- Automated deployment workflow on GitHub Actions.
-- Seamlessly compiles project assets preloading environment keys from GitHub Secrets.
+### 7. Mobile-Friendly Beer Review Bottom Sheet (`ReviewBottomSheet`)
+- **10-Point Beer Glass Rating:** Custom beer glass icon widget supporting 0.5 to 10.0 ratings with half-glass precision.
+- **Flavor & Tasting Notes Tag Cloud:** Reviewers can select preset descriptors (`Hoppy`, `Citrus`, `Tropical`, `Piney`, `Malty`, `Roasty`, `Chocolate`, `Crisp`, `Sour`, `Sweet`, etc.) or input custom tags. Drink cards aggregate and display the top 3 tasting notes.
+- **Serving Size & Price Tracking:** Input serving formats (`Pint`, `Half`, `Third`, `Can`, `Bottle`) and track expenditure.
+- **Photo Check-Ins:** Snap or upload drink photos, automatically compressed to WebP and stored in Firebase Cloud Storage.
+- **Touch Drag-to-Dismiss:** Smooth swipe gesture to close on mobile devices.
+
+### 8. Tasting Diary Export & Native Sharing
+- **CSV Tasting Export:** Export all of your personal reviews, ratings, and notes into a clean CSV file with formula-injection protection.
+- **Web Share API:** One-click native sharing on event and drink cards with automatic fallback to clipboard copy.
+
+### 9. Scalability, Offline PWA & Cloud Architecture
+- **Firestore Subcollections:** Drinks and reviews are stored as subcollections (`events/{id}/drinks/{drinkId}/reviews/{reviewId}`), eliminating 1MB document limit constraints.
+- **Persistent Offline Cache:** Service worker precaching via `vite-plugin-pwa` paired with Firestore offline persistence enables smooth browsing and queued writes even in low-signal taprooms.
+- **Canvas Image Compression:** Automatic client-side canvas WebP compression (max 600px, 0.75 quality) reduces storage footprint by ~60%.
+- **Role-Based Security Rules:** Strict `firestore.rules` and `storage.rules` governing public profiles, attendee access, and admin privileges.
+
+### 10. CI/CD Pipeline (Azure Static Web Apps)
+- Automated deployment workflow on GitHub Actions (`.github/workflows/build.yml`).
+- Runs fast oxlint and production TypeScript compilation before publishing.
 - Automated Pull Request review environment creation and teardown management.
 
 ---
