@@ -5,7 +5,7 @@ import { parseLocalDate } from '../utils/dateUtils';
 import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
 import { useWishlist } from '../hooks/useWishlist';
 import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
-import { matchesDietaryFilter, parseDrinkFlags, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
+import { matchesDietaryFilter, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
 import { topTags } from '../utils/tastingTags';
 import {
   ArrowLeft, 
@@ -32,6 +32,7 @@ import {
 import { StarRating } from './StarRating';
 import { ShareButton } from './ShareButton';
 import { ReviewBottomSheet } from './review/ReviewBottomSheet';
+import { BatchUploadModal } from './BatchUploadModal';
 import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
@@ -107,6 +108,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   // Lightbox Modal state
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
+
+  // Batch beers.json upload dialog state
+  const [isBatchUploadOpen, setIsBatchUploadOpen] = useState(false);
+  const [initialBatchFile, setInitialBatchFile] = useState<File | null>(null);
+  const [batchSuccessMessage, setBatchSuccessMessage] = useState('');
 
   const mapsTargetUrl = event.mapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.address)}`;
 
@@ -187,65 +193,6 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     setAddDrinkError('');
     setShowAddForm(false);
     setDrinkDraftId(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-  };
-
-  const handleBatchUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        const parsed = JSON.parse(text);
-
-        if (!Array.isArray(parsed)) {
-          alert('Invalid file format. The file must contain an array of drink objects matching 2026_beers.json or beers.json.');
-          return;
-        }
-
-        const validatedDrinks: Omit<BeerDrink, 'id' | 'reviews'>[] = [];
-
-        for (const item of parsed) {
-          if (
-            item &&
-            typeof item === 'object' &&
-            typeof item.name === 'string' &&
-            typeof item.brewery === 'string' &&
-            typeof item.location === 'string' &&
-            typeof item.abv === 'string' &&
-            typeof item.style === 'string' &&
-            typeof item.description === 'string'
-          ) {
-            const batchAbv = item.abv.trim();
-            const formattedBatchAbv = batchAbv.endsWith('%') ? batchAbv : `${batchAbv}%`;
-            validatedDrinks.push({
-              name: item.name.trim(),
-              brewery: item.brewery.trim(),
-              location: item.location.trim(),
-              abv: formattedBatchAbv,
-              style: item.style.trim(),
-              description: item.description.trim(),
-              ...(typeof item.imageUrl === 'string' && item.imageUrl.trim() ? { imageUrl: item.imageUrl.trim() } : {}),
-              ...parseDrinkFlags(item as Record<string, unknown>),
-            });
-          }
-        }
-
-        if (validatedDrinks.length === 0) {
-          alert('No valid beers were found in the uploaded file. Check the fields in 2026_beers.json / beers.json.');
-          return;
-        }
-
-        onAddDrinksBatch(validatedDrinks);
-        alert(`Successfully imported ${validatedDrinks.length} beers!`);
-      } catch (err) {
-        console.error('Batch upload error:', err);
-        alert('Failed to parse JSON file. Please ensure it is a valid JSON file.');
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
   };
 
   const statusColors: { [key: string]: string } = {
@@ -447,14 +394,6 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         </div>
 
         <div className="detail-header-actions-group">
-          <input
-            type="file"
-            id="batch-beer-file-upload"
-            accept=".json"
-            onChange={handleBatchUpload}
-            style={{ display: 'none' }}
-          />
-
           <button
             type="button"
             className={`btn-detail-attend ${isAttending ? 'active' : ''}`}
@@ -469,8 +408,24 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
           <button
             type="button"
             className="btn-batch-upload"
-            onClick={() => document.getElementById('batch-beer-file-upload')?.click()}
-            title="Import a batch list of beers from a beers.json file"
+            onClick={() => {
+              setInitialBatchFile(null);
+              setIsBatchUploadOpen(true);
+            }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const file = e.dataTransfer.files?.[0];
+              if (file) {
+                setInitialBatchFile(file);
+                setIsBatchUploadOpen(true);
+              }
+            }}
+            title="Import and preview a batch list of beers from a beers.json file"
           >
             <Upload size={16} />
             <span>Upload beers.json</span>
@@ -489,6 +444,21 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {batchSuccessMessage && (
+        <div className="batch-success-banner" role="status">
+          <Check size={16} />
+          <span>{batchSuccessMessage}</span>
+          <button
+            type="button"
+            onClick={() => setBatchSuccessMessage('')}
+            className="btn-close-banner"
+            aria-label="Dismiss notification"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Add New Drink Form Drawer */}
       {showAddForm && (
@@ -924,6 +894,25 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         user={user}
         onClose={() => setActiveReviewDrink(null)}
         onSubmitReview={onAddReview}
+      />
+
+      {/* Batch Beers Upload Dialog */}
+      <BatchUploadModal
+        isOpen={isBatchUploadOpen}
+        onClose={() => {
+          setIsBatchUploadOpen(false);
+          setInitialBatchFile(null);
+        }}
+        onConfirmUpload={(drinks) => {
+          onAddDrinksBatch(drinks);
+          setIsBatchUploadOpen(false);
+          setInitialBatchFile(null);
+          setBatchSuccessMessage(`Successfully imported ${drinks.length} ${drinks.length === 1 ? 'beer' : 'beers'}!`);
+          setTimeout(() => setBatchSuccessMessage(''), 5000);
+        }}
+        eventName={event.name}
+        existingDrinks={event.drinks}
+        initialFile={initialBatchFile}
       />
 
       {/* Lightbox / Full-screen Image Preview Overlay */}

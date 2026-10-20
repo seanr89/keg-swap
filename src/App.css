@@ -5045,3 +5045,630 @@ button, input, select, textarea, a, label {
   }
 }
 
+/* ==========================================================================
+   Batch Beers JSON Upload Dialog & Preview Control
+   ========================================================================== */
+
+.batch-upload-dialog {
+  max-width: 640px !important;
+  width: calc(100% - 32px) !important;
+  max-height: 85vh;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.batch-modal-body {
+  padding: 16px 24px 20px !important;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Empty State / Dropzone */
+.batch-upload-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.batch-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-card);
+  padding: 36px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.batch-dropzone:hover,
+.batch-dropzone:focus-visible,
+.batch-dropzone.dragging {
+  border-color: var(--primary);
+  background-color: var(--primary-glow);
+  box-shadow: 0 0 0 4px var(--primary-glow);
+}
+
+.batch-dropzone-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--primary-glow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-focus);
+}
+
+.batch-dropzone-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+}
+
+.batch-dropzone-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 0 0 16px;
+  max-width: 400px;
+  line-height: 1.4;
+}
+
+.batch-browse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  min-height: 38px;
+  padding: 0 18px;
+  font-size: 13px;
+}
+
+.batch-dropzone-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 14px;
+}
+
+.batch-error-banner {
+  background-color: var(--status-cancelled-bg);
+  border: 1px solid var(--status-cancelled-border);
+  color: var(--status-cancelled-text);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.batch-error-text {
+  flex: 1;
+}
+
+/* Schema Help Drawer */
+.batch-schema-help {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.batch-schema-toggle {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  transition: background-color 0.15s ease;
+}
+
+.batch-schema-toggle:hover {
+  background-color: var(--primary-glow);
+}
+
+.batch-schema-content {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.batch-schema-note {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 0 0 8px;
+}
+
+.batch-code-preview {
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  overflow-x: auto;
+  margin: 0;
+}
+
+/* State B: Preview View */
+.batch-preview-state {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.batch-file-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+}
+
+.batch-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  min-width: 0;
+}
+
+.batch-file-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.batch-file-size {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.batch-change-file-btn {
+  font-size: 12px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Potential Count Callout */
+.batch-potential-count-card {
+  background: linear-gradient(135deg, var(--bg-card) 0%, var(--primary-glow) 100%);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.batch-count-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.batch-count-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background-color: var(--primary);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 800;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-count-titles {
+  min-width: 0;
+}
+
+.batch-count-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.batch-count-subtitle {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+}
+
+.batch-status-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.batch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.batch-pill.pill-warning {
+  background-color: var(--status-upcoming-bg);
+  color: var(--status-upcoming-text);
+  border: 1px solid var(--status-upcoming-border);
+}
+
+.batch-pill.pill-info {
+  background-color: var(--status-completed-bg);
+  color: var(--status-completed-text);
+  border: 1px solid var(--status-completed-border);
+}
+
+.batch-pill.pill-neutral {
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+/* Filter toolbar inside preview */
+.batch-filter-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-search-box {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.batch-search-icon {
+  position: absolute;
+  left: 10px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.batch-search-input {
+  width: 100%;
+  padding: 8px 30px 8px 32px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.batch-search-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.batch-search-clear {
+  position: absolute;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.batch-style-select-wrapper {
+  min-width: 130px;
+}
+
+.batch-style-select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Scrollable Preview List */
+.batch-preview-list {
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 4px;
+}
+
+.batch-beer-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.batch-beer-row:hover {
+  border-color: var(--border-focus);
+}
+
+.batch-beer-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-main);
+}
+
+.batch-beer-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.batch-beer-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.batch-beer-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-beer-abv {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary);
+  background-color: var(--primary-glow);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+.batch-beer-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.batch-beer-divider {
+  color: var(--text-muted);
+}
+
+.batch-beer-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.batch-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.batch-badge.badge-style {
+  background-color: var(--bg-main);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.batch-badge.badge-type,
+.batch-badge.badge-format {
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+}
+
+.batch-badge.badge-vegan {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.batch-badge.badge-gf {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+:root[data-theme='dark'] .batch-badge.badge-vegan {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+:root[data-theme='dark'] .batch-badge.badge-gf {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.batch-badge.badge-duplicate {
+  background-color: var(--status-upcoming-bg);
+  color: var(--status-upcoming-text);
+  border: 1px solid var(--status-upcoming-border);
+}
+
+.batch-beer-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 3px 0 0;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.batch-remove-row-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.batch-remove-row-btn:hover {
+  color: var(--status-cancelled-text);
+  background-color: var(--status-cancelled-bg);
+}
+
+.batch-no-results {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--text-muted);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.batch-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 4px;
+}
+
+.batch-upload-confirm-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Success Banner in Event Detail Screen */
+.batch-success-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: var(--status-ongoing-bg);
+  border: 1px solid var(--status-ongoing-border);
+  color: var(--status-ongoing-text);
+  border-radius: var(--radius-md);
+  padding: 10px 16px;
+  margin: 12px 0;
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.batch-success-banner .btn-close-banner {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+.batch-success-banner .btn-close-banner:hover {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .batch-upload-dialog {
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
+  }
+
+  .batch-preview-list {
+    max-height: 240px;
+  }
+
+  .batch-filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batch-style-select-wrapper {
+    width: 100%;
+  }
+
+  .batch-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .batch-modal-actions .btn-secondary,
+  .batch-modal-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
