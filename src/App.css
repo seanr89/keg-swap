@@ -5054,6 +5054,9 @@ button, input, select, textarea, a, label {
   width: calc(100% - 32px) !important;
   max-height: 85vh;
   max-height: 85dvh;
+}
+
+.batch-upload-dialog[open] {
   display: flex;
   flex-direction: column;
 }

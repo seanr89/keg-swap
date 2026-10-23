@@ -42,6 +42,9 @@ jobs:
       - name: Run Linter (Oxlint)
         run: npm run lint
 
+      - name: Run Tests (Vitest)
+        run: npm test
+
       - name: Compile and Build Assets
         run: npm run build
 

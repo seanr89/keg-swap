@@ -7,11 +7,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```bash
 npm run dev       # Vite dev server on http://localhost:5173
 npm run lint      # Oxlint (config: .oxlintrc.json)
+npm test          # Vitest unit test suite (jsdom setup in src/test/setup.ts)
 npm run build     # tsc -b && vite build -> dist/
 npm run preview   # serve the production build
 ```
 
-- There is **no test runner yet** (no `npm test`, no Vitest). `.agents/skills/keg-quality-testing/SKILL.md` describes the planned Vitest + React Testing Library setup; `TODO.md` tracks it. Until it exists, the verification gate is `npm run lint` then `npm run build` (this is also what CI runs).
+- Unit tests run via Vitest: `npm test`. The CI pipeline in `.github/workflows/build.yml` executes `npm run lint` -> `npm test` -> `npm run build` before deploying.
 - Firebase config comes from `VITE_FIREBASE_*` env vars (`.env.local` locally, gitignored; CI writes `.env` from GitHub Secrets). Without them the app cannot authenticate or load data.
 - Deploy: pushes to `main` build and deploy to Azure Static Web Apps via `.github/workflows/build.yml`; PRs get preview environments.
 

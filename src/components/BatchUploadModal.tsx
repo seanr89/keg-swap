@@ -224,8 +224,20 @@ export const BatchUploadModal: React.FC<BatchUploadModalProps> = ({
   const veganCount = useMemo(() => parsedDrinks.filter((d) => d.isVegan).length, [parsedDrinks]);
   const glutenFreeCount = useMemo(() => parsedDrinks.filter((d) => d.isGlutenFree).length, [parsedDrinks]);
 
+  const handleClose = useCallback(() => {
+    const dialog = dialogRef.current;
+    if (dialog?.open) {
+      dialog.close();
+    }
+    onClose();
+  }, [onClose]);
+
   const handleConfirm = () => {
     if (parsedDrinks.length === 0) return;
+    const dialog = dialogRef.current;
+    if (dialog?.open) {
+      dialog.close();
+    }
     onConfirmUpload(parsedDrinks);
   };
 
@@ -251,7 +263,7 @@ export const BatchUploadModal: React.FC<BatchUploadModalProps> = ({
         <button
           type="button"
           className="modal-close-btn"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Close dialog"
         >
           <X size={20} />
@@ -566,7 +578,7 @@ export const BatchUploadModal: React.FC<BatchUploadModalProps> = ({
           <button
             type="button"
             className="btn-secondary"
-            onClick={onClose}
+            onClick={handleClose}
           >
             Cancel
           </button>
