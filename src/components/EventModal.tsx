@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
-import type { BeerEvent, EventLocation } from '../types';
-import { X, Calendar, MapPin, Globe, Building2 } from 'lucide-react';
+import type { BeerDrink, BeerEvent, EventLocation } from '../types';
+import { X, Calendar, MapPin, Globe, Building2, FlaskConical } from 'lucide-react';
+import { SAMPLE_TEST_BEERS, SAMPLE_TEST_EVENT } from '../utils/testEventSeeder';
 
 interface EventModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (eventData: Omit<BeerEvent, 'id'>) => void;
+  onSubmit: (eventData: Omit<BeerEvent, 'id'>, initialDrinks?: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   locations?: EventLocation[];
 }
 
@@ -23,6 +24,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [selectedLocationId, setSelectedLocationId] = useState('');
+  const [includeTestBeers, setIncludeTestBeers] = useState(false);
 
   // Sync React open state with native dialog element
   useEffect(() => {
@@ -43,6 +45,7 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
         setStatus('Upcoming');
         setErrors({});
         setSelectedLocationId('');
+        setIncludeTestBeers(false);
       }
     } else {
       if (dialog.open) {
@@ -162,6 +165,20 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleFillTestData = () => {
+    setName(SAMPLE_TEST_EVENT.name);
+    setIsMultiDay(false);
+    setDate(SAMPLE_TEST_EVENT.date);
+    setEndDate('');
+    setAddress(SAMPLE_TEST_EVENT.address);
+    setUrl(SAMPLE_TEST_EVENT.url || '');
+    setMapsUrl('');
+    setStatus(SAMPLE_TEST_EVENT.status);
+    setSelectedLocationId('');
+    setIncludeTestBeers(true);
+    setErrors({});
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validate()) return;
@@ -169,15 +186,18 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
     const formattedUrl = formatUrl(url);
     const formattedMapsUrl = formatUrl(mapsUrl);
 
-    onSubmit({
-      name: name.trim(),
-      date,
-      ...(isMultiDay && endDate ? { endDate } : {}),
-      address: address.trim(),
-      status,
-      ...(formattedUrl ? { url: formattedUrl } : {}),
-      ...(formattedMapsUrl ? { mapsUrl: formattedMapsUrl } : {}),
-    });
+    onSubmit(
+      {
+        name: name.trim(),
+        date,
+        ...(isMultiDay && endDate ? { endDate } : {}),
+        address: address.trim(),
+        status,
+        ...(formattedUrl ? { url: formattedUrl } : {}),
+        ...(formattedMapsUrl ? { mapsUrl: formattedMapsUrl } : {}),
+      },
+      includeTestBeers ? SAMPLE_TEST_BEERS : undefined
+    );
     
     if (dialogRef.current) {
       dialogRef.current.close();
@@ -218,9 +238,23 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
       </div>
 
       <form onSubmit={handleSubmit} className="modal-form" noValidate>
+        {/* Quick Test Event Seeder Shortcut */}
+        <div className="test-event-quick-fill-bar">
+          <button
+            type="button"
+            className="btn-seed-test-template"
+            onClick={handleFillTestData}
+            title="Pre-populate with sample test event data and 10 test beers"
+            id="fill-test-event-btn"
+          >
+            <FlaskConical size={14} />
+            <span>Load Test Event Template (10 Beers)</span>
+          </button>
+        </div>
+
         <div className="form-group">
           <label htmlFor="event-name" className="form-label">
-            Event Name <span style={{ color: '#ef4444' }}>*</span>
+            Event Name <span style={{ color: 'var(--status-cancelled-text)' }}>*</span>
           </label>
           <input
             type="text"
@@ -428,6 +462,22 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
               <option value="Cancelled">Cancelled</option>
             </select>
           </div>
+        </div>
+
+        {/* Test Beers Inclusion Option */}
+        <div className="form-group test-beers-inclusion-wrap">
+          <label className="checkbox-label" htmlFor="include-test-beers-checkbox">
+            <input
+              type="checkbox"
+              id="include-test-beers-checkbox"
+              checked={includeTestBeers}
+              onChange={(e) => setIncludeTestBeers(e.target.checked)}
+            />
+            <span className="checkbox-text">
+              <strong>Include 10 sample test beers</strong>
+              <span className="checkbox-subtext"> (Pre-loads 10 beers: IPA, Stout, Porter, Sour, Lager & Bitter for testing)</span>
+            </span>
+          </label>
         </div>
 
         <div className="modal-actions">
