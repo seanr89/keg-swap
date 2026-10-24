@@ -87,7 +87,7 @@ The following skills are available in `.agents/skills/`:
 - Ensure all models are centralized in `src/types.ts`.
 
 ### B. Styling & Theming
-- Keg Swap supports both a **Light Theme** (default craft barley) and a **Dark Theme** (charcoal stout).
+- Keg Swap supports both a **Dark Theme** (default charcoal stout) and a **Light Theme** (craft barley).
 - Never use hardcoded hex colors inside component styles. Always use CSS custom properties (`var(--primary)`, `var(--bg-card)`, `var(--text-primary)`, etc.).
 - Maintain zero-FOUC (Flash of Unstyled Content) by respecting the inline theme loader in `index.html`.
 

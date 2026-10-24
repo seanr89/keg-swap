@@ -19,7 +19,11 @@ import {
   MapPin,
   Camera,
   Download,
-  X
+  X,
+  Sun,
+  Moon,
+  LogOut,
+  ShieldAlert
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { useUserReviews } from '../hooks/useUserReviews';
@@ -30,6 +34,12 @@ interface UserProfileScreenProps {
   userProfile: UserProfile | null;
   allUsers: UserProfile[];
   events: BeerEvent[];
+  theme: 'light' | 'dark';
+  onToggleTheme: () => void;
+  onSignOut: () => void;
+  isAdmin?: boolean;
+  onNavigateToAdmin?: () => void;
+  initialSection?: 'overview' | 'diary';
   onBack: () => void;
   onNavigateToEvent: (eventId: string) => void;
   onTogglePrivacy: () => void;
@@ -51,6 +61,12 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   userProfile,
   allUsers,
   events,
+  theme,
+  onToggleTheme,
+  onSignOut,
+  isAdmin,
+  onNavigateToAdmin,
+  initialSection = 'overview',
   onBack,
   onNavigateToEvent,
   onTogglePrivacy,
@@ -58,6 +74,17 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   onRemoveFriend,
 }) => {
   const [lightboxImage, setLightboxImage] = React.useState<{ url: string; title: string; subtitle?: string } | null>(null);
+
+  React.useEffect(() => {
+    if (initialSection === 'diary') {
+      const el = document.getElementById('profile-diary-section');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [initialSection]);
 
   // Aggregate reviews created by this user (subcollection reviews, plus any still embedded
   // in events that have not been migrated yet)
@@ -243,6 +270,82 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
               >
                 {isPublic ? <Globe size={16} /> : <Lock size={16} />}
                 <span>{isPublic ? 'Public Account' : 'Private Account'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Account Controls & Settings Card */}
+          <div className="account-controls-card">
+            <h4 className="controls-card-title">Preferences & Controls</h4>
+
+            {/* Theme Toggle */}
+            <div className="control-item">
+              <div className="control-item-info">
+                <div className="control-item-icon">
+                  {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+                </div>
+                <div>
+                  <div className="control-item-name">Appearance</div>
+                  <div className="control-item-sub">
+                    {theme === 'dark' ? 'Dark Mode (Charcoal Stout)' : 'Light Mode (Craft Barley)'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-control-toggle"
+                onClick={onToggleTheme}
+                aria-label={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+                title={`Switch to ${theme === 'dark' ? 'Light' : 'Dark'} Mode`}
+              >
+                {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+                <span>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+              </button>
+            </div>
+
+            {/* Admin Panel (if admin) */}
+            {isAdmin && onNavigateToAdmin && (
+              <div className="control-item">
+                <div className="control-item-info">
+                  <div className="control-item-icon text-amber">
+                    <ShieldAlert size={16} />
+                  </div>
+                  <div>
+                    <div className="control-item-name">Admin Dashboard</div>
+                    <div className="control-item-sub">Manage festival venues & locations</div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="btn-control-toggle btn-admin-toggle"
+                  onClick={onNavigateToAdmin}
+                  aria-label="Open Admin Panel"
+                >
+                  <ShieldAlert size={15} />
+                  <span>Admin</span>
+                </button>
+              </div>
+            )}
+
+            {/* Sign Out */}
+            <div className="control-item">
+              <div className="control-item-info">
+                <div className="control-item-icon text-danger">
+                  <LogOut size={16} />
+                </div>
+                <div>
+                  <div className="control-item-name">Sign Out</div>
+                  <div className="control-item-sub">Log out of your Keg Swap session</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn-control-toggle btn-logout-toggle"
+                onClick={onSignOut}
+                aria-label="Sign Out"
+              >
+                <LogOut size={15} />
+                <span>Log Out</span>
               </button>
             </div>
           </div>
@@ -463,10 +566,10 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
             )}
           </div>
 
-          {/* Recent Reviews Section */}
-          <div className="profile-feed-section">
+          {/* Recent Reviews / Diary Section */}
+          <div className="profile-feed-section" id="profile-diary-section">
             <div className="feed-header-row">
-              <h3 className="section-title" style={{ margin: 0 }}>Recent Reviews</h3>
+              <h3 className="section-title" style={{ margin: 0 }}>My Beer Diary & Reviews</h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                 <span className="feed-count-badge">Showing last {recentReviews.length} of {totalReviews}</span>
                 <button

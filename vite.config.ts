@@ -17,7 +17,7 @@ export default defineConfig({
         name: 'Keg Swap',
         short_name: 'Keg Swap',
         description: 'Track beer and ale events, rate drinks and swap tasting notes.',
-        theme_color: '#0f172a',
+        theme_color: '#0c0a09',
         background_color: '#0c0a09',
         display: 'standalone',
         start_url: '/',

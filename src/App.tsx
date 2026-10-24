@@ -8,7 +8,8 @@ import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserSearchModal } from './components/UserSearchModal';
-import { Beer, Plus, Search, Sun, Moon, LogOut, User as UserIcon, ShieldAlert, Users } from 'lucide-react';
+import { MobileBottomNav } from './components/MobileBottomNav';
+import { Beer, Plus, Search, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from './utils/dateUtils';
@@ -51,6 +52,7 @@ function App() {
 
   const [activeEventId, setActiveEventId] = useState<string | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [profileSection, setProfileSection] = useState<'overview' | 'diary'>('overview');
   const [showAdmin, setShowAdmin] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -76,6 +78,10 @@ function App() {
     if (metaColorScheme) {
       metaColorScheme.setAttribute('content', theme === 'dark' ? 'dark' : 'light dark');
     }
+    const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (metaThemeColor) {
+      metaThemeColor.setAttribute('content', theme === 'dark' ? '#0c0a09' : '#f7f5f0');
+    }
     if (cookieConsent && cookieConsent.preferences) {
       localStorage.setItem('keg_swap_theme', theme);
     } else {
@@ -85,6 +91,19 @@ function App() {
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleSignOut = () => {
+    signOut(auth);
+    setActiveEventId(null);
+    setShowProfile(false);
+    setShowAdmin(false);
+  };
+
+  const handleNavigateToAdmin = () => {
+    setShowAdmin(true);
+    setShowProfile(false);
+    setActiveEventId(null);
   };
 
   const handleAcceptAllCookies = () => {
@@ -573,6 +592,7 @@ function App() {
               className={`btn-user-profile ${showProfile ? 'active' : ''}`}
               onClick={() => {
                 setShowProfile(true);
+                setProfileSection('overview');
                 setActiveEventId(null);
                 setShowAdmin(false);
               }}
@@ -598,32 +618,6 @@ function App() {
                 <span>Admin</span>
               </button>
             )}
-
-            <button
-              type="button"
-              className="btn-theme-toggle"
-              onClick={toggleTheme}
-              aria-label="Toggle theme"
-              title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-            >
-              {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-
-            <button
-              type="button"
-              className="btn-logout"
-              onClick={() => {
-                signOut(auth);
-                setActiveEventId(null);
-                setShowProfile(false);
-                setShowAdmin(false);
-              }}
-              title="Sign Out"
-              aria-label="Sign out"
-            >
-              <LogOut size={16} />
-              <span>Log Out</span>
-            </button>
           </div>
         </header>
 
@@ -686,66 +680,32 @@ function App() {
         )}
 
         {/* Mobile Bottom Navigation Bar */}
-        <nav className="mobile-bottom-nav" aria-label="Mobile Bottom Navigation">
-          <button
-            type="button"
-            className={`nav-tab-btn ${!showProfile && !showAdmin && !activeEventId ? 'active' : ''}`}
-            onClick={() => {
-              setActiveEventId(null);
-              setShowProfile(false);
-              setShowAdmin(false);
-            }}
-          >
-            <Beer size={20} />
-            <span>Events</span>
-          </button>
-
-          <button
-            type="button"
-            className="nav-tab-btn"
-            onClick={() => setIsSearchModalOpen(true)}
-          >
-            <Users size={20} />
-            <span>Friends</span>
-          </button>
-
-          <button
-            type="button"
-            className="nav-tab-btn nav-tab-primary"
-            onClick={() => setIsModalOpen(true)}
-            aria-label="Add Event"
-          >
-            <Plus size={22} />
-          </button>
-
-          <button
-            type="button"
-            className={`nav-tab-btn ${showProfile ? 'active' : ''}`}
-            onClick={() => {
-              setShowProfile(true);
-              setActiveEventId(null);
-              setShowAdmin(false);
-            }}
-          >
-            <UserIcon size={20} />
-            <span>Profile</span>
-          </button>
-
-          {isAdmin && (
-            <button
-              type="button"
-              className={`nav-tab-btn ${showAdmin ? 'active' : ''}`}
-              onClick={() => {
-                setShowAdmin(true);
-                setShowProfile(false);
-                setActiveEventId(null);
-              }}
-            >
-              <ShieldAlert size={20} />
-              <span>Admin</span>
-            </button>
-          )}
-        </nav>
+        <MobileBottomNav
+          activeTab={
+            showProfile
+              ? (profileSection === 'diary' ? 'diary' : 'profile')
+              : (!showAdmin && !activeEventId ? 'events' : null)
+          }
+          onSelectEvents={() => {
+            setActiveEventId(null);
+            setShowProfile(false);
+            setShowAdmin(false);
+          }}
+          onOpenFriends={() => setIsSearchModalOpen(true)}
+          onAddEvent={() => setIsModalOpen(true)}
+          onSelectDiary={() => {
+            setProfileSection('diary');
+            setShowProfile(true);
+            setActiveEventId(null);
+            setShowAdmin(false);
+          }}
+          onSelectProfile={() => {
+            setProfileSection('overview');
+            setShowProfile(true);
+            setActiveEventId(null);
+            setShowAdmin(false);
+          }}
+        />
       </div>
     );
   }
@@ -770,6 +730,7 @@ function App() {
             className={`btn-user-profile ${showProfile ? 'active' : ''}`}
             onClick={() => {
               setShowProfile(true);
+              setProfileSection('overview');
               setActiveEventId(null);
               setShowAdmin(false);
             }}
@@ -796,32 +757,6 @@ function App() {
             </button>
           )}
 
-          <button
-            type="button"
-            className="btn-theme-toggle"
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-          >
-            {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}
-          </button>
-
-          <button
-            type="button"
-            className="btn-logout"
-            onClick={() => {
-              signOut(auth);
-              setActiveEventId(null);
-              setShowProfile(false);
-              setShowAdmin(false);
-            }}
-            title="Sign Out"
-            aria-label="Sign out"
-          >
-            <LogOut size={16} />
-            <span>Log Out</span>
-          </button>
-          
           <button
             type="button"
             className="btn-create-header"
@@ -854,6 +789,12 @@ function App() {
               userProfile={userProfile}
               allUsers={allUsers}
               events={events}
+              theme={theme}
+              onToggleTheme={toggleTheme}
+              onSignOut={handleSignOut}
+              isAdmin={isAdmin}
+              onNavigateToAdmin={handleNavigateToAdmin}
+              initialSection={profileSection}
               onBack={() => setShowProfile(false)}
               onNavigateToEvent={(eventId) => {
                 setShowProfile(false);
@@ -1022,66 +963,32 @@ function App() {
       )}
 
       {/* Mobile Bottom Navigation Bar */}
-      <nav className="mobile-bottom-nav" aria-label="Mobile Bottom Navigation">
-        <button
-          type="button"
-          className={`nav-tab-btn ${!showProfile && !showAdmin && !activeEventId ? 'active' : ''}`}
-          onClick={() => {
-            setActiveEventId(null);
-            setShowProfile(false);
-            setShowAdmin(false);
-          }}
-        >
-          <Beer size={20} />
-          <span>Events</span>
-        </button>
-
-        <button
-          type="button"
-          className="nav-tab-btn"
-          onClick={() => setIsSearchModalOpen(true)}
-        >
-          <Users size={20} />
-          <span>Friends</span>
-        </button>
-
-        <button
-          type="button"
-          className="nav-tab-btn nav-tab-primary"
-          onClick={() => setIsModalOpen(true)}
-          aria-label="Add Event"
-        >
-          <Plus size={22} />
-        </button>
-
-        <button
-          type="button"
-          className={`nav-tab-btn ${showProfile ? 'active' : ''}`}
-          onClick={() => {
-            setShowProfile(true);
-            setActiveEventId(null);
-            setShowAdmin(false);
-          }}
-        >
-          <UserIcon size={20} />
-          <span>Profile</span>
-        </button>
-
-        {isAdmin && (
-          <button
-            type="button"
-            className={`nav-tab-btn ${showAdmin ? 'active' : ''}`}
-            onClick={() => {
-              setShowAdmin(true);
-              setShowProfile(false);
-              setActiveEventId(null);
-            }}
-          >
-            <ShieldAlert size={20} />
-            <span>Admin</span>
-          </button>
-        )}
-      </nav>
+      <MobileBottomNav
+        activeTab={
+          showProfile
+            ? (profileSection === 'diary' ? 'diary' : 'profile')
+            : (!showAdmin && !activeEventId ? 'events' : null)
+        }
+        onSelectEvents={() => {
+          setActiveEventId(null);
+          setShowProfile(false);
+          setShowAdmin(false);
+        }}
+        onOpenFriends={() => setIsSearchModalOpen(true)}
+        onAddEvent={() => setIsModalOpen(true)}
+        onSelectDiary={() => {
+          setProfileSection('diary');
+          setShowProfile(true);
+          setActiveEventId(null);
+          setShowAdmin(false);
+        }}
+        onSelectProfile={() => {
+          setProfileSection('overview');
+          setShowProfile(true);
+          setActiveEventId(null);
+          setShowAdmin(false);
+        }}
+      />
     </div>
   );
 }
