@@ -29,6 +29,7 @@ import {
 } from 'firebase/firestore';
 import { sanitizeOrUploadImageUrl, isBase64DataUrl } from './utils/imageUtils';
 import { addDrinks, addReview, deleteEventCascade, migrateLegacyEvent } from './utils/eventData';
+import { seedTestEventWithDrinks, generateDrinkId } from './utils/testEventSeeder';
 import { cleanTags } from './utils/tastingTags';
 import { useEventDrinks } from './hooks/useEventDrinks';
 import './App.css';
@@ -315,10 +316,13 @@ function App() {
     }
   };
 
-  const handleAddEvent = async (eventData: Omit<BeerEvent, 'id'>) => {
+  const handleAddEvent = async (
+    eventData: Omit<BeerEvent, 'id'>,
+    initialDrinks?: Omit<BeerDrink, 'id' | 'reviews'>[]
+  ) => {
     if (!user) return;
     try {
-      await addDoc(collection(db, 'events'), {
+      const docRef = await addDoc(collection(db, 'events'), {
         name: eventData.name,
         date: eventData.date,
         ...(eventData.endDate ? { endDate: eventData.endDate } : {}),
@@ -330,9 +334,29 @@ function App() {
         userId: user.uid,
         createdAt: new Date().toISOString()
       });
+
+      if (initialDrinks && initialDrinks.length > 0) {
+        const drinksWithIds: BeerDrink[] = initialDrinks.map((d) => ({
+          ...d,
+          id: generateDrinkId(),
+          reviews: [],
+        }));
+        await addDrinks(docRef.id, drinksWithIds);
+      }
+
       setIsModalOpen(false);
     } catch (err) {
       console.error('Failed to add event to Firestore:', err);
+    }
+  };
+
+  const handleSeedTestEvent = async () => {
+    if (!user) return;
+    try {
+      await seedTestEventWithDrinks(user.uid);
+    } catch (err) {
+      console.error('Failed to seed test event:', err);
+      throw err;
     }
   };
 
@@ -780,6 +804,7 @@ function App() {
               onBack={() => setShowAdmin(false)}
               onSaveLocation={handleSaveLocation}
               onDeleteLocation={handleDeleteLocation}
+              onSeedTestEvent={handleSeedTestEvent}
             />
           </Suspense>
         ) : showProfile ? (

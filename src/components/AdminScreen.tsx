@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   ExternalLink,
   StickyNote,
+  FlaskConical,
 } from 'lucide-react';
 
 interface AdminScreenProps {
@@ -23,6 +24,7 @@ interface AdminScreenProps {
   onBack: () => void;
   onSaveLocation: (locationData: Omit<EventLocation, 'id' | 'createdAt'>, id?: string) => Promise<void>;
   onDeleteLocation: (id: string) => Promise<void>;
+  onSeedTestEvent?: () => Promise<void>;
 }
 
 interface LocationFormState {
@@ -51,6 +53,7 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({
   onBack,
   onSaveLocation,
   onDeleteLocation,
+  onSeedTestEvent,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -60,9 +63,27 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [seedFeedback, setSeedFeedback] = useState<string | null>(null);
 
   const dialogRef = useRef<HTMLDialogElement>(null);
   const deleteDialogRef = useRef<HTMLDialogElement>(null);
+
+  const handleSeed = async () => {
+    if (!onSeedTestEvent) return;
+    setIsSeeding(true);
+    setSeedFeedback(null);
+    try {
+      await onSeedTestEvent();
+      setSeedFeedback('Test event "[TEST] Keg Swap Tasting Fest" with 10 beers created successfully!');
+      setTimeout(() => setSeedFeedback(null), 6000);
+    } catch (err) {
+      console.error('Failed to seed test event:', err);
+      setSeedFeedback('Failed to seed test event. Please check console errors.');
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   // Sync form dialog
   useEffect(() => {
@@ -211,6 +232,19 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({
         </div>
         <div className="admin-toolbar-right">
           <span className="admin-count-badge">{filteredLocations.length} location{filteredLocations.length !== 1 ? 's' : ''}</span>
+          {onSeedTestEvent && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={handleSeed}
+              disabled={isSeeding}
+              title="Seed a test event with 10 varied test beers"
+              id="admin-seed-test-event-btn"
+            >
+              <FlaskConical size={16} />
+              <span>{isSeeding ? 'Seeding...' : 'Seed Test Event (10 Beers)'}</span>
+            </button>
+          )}
           <button
             type="button"
             className="btn-primary"
@@ -222,6 +256,13 @@ export const AdminScreen: React.FC<AdminScreenProps> = ({
           </button>
         </div>
       </div>
+
+      {seedFeedback && (
+        <div className="admin-seed-feedback-banner" role="status">
+          <Check size={16} />
+          <span>{seedFeedback}</span>
+        </div>
+      )}
 
       {/* Locations Grid */}
       {filteredLocations.length > 0 ? (

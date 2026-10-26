@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import type { BeerDrink } from '../types';
 import { parseBatchBeerJson } from '../utils/batchBeerParser';
+import { SAMPLE_TEST_BEERS } from '../utils/testEventSeeder';
 import { 
   Upload, 
   X, 
@@ -322,6 +323,26 @@ export const BatchUploadModal: React.FC<BatchUploadModalProps> = ({
               <span className="batch-dropzone-hint">
                 Accepts .json file matching Keg Swap catalog format
               </span>
+            </div>
+
+            {/* Quick Test Data Loader */}
+            <div className="batch-quick-test-section">
+              <span className="batch-quick-test-label">Testing drink insertion or catalog imports?</span>
+              <button
+                type="button"
+                className="btn-secondary batch-load-test-btn"
+                onClick={() => {
+                  setParsedDrinks(SAMPLE_TEST_BEERS);
+                  setFileName('test_beers.json (10 sample beers)');
+                  setFileSize(1850);
+                  setErrorMessage('');
+                  setSkippedCount(0);
+                }}
+                id="load-test-beers-btn"
+              >
+                <Beer size={16} className="text-amber" />
+                <span>Load 10 Sample Test Beers</span>
+              </button>
             </div>
 
             {errorMessage && (
