@@ -27,12 +27,16 @@ import {
   Maximize2,
   Trash2,
   Bookmark,
-  Star
+  Star,
+  Trophy
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ShareButton } from './ShareButton';
 import { ReviewBottomSheet } from './review/ReviewBottomSheet';
 import { BatchUploadModal } from './BatchUploadModal';
+import { TopFiveHeroTray } from './TopFiveHeroTray';
+import { TopFiveSwapModal } from './TopFiveSwapModal';
+import { MAX_TOP_FIVE } from '../utils/wishlist';
 import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
@@ -95,7 +99,32 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   // Search and Filter states
   const [drinkSearchQuery, setDrinkSearchQuery] = useState('');
   const [selectedShow, setSelectedShow] = useState<ShowFilter>('all');
-  const { wishlist, toggle: toggleWishlist } = useWishlist(user.uid, event.id);
+
+  const validDrinkIds = React.useMemo(() => {
+    if (drinksLoading || !event.drinks) return undefined;
+    return new Set(event.drinks.map((d) => d.id));
+  }, [drinksLoading, event.drinks]);
+
+  const {
+    wishlist,
+    toggle: toggleWishlist,
+    topFiveDrinkIds,
+    topFiveSet,
+    getTopFiveRank,
+    toggleTopFive,
+    swapTopFive,
+    moveTopFive,
+  } = useWishlist(user.uid, event.id, validDrinkIds);
+
+  const [swapCandidateDrink, setSwapCandidateDrink] = useState<BeerDrink | null>(null);
+
+  const handleToggleTopFive = async (drink: BeerDrink) => {
+    const action = await toggleTopFive(drink.id);
+    if (action === 'limit-reached') {
+      setSwapCandidateDrink(drink);
+    }
+  };
+
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
@@ -232,7 +261,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       drink.brewery.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       drink.style.toLowerCase().includes(drinkSearchQuery.toLowerCase()) ||
       effectiveType.toLowerCase().includes(drinkSearchQuery.toLowerCase());
-    const matchesShow = matchesShowFilter(drink, selectedShow, user.uid, wishlist);
+    const matchesShow = matchesShowFilter(drink, selectedShow, user.uid, wishlist, topFiveSet);
     const matchesType =
       selectedType === 'all' ||
       effectiveType.toLowerCase() === selectedType.toLowerCase();
@@ -266,6 +295,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
     if (selectedSort === 'reviews-desc') {
       return (b.reviews?.length || 0) - (a.reviews?.length || 0);
+    }
+    if (selectedShow === 'top5') {
+      const rankA = getTopFiveRank(a.id) ?? MAX_TOP_FIVE + 1;
+      const rankB = getTopFiveRank(b.id) ?? MAX_TOP_FIVE + 1;
+      return rankA - rankB;
     }
     return 0;
   });
@@ -672,6 +706,24 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         
         {event.drinks && event.drinks.length > 0 ? (
           <>
+            {/* Top 5 Must-Try Wishlist Hero Tray */}
+            <TopFiveHeroTray
+              drinks={event.drinks}
+              topFiveDrinkIds={topFiveDrinkIds}
+              userUid={user.uid}
+              isFilteredByTopFive={selectedShow === 'top5'}
+              onToggleFilterTopFive={() =>
+                setSelectedShow((prev) => (prev === 'top5' ? 'all' : 'top5'))
+              }
+              onRemoveFromTopFive={(drinkId) => {
+                void toggleTopFive(drinkId);
+              }}
+              onMoveTopFive={(fromIdx, toIdx) => {
+                void moveTopFive(fromIdx, toIdx);
+              }}
+              onTriggerReview={(drink) => setActiveReviewDrink(drink)}
+            />
+
             {/* Search & Filter Toolbar inside Event Details */}
             <div className="toolbar" style={{ marginBottom: '24px', padding: '12px 16px', gap: '16px', flexWrap: 'wrap' }}>
               <div className="search-bar" style={{ flex: '1 1 250px' }}>
@@ -797,9 +849,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 <div className="filter-tabs" role="group" aria-label="Show">
                   {(
                     [
-                      { id: 'all', label: 'All', count: event.drinks?.length ?? 0 },
-                      { id: 'tried', label: 'Tried', count: countMatching(event.drinks ?? [], 'tried', user.uid, wishlist) },
-                      { id: 'wishlist', label: 'Wishlist', count: countMatching(event.drinks ?? [], 'wishlist', user.uid, wishlist) },
+                      { id: 'all', label: 'All', count: `${event.drinks?.length ?? 0}` },
+                      { id: 'tried', label: 'Tried', count: `${countMatching(event.drinks ?? [], 'tried', user.uid, wishlist, topFiveSet)}` },
+                      { id: 'wishlist', label: 'Wishlist', count: `${countMatching(event.drinks ?? [], 'wishlist', user.uid, wishlist, topFiveSet)}` },
+                      { id: 'top5', label: 'Top 5', count: `${countMatching(event.drinks ?? [], 'top5', user.uid, wishlist, topFiveSet)}/${MAX_TOP_FIVE}` },
                     ] as const
                   ).map((tab) => (
                     <button
@@ -841,6 +894,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                             userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                             isWishlisted={wishlist.has(drink.id)}
                             onToggleWishlist={() => toggleWishlist(drink.id)}
+                            topFiveRank={getTopFiveRank(drink.id)}
+                            onToggleTopFive={() => {
+                              void handleToggleTopFive(drink);
+                            }}
                             onTriggerReview={() => setActiveReviewDrink(drink)}
                             onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
                           />
@@ -859,6 +916,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                       isWishlisted={wishlist.has(drink.id)}
                       onToggleWishlist={() => toggleWishlist(drink.id)}
+                      topFiveRank={getTopFiveRank(drink.id)}
+                      onToggleTopFive={() => {
+                        void handleToggleTopFive(drink);
+                      }}
                       onTriggerReview={() => setActiveReviewDrink(drink)}
                       onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
                     />
@@ -915,6 +976,18 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         initialFile={initialBatchFile}
       />
 
+      {/* Top 5 Swap Dialog when list is at capacity */}
+      <TopFiveSwapModal
+        candidateDrink={swapCandidateDrink}
+        topFiveDrinkIds={topFiveDrinkIds}
+        drinks={event.drinks ?? []}
+        userUid={user.uid}
+        onClose={() => setSwapCandidateDrink(null)}
+        onSwap={(removeId, addId) => {
+          void swapTopFive(removeId, addId);
+        }}
+      />
+
       {/* Lightbox / Full-screen Image Preview Overlay */}
       {lightboxImage && (
         <div className="lightbox-overlay" onClick={() => setLightboxImage(null)}>
@@ -948,6 +1021,8 @@ interface BeerDrinkCardProps {
   userRating?: number;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
+  topFiveRank: number | null;
+  onToggleTopFive: () => void;
 }
 
 const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
@@ -956,6 +1031,8 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   userRating,
   isWishlisted,
   onToggleWishlist,
+  topFiveRank,
+  onToggleTopFive,
   onTriggerReview,
   onOpenLightbox,
 }) => {
@@ -968,7 +1045,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   const flavorTags = topTags(drink.reviews);
 
   return (
-    <div className="beer-card">
+    <div className={`beer-card ${topFiveRank !== null ? 'is-top-five' : ''}`}>
       {/* Optional Top Drink Image Header */}
       {drink.imageUrl && (
         <div 
@@ -988,6 +1065,20 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
         {/* Left Side Details */}
         <div className="beer-card-info">
           <div className="beer-card-top">
+            {topFiveRank !== null && (
+              <span
+                className={`top-five-card-badge ${userRating !== undefined ? 'tried' : ''}`}
+                title={
+                  userRating !== undefined
+                    ? `Top 5 Pick #${topFiveRank} — Tried (${userRating.toFixed(1)}/10)`
+                    : `Top 5 Must-Try Pick #${topFiveRank}`
+                }
+              >
+                <Trophy size={11} />
+                <span>Top #{topFiveRank}</span>
+                {userRating !== undefined && <Check size={11} />}
+              </span>
+            )}
             <span className="beer-style-badge">{drink.style}</span>
             <span className="beer-abv-badge">{drink.abv}</span>
             <span className={`beer-abv-badge beer-type-badge ${(drink.type?.trim() || (!drink.caskOrKeg ? 'Unknown' : drink.caskOrKeg)).toLowerCase() === 'unknown' ? 'badge-unknown' : ''}`}>
@@ -1065,6 +1156,26 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
             >
               <MessageSquare size={14} />
               <span>Reviews ({drink.reviews.length})</span>
+            </button>
+
+            <button
+              type="button"
+              className={`share-btn top-five-btn ${topFiveRank !== null ? 'active' : ''}`}
+              onClick={onToggleTopFive}
+              aria-pressed={topFiveRank !== null}
+              aria-label={
+                topFiveRank !== null
+                  ? `Remove ${drink.name} from Top 5 (currently #${topFiveRank})`
+                  : `Add ${drink.name} to Top 5 wishlist`
+              }
+              title={
+                topFiveRank !== null
+                  ? `Remove from Top 5 (#${topFiveRank})`
+                  : 'Add to Top 5 Must-Try wishlist'
+              }
+            >
+              <Trophy size={14} />
+              <span>{topFiveRank !== null ? `#${topFiveRank}` : 'Top 5'}</span>
             </button>
 
             <button

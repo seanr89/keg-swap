@@ -97,3 +97,15 @@ export interface EventLocation {
   createdAt: string;
 }
 
+/**
+ * Per-user, per-event wishlist stored at `users/{uid}/wishlists/{eventId}`.
+ * `drinkIds` holds general bookmarked drinks; `topFiveDrinkIds` holds an ordered list
+ * of up to 5 priority "Must-Try" drinks for the event.
+ */
+export interface EventWishlistDoc {
+  drinkIds: string[];
+  topFiveDrinkIds?: string[];
+  updatedAt: string;
+}
+
+

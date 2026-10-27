@@ -5900,5 +5900,484 @@ button, input, select, textarea, a, label {
   margin-bottom: 16px;
 }
 
+/* ==========================================================================
+   Top 5 "Must-Try" Wishlist Tray, Card Badges & Swap Modal
+   ========================================================================== */
+
+.top-five-tray {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-focus);
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-glow);
+}
+
+.top-five-tray-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.top-five-tray-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.top-five-trophy-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+  flex-shrink: 0;
+}
+
+.top-five-heading-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.top-five-tray-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.top-five-tray-subtitle {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.top-five-count-pill,
+.top-five-progress-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.top-five-count-pill {
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+}
+
+.top-five-progress-pill {
+  background-color: var(--status-upcoming-bg);
+  color: var(--status-upcoming-text);
+  border: 1px solid var(--status-upcoming-border);
+}
+
+.top-five-progress-pill.completed {
+  background-color: var(--status-ongoing-bg);
+  color: var(--status-ongoing-text);
+  border-color: var(--status-ongoing-border);
+}
+
+.top-five-tray-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-five-filter-btn,
+.top-five-collapse-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-main);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.top-five-filter-btn:hover,
+.top-five-collapse-btn:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.top-five-filter-btn.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg-main);
+}
+
+.top-five-slots-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.top-five-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  min-height: 120px;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.top-five-slot.filled {
+  border-color: var(--border-focus);
+}
+
+.top-five-slot.filled.is-tried {
+  border-color: var(--status-ongoing-border);
+  background-color: var(--status-ongoing-bg);
+}
+
+.top-five-slot.empty {
+  border-style: dashed;
+  justify-content: flex-start;
+  opacity: 0.85;
+}
+
+.top-five-slot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.top-five-slot-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.top-five-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--primary);
+  color: var(--bg-main);
+}
+
+.top-five-rank-badge.muted {
+  background-color: var(--bg-card);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.top-five-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.top-five-status-badge.pending {
+  background-color: var(--status-upcoming-bg);
+  color: var(--status-upcoming-text);
+  border: 1px solid var(--status-upcoming-border);
+}
+
+.top-five-status-badge.tried {
+  background-color: var(--status-ongoing-bg);
+  color: var(--status-ongoing-text);
+  border: 1px solid var(--status-ongoing-border);
+}
+
+.top-five-slot-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.top-five-slot-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.top-five-slot-icon-btn:hover:not(:disabled) {
+  background-color: var(--bg-card-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
+}
+
+.top-five-slot-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.top-five-slot-icon-btn.remove:hover {
+  color: var(--status-cancelled-text);
+  background-color: var(--status-cancelled-bg);
+}
+
+.top-five-slot-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.top-five-slot-name {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-five-slot-meta {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.top-five-empty-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.top-five-empty-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.top-five-slot-rate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-card);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.top-five-slot-rate-btn:hover {
+  border-color: var(--border-focus);
+  color: var(--primary);
+}
+
+.top-five-slot-rate-btn.rated {
+  border-color: var(--status-ongoing-border);
+  color: var(--status-ongoing-text);
+}
+
+/* Drink Card Top 5 Badge & Highlight */
+.beer-card.is-top-five {
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.top-five-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+}
+
+.top-five-card-badge.tried {
+  background-color: var(--status-ongoing-bg);
+  color: var(--status-ongoing-text);
+  border-color: var(--status-ongoing-border);
+}
+
+.share-btn.top-five-btn.active {
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+}
+
+/* Top 5 Swap Dialog */
+.top-five-swap-dialog {
+  max-width: 520px !important;
+  width: calc(100% - 32px) !important;
+}
+
+.top-five-swap-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+.top-five-swap-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+.top-five-swap-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.top-five-swap-description {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.top-five-swap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.top-five-swap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+}
+
+.top-five-swap-row-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.top-five-swap-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.top-five-swap-row-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.top-five-swap-row-meta {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-swap-top-five {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background-color: var(--primary-glow);
+  color: var(--primary);
+  border: 1px solid var(--border-focus);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.btn-swap-top-five:hover {
+  background-color: var(--primary);
+  color: var(--bg-main);
+}
+
+@media (max-width: 1024px) {
+  .top-five-slots-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .top-five-tray {
+    padding: 14px;
+  }
+
+  .top-five-slots-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .top-five-slot {
+    min-height: auto;
+  }
+
+  .top-five-swap-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btn-swap-top-five {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+
 
 
