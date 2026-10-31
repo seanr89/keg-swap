@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
-import type { BeerEvent, BeerDrink, BeerReview, EventLocation, UserProfile } from './types';
+import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import type { BeerEvent, BeerDrink } from './types';
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
 import { EventModal } from './components/EventModal';
@@ -10,27 +10,10 @@ import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserSearchModal } from './components/UserSearchModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Beer, Plus, Search, User as UserIcon, ShieldAlert } from 'lucide-react';
-import { onAuthStateChanged, signOut } from 'firebase/auth';
-import type { User } from 'firebase/auth';
 import { parseLocalDate } from './utils/dateUtils';
-import { useIsAdmin } from './hooks/useIsAdmin';
-import { auth, db } from './firebase';
-import { 
-  collection, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  where,
-  addDoc, 
-  deleteDoc, 
-  doc, 
-  updateDoc,
-  setDoc
-} from 'firebase/firestore';
-import { sanitizeOrUploadImageUrl, isBase64DataUrl } from './utils/imageUtils';
-import { addDrinks, addReview, deleteEventCascade, migrateLegacyEvent } from './utils/eventData';
-import { seedTestEventWithDrinks, generateDrinkId } from './utils/testEventSeeder';
-import { cleanTags } from './utils/tastingTags';
+import { useAuth } from './hooks/useAuth';
+import { useEvents } from './hooks/useEvents';
+import { useLocations } from './hooks/useLocations';
 import { useEventDrinks } from './hooks/useEventDrinks';
 import './App.css';
 
@@ -55,17 +38,42 @@ function App() {
   const [showProfile, setShowProfile] = useState(false);
   const [profileSection, setProfileSection] = useState<'overview' | 'diary'>('overview');
   const [showAdmin, setShowAdmin] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [authLoading, setAuthLoading] = useState(true);
-  const [events, setEvents] = useState<BeerEvent[]>([]);
-  const [locations, setLocations] = useState<EventLocation[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [eventPendingDelete, setEventPendingDelete] = useState<BeerEvent | null>(null);
+
+  const {
+    user,
+    userProfile,
+    allUsers,
+    authLoading,
+    isAdmin,
+    signOutUser,
+    togglePrivacy: handleTogglePrivacy,
+    addFriend: handleAddFriend,
+    removeFriend: handleRemoveFriend,
+  } = useAuth();
+
+  const {
+    events,
+    canDeleteEvent,
+    addEvent,
+    deleteEvent,
+    updateStatus: handleStatusChange,
+    toggleAttendance: handleToggleAttendance,
+    addDrink: handleAddDrink,
+    addDrinksBatch: handleAddDrinksBatch,
+    addDrinkReview,
+    seedTestEvent: handleSeedTestEvent,
+  } = useEvents(user, isAdmin);
+
+  const {
+    locations,
+    saveLocation: handleSaveLocation,
+    deleteLocation: handleDeleteLocation,
+  } = useLocations(user);
 
   const [cookieConsent, setCookieConsent] = useState<{ necessary: boolean; preferences: boolean } | null>(() => {
     const saved = localStorage.getItem('keg_swap_cookie_consent');
@@ -95,7 +103,7 @@ function App() {
   };
 
   const handleSignOut = () => {
-    signOut(auth);
+    void signOutUser();
     setActiveEventId(null);
     setShowProfile(false);
     setShowAdmin(false);
@@ -125,406 +133,23 @@ function App() {
     localStorage.setItem('keg_swap_cookie_consent', JSON.stringify(consentVal));
   };
 
-  // Auth Listener
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setAuthLoading(false);
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // Firestore User Profile Sync & All Users Sync
-  useEffect(() => {
-    if (!user) {
-      setUserProfile(null);
-      setAllUsers([]);
-      return;
-    }
-
-    const userDocRef = doc(db, 'users', user.uid);
-
-    // Sync logged in user profile doc
-    const unsubUser = onSnapshot(userDocRef, async (docSnap) => {
-      if (docSnap.exists()) {
-        setUserProfile(docSnap.data() as UserProfile);
-      } else {
-        // Initialize user profile document
-        const newProfile: UserProfile = {
-          uid: user.uid,
-          displayName: user.displayName || user.email || 'Ale Connoisseur',
-          email: user.email || '',
-          isPublic: true,
-          friends: [],
-          createdAt: new Date().toISOString(),
-        };
-        try {
-          await setDoc(userDocRef, newProfile);
-        } catch (err) {
-          console.error('Failed to create user profile in Firestore:', err);
-        }
-      }
-    });
-
-    // Subscribe to public users (for friend search & friend name resolution)
-    // Only public profiles are fetched so private accounts never reach other clients
-    const usersQuery = query(collection(db, 'users'), where('isPublic', '==', true));
-    const unsubAllUsers = onSnapshot(usersQuery, (snapshot) => {
-      const fetched: UserProfile[] = [];
-      snapshot.forEach((d) => {
-        fetched.push({ ...d.data(), uid: d.id } as UserProfile);
-      });
-      setAllUsers(fetched);
-    });
-
-    return () => {
-      unsubUser();
-      unsubAllUsers();
-    };
-  }, [user]);
-
-  const handleTogglePrivacy = async () => {
-    if (!user || !userProfile) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    try {
-      await updateDoc(userDocRef, {
-        isPublic: !userProfile.isPublic,
-      });
-    } catch (err) {
-      console.error('Failed to toggle privacy setting:', err);
-    }
-  };
-
-  const handleAddFriend = async (friendUid: string) => {
-    if (!user || !userProfile) return;
-    const currentFriends = userProfile.friends || [];
-    if (currentFriends.includes(friendUid)) return;
-    const updatedFriends = [...currentFriends, friendUid];
-    const userDocRef = doc(db, 'users', user.uid);
-    try {
-      await updateDoc(userDocRef, {
-        friends: updatedFriends,
-      });
-    } catch (err) {
-      console.error('Failed to add friend:', err);
-    }
-  };
-
-  const handleRemoveFriend = async (friendUid: string) => {
-    if (!user || !userProfile) return;
-    const currentFriends = userProfile.friends || [];
-    const updatedFriends = currentFriends.filter((id) => id !== friendUid);
-    const userDocRef = doc(db, 'users', user.uid);
-    try {
-      await updateDoc(userDocRef, {
-        friends: updatedFriends,
-      });
-    } catch (err) {
-      console.error('Failed to remove friend:', err);
-    }
-  };
-
-
-  // Events whose legacy embedded drinks are being (or have been) migrated this session
-  const migratingEventIds = useRef(new Set<string>());
-
-  // Firestore Events Sync & Seeding
-  useEffect(() => {
-    if (!user) {
-      setEvents([]);
-      return;
-    }
-
-    const q = query(collection(db, 'events'), orderBy('date', 'desc'));
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        try {
-        } catch (seedErr) {
-          console.error('Failed to seed events collection:', seedErr);
-        }
-        return;
-      }
-
-      const fetchedEvents: BeerEvent[] = [];
-      snapshot.forEach((docSnapshot) => {
-        fetchedEvents.push({ 
-          id: docSnapshot.id, 
-          ...docSnapshot.data() 
-        } as BeerEvent);
-      });
-      setEvents(fetchedEvents);
-
-      // Move drinks still embedded in an event document into subcollections (once per session)
-      fetchedEvents.forEach((ev) => {
-        if (!ev.drinks?.length || migratingEventIds.current.has(ev.id)) return;
-        migratingEventIds.current.add(ev.id);
-        migrateLegacyEvent(ev).catch((migErr) => {
-          migratingEventIds.current.delete(ev.id);
-          console.error('Failed to migrate drinks to subcollections for event', ev.id, migErr);
-        });
-      });
-    }, (err) => {
-      console.error("Firestore events snapshot error:", err);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Firestore Locations Sync
-  useEffect(() => {
-    if (!user) {
-      setLocations([]);
-      return;
-    }
-    const q = query(collection(db, 'locations'), orderBy('createdAt', 'desc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched: EventLocation[] = [];
-      snapshot.forEach((d) => {
-        fetched.push({ id: d.id, ...d.data() } as EventLocation);
-      });
-      setLocations(fetched);
-    }, (err) => {
-      console.error('Firestore locations snapshot error:', err);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  const handleSaveLocation = async (
-    locationData: Omit<EventLocation, 'id' | 'createdAt'>,
-    id?: string
-  ) => {
-    if (!user) return;
-    try {
-      if (id) {
-        await updateDoc(doc(db, 'locations', id), { ...locationData });
-      } else {
-        await addDoc(collection(db, 'locations'), {
-          ...locationData,
-          createdAt: new Date().toISOString(),
-        });
-      }
-    } catch (err) {
-      console.error('Failed to save location:', err);
-    }
-  };
-
-  const handleDeleteLocation = async (id: string) => {
-    try {
-      await deleteDoc(doc(db, 'locations', id));
-    } catch (err) {
-      console.error('Failed to delete location:', err);
-    }
-  };
-
   const handleAddEvent = async (
     eventData: Omit<BeerEvent, 'id'>,
     initialDrinks?: Omit<BeerDrink, 'id' | 'reviews'>[]
   ) => {
-    if (!user) return;
-    try {
-      const docRef = await addDoc(collection(db, 'events'), {
-        name: eventData.name,
-        date: eventData.date,
-        ...(eventData.endDate ? { endDate: eventData.endDate } : {}),
-        address: eventData.address,
-        ...(eventData.mapsUrl ? { mapsUrl: eventData.mapsUrl } : {}),
-        ...(eventData.url ? { url: eventData.url } : {}),
-        status: eventData.status,
-        drinkCount: 0,
-        userId: user.uid,
-        createdAt: new Date().toISOString()
-      });
-
-      if (initialDrinks && initialDrinks.length > 0) {
-        const drinksWithIds: BeerDrink[] = initialDrinks.map((d) => ({
-          ...d,
-          id: generateDrinkId(),
-          reviews: [],
-        }));
-        await addDrinks(docRef.id, drinksWithIds);
-      }
-
+    const created = await addEvent(eventData, initialDrinks);
+    if (created) {
       setIsModalOpen(false);
-    } catch (err) {
-      console.error('Failed to add event to Firestore:', err);
     }
   };
-
-  const handleSeedTestEvent = async () => {
-    if (!user) return;
-    try {
-      await seedTestEventWithDrinks(user.uid);
-    } catch (err) {
-      console.error('Failed to seed test event:', err);
-      throw err;
-    }
-  };
-
-  // Only the creator or an admin may delete; legacy events without a userId are admin-only
-  const canDeleteEvent = (event: BeerEvent) =>
-    isAdmin || (!!user && !!event.userId && event.userId === user.uid);
 
   const handleConfirmDeleteEvent = async () => {
     const event = eventPendingDelete;
     setEventPendingDelete(null);
-    if (!event || !canDeleteEvent(event)) return;
-    try {
-      await deleteEventCascade(event.id);
-      if (activeEventId === event.id) {
-        setActiveEventId(null);
-      }
-    } catch (err) {
-      console.error('Failed to delete event from Firestore:', err);
-    }
-  };
-
-  const handleStatusChange = async (id: string, newStatus: BeerEvent['status']) => {
-    try {
-      await updateDoc(doc(db, 'events', id), { status: newStatus });
-    } catch (err) {
-      console.error('Failed to update event status in Firestore:', err);
-    }
-  };
-
-  const handleAddReview = async (
-    eventId: string, 
-    drinkId: string, 
-    reviewer: string, 
-    rating: number, 
-    comment: string,
-    price?: string,
-    servingSize?: string,
-    imageUrl?: string,
-    reviewId?: string,
-    tags?: string[]
-  ) => {
-    const finalReviewId = reviewId || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-
-    let finalImageUrl = imageUrl?.trim();
-    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
-      try {
-        finalImageUrl = await sanitizeOrUploadImageUrl(
-          finalImageUrl,
-          `events/${eventId}/reviews/${finalReviewId}.jpg`
-        );
-      } catch (uploadErr) {
-        console.error('Failed to upload review image to Cloud Storage:', uploadErr);
-      }
-    }
-
-    const cleanedTags = cleanTags(tags);
-    const newReview: BeerReview = {
-      id: finalReviewId,
-      reviewer,
-      rating,
-      comment,
-      createdAt: new Date().toISOString(),
-      userId: user?.uid,
-      ...(price?.trim() ? { price: price.trim() } : {}),
-      ...(servingSize?.trim() ? { servingSize: servingSize.trim() } : {}),
-      ...(finalImageUrl ? { imageUrl: finalImageUrl } : {}),
-      ...(cleanedTags ? { tags: cleanedTags } : {}),
-    };
-
-    const drink = activeDrinks.find((d) => d.id === drinkId);
-    if (!drink) return;
-
-    try {
-      await addReview(eventId, drink, newReview);
-    } catch (err) {
-      console.error('Failed to add review in Firestore:', err);
-    }
-  };
-
-  const handleToggleAttendance = async (eventId: string) => {
-    if (!user) return;
-    const eventToUpdate = events.find((e) => e.id === eventId);
-    if (!eventToUpdate) return;
-
-    const currentAttendees = eventToUpdate.attendees || [];
-    const isAttending = currentAttendees.includes(user.uid);
-    const updatedAttendees = isAttending
-      ? currentAttendees.filter((uid) => uid !== user.uid)
-      : [...currentAttendees, user.uid];
-
-    try {
-      await updateDoc(doc(db, 'events', eventId), { attendees: updatedAttendees });
-    } catch (err) {
-      console.error('Failed to update event attendance in Firestore:', err);
-    }
-  };
-
-  const formatAbv = (abv: string) => {
-    const trimmed = abv.trim();
-    return trimmed.endsWith('%') ? trimmed : `${trimmed}%`;
-  };
-
-  const handleAddDrink = async (
-    eventId: string, 
-    drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }
-  ) => {
-    const finalDrinkId = drinkData.id || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
-
-    let finalImageUrl = drinkData.imageUrl?.trim();
-    if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
-      try {
-        finalImageUrl = await sanitizeOrUploadImageUrl(
-          finalImageUrl,
-          `events/${eventId}/drinks/${finalDrinkId}.jpg`
-        );
-      } catch (uploadErr) {
-        console.error('Failed to upload drink image to Cloud Storage:', uploadErr);
-      }
-    }
-
-    const newDrink: BeerDrink = {
-      ...drinkData,
-      id: finalDrinkId,
-      abv: formatAbv(drinkData.abv),
-      imageUrl: finalImageUrl || undefined,
-      reviews: [],
-    };
-
-    try {
-      await addDrinks(eventId, [newDrink]);
-    } catch (err) {
-      console.error('Failed to add drink in Firestore:', err);
-    }
-  };
-
-  const handleAddDrinksBatch = async (
-    eventId: string, 
-    drinksData: (Omit<BeerDrink, 'id' | 'reviews'> & { id?: string })[]
-  ) => {
-    const newDrinks: BeerDrink[] = await Promise.all(
-      drinksData.map(async (drinkData) => {
-        const drinkId = drinkData.id || (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2) + Date.now().toString(36));
-        let finalImageUrl = drinkData.imageUrl?.trim();
-        if (finalImageUrl && isBase64DataUrl(finalImageUrl)) {
-          try {
-            finalImageUrl = await sanitizeOrUploadImageUrl(
-              finalImageUrl,
-              `events/${eventId}/drinks/${drinkId}.jpg`
-            );
-          } catch (err) {
-            console.error(`Failed to upload batch drink image for ${drinkId}:`, err);
-          }
-        }
-
-        return {
-          ...drinkData,
-          abv: formatAbv(drinkData.abv),
-          id: drinkId,
-          imageUrl: finalImageUrl || undefined,
-          reviews: [],
-        };
-      })
-    );
-
-    try {
-      await addDrinks(eventId, newDrinks);
-    } catch (err) {
-      console.error('Failed to batch add drinks in Firestore:', err);
+    if (!event) return;
+    const deleted = await deleteEvent(event);
+    if (deleted && activeEventId === event.id) {
+      setActiveEventId(null);
     }
   };
 
@@ -546,8 +171,6 @@ function App() {
       return diffA - diffB;
     });
 
-  const isAdmin = useIsAdmin(user);
-
   const baseActiveEvent = events.find((e) => e.id === activeEventId);
   const { drinks: activeDrinks, loading: drinksLoading } = useEventDrinks(
     baseActiveEvent ? baseActiveEvent.id : null,
@@ -557,6 +180,33 @@ function App() {
     () => (baseActiveEvent ? { ...baseActiveEvent, drinks: activeDrinks } : undefined),
     [baseActiveEvent, activeDrinks]
   );
+
+  const handleAddReview = async (
+    eventId: string,
+    drinkId: string,
+    reviewer: string,
+    rating: number,
+    comment: string,
+    price?: string,
+    servingSize?: string,
+    imageUrl?: string,
+    reviewId?: string,
+    tags?: string[]
+  ) => {
+    const drink = activeDrinks.find((d) => d.id === drinkId);
+    await addDrinkReview(
+      eventId,
+      drink,
+      reviewer,
+      rating,
+      comment,
+      price,
+      servingSize,
+      imageUrl,
+      reviewId,
+      tags
+    );
+  };
 
   if (authLoading) {
     return (

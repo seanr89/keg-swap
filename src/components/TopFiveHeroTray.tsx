@@ -101,7 +101,7 @@ export const TopFiveHeroTray: React.FC<TopFiveHeroTrayProps> = ({
         </div>
 
         <div className="top-five-tray-actions">
-          {selectedDrinks.length > 0 && (
+          {(selectedDrinks.length > 0 || isFilteredByTopFive) && (
             <button
               type="button"
               className={`top-five-filter-btn ${isFilteredByTopFive ? 'active' : ''}`}

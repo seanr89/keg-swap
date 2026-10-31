@@ -127,10 +127,11 @@ export const EventModal: React.FC<EventModalProps> = ({ isOpen, onClose, onSubmi
 
   const handleAddressChange = (val: string) => {
     setAddress(val);
-    if (errors.address) {
+    if (errors.address || errors.location) {
       setErrors((prev) => {
         const copy = { ...prev };
         delete copy.address;
+        delete copy.location;
         return copy;
       });
     }

@@ -24,11 +24,16 @@ const sliceKey = (uid: string, eventId: string) => `${uid}/${eventId}`;
 /**
  * Live set of the user's bookmarked drink ids and ordered Top 5 "Must-Try" drink ids for one event.
  * Subscribes only while the event is open. Data from a previously opened event is ignored until
- * the new snapshot arrives.
- * Firestore applies local writes to snapshots straight away, so operations need no extra optimistic state.
+ * the new snapshot arrives, and mutations apply immediate optimistic state updates so the
+ * wishlist UI and filter controls refresh straight away when items are added or removed.
  */
 export function useWishlist(uid: string, eventId: string, validDrinkIds?: ReadonlySet<string>) {
   const [slice, setSlice] = useState<Slice | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, []);
 
   useEffect(() => {
     const key = sliceKey(uid, eventId);
@@ -44,10 +49,22 @@ export function useWishlist(uid: string, eventId: string, validDrinkIds?: Readon
       },
       (err) => console.error('Firestore wishlist snapshot error:', err)
     );
-  }, [uid, eventId]);
+  }, [uid, eventId, refreshKey]);
 
-  const isCurrentSlice = slice?.key === sliceKey(uid, eventId);
-  const wishlist: ReadonlySet<string> = isCurrentSlice ? slice.ids : EMPTY_SET;
+  const currentKey = sliceKey(uid, eventId);
+  const isCurrentSlice = slice?.key === currentKey;
+
+  const wishlist: ReadonlySet<string> = useMemo(() => {
+    const rawIds = isCurrentSlice ? slice.ids : EMPTY_SET;
+    if (!validDrinkIds || rawIds.size === 0) return rawIds;
+    const pruned = new Set<string>();
+    for (const id of rawIds) {
+      if (validDrinkIds.has(id)) {
+        pruned.add(id);
+      }
+    }
+    return pruned;
+  }, [isCurrentSlice, slice, validDrinkIds]);
 
   const topFiveDrinkIds: readonly string[] = useMemo(() => {
     if (!isCurrentSlice) return EMPTY_ARRAY;
@@ -71,11 +88,31 @@ export function useWishlist(uid: string, eventId: string, validDrinkIds?: Readon
 
   const toggle = useCallback(
     (drinkId: string) => {
-      setWishlisted(uid, eventId, drinkId, !wishlist.has(drinkId)).catch((err: unknown) =>
+      const trimmedId = drinkId.trim();
+      if (!trimmedId) return;
+      const nextOn = !wishlist.has(trimmedId);
+
+      setSlice((prev) => {
+        const baseIds = prev?.key === currentKey ? prev.ids : EMPTY_SET;
+        const baseTopFive = prev?.key === currentKey ? prev.topFiveIds : [];
+        const nextIds = new Set(baseIds);
+        if (nextOn) {
+          nextIds.add(trimmedId);
+        } else {
+          nextIds.delete(trimmedId);
+        }
+        return {
+          key: currentKey,
+          ids: nextIds,
+          topFiveIds: baseTopFive,
+        };
+      });
+
+      setWishlisted(uid, eventId, trimmedId, nextOn).catch((err: unknown) =>
         console.error('Failed to update wishlist:', err)
       );
     },
-    [uid, eventId, wishlist]
+    [uid, eventId, currentKey, wishlist]
   );
 
   const toggleTopFive = useCallback(
@@ -84,55 +121,99 @@ export function useWishlist(uid: string, eventId: string, validDrinkIds?: Readon
       if (action === 'limit-reached') {
         return 'limit-reached';
       }
+
+      const trimmedId = drinkId.trim();
+      setSlice((prev) => {
+        const baseIds = prev?.key === currentKey ? prev.ids : EMPTY_SET;
+        const nextWishlist = new Set(baseIds);
+        if (action === 'added' && trimmedId) {
+          nextWishlist.add(trimmedId);
+        }
+        return {
+          key: currentKey,
+          ids: nextWishlist,
+          topFiveIds: nextIds,
+        };
+      });
+
       try {
         await setTopFiveDrinks(
           uid,
           eventId,
           nextIds,
-          action === 'added' ? drinkId : undefined
+          action === 'added' ? trimmedId : undefined
         );
       } catch (err: unknown) {
         console.error('Failed to update Top 5 wishlist:', err);
       }
       return action;
     },
-    [uid, eventId, topFiveDrinkIds]
+    [uid, eventId, currentKey, topFiveDrinkIds]
   );
 
   const swapTopFive = useCallback(
     async (removeDrinkId: string, addDrinkId: string): Promise<void> => {
       const nextIds = computeSwapTopFive(topFiveDrinkIds, removeDrinkId, addDrinkId);
+      const trimmedAdd = addDrinkId.trim();
+
+      setSlice((prev) => {
+        const baseIds = prev?.key === currentKey ? prev.ids : EMPTY_SET;
+        const nextWishlist = new Set(baseIds);
+        if (trimmedAdd) {
+          nextWishlist.add(trimmedAdd);
+        }
+        return {
+          key: currentKey,
+          ids: nextWishlist,
+          topFiveIds: nextIds,
+        };
+      });
+
       try {
-        await setTopFiveDrinks(uid, eventId, nextIds, addDrinkId);
+        await setTopFiveDrinks(uid, eventId, nextIds, trimmedAdd);
       } catch (err: unknown) {
         console.error('Failed to swap Top 5 wishlist drink:', err);
       }
     },
-    [uid, eventId, topFiveDrinkIds]
+    [uid, eventId, currentKey, topFiveDrinkIds]
   );
 
   const moveTopFive = useCallback(
     async (fromIndex: number, toIndex: number): Promise<void> => {
       const nextIds = computeMoveTopFive(topFiveDrinkIds, fromIndex, toIndex);
+
+      setSlice((prev) => ({
+        key: currentKey,
+        ids: prev?.key === currentKey ? prev.ids : new Set<string>(),
+        topFiveIds: nextIds,
+      }));
+
       try {
         await setTopFiveDrinks(uid, eventId, nextIds);
       } catch (err: unknown) {
         console.error('Failed to reorder Top 5 wishlist:', err);
       }
     },
-    [uid, eventId, topFiveDrinkIds]
+    [uid, eventId, currentKey, topFiveDrinkIds]
   );
 
   const reorderTopFive = useCallback(
     async (newOrder: readonly string[]): Promise<void> => {
       const nextIds = normalizeTopFiveIds(newOrder, validDrinkIds);
+
+      setSlice((prev) => ({
+        key: currentKey,
+        ids: prev?.key === currentKey ? prev.ids : new Set<string>(),
+        topFiveIds: nextIds,
+      }));
+
       try {
         await setTopFiveDrinks(uid, eventId, nextIds);
       } catch (err: unknown) {
         console.error('Failed to reorder Top 5 wishlist:', err);
       }
     },
-    [uid, eventId, validDrinkIds]
+    [uid, eventId, currentKey, validDrinkIds]
   );
 
   return {
@@ -146,5 +227,6 @@ export function useWishlist(uid: string, eventId: string, validDrinkIds?: Readon
     swapTopFive,
     moveTopFive,
     reorderTopFive,
+    refresh,
   };
 }

@@ -24,27 +24,9 @@ This document tracks active feature additions, testing requirements, code qualit
 
 ---
 
-## 🧪 2. Testing, Quality & CI/CD Enhancements
-
-- [ ] **[P1] Core Unit & Component Test Suite** `qa-auditor`
-  - `StarRating.test.tsx`: Verify half-glass and full-glass math (0.5 to 10.0 scale) and keyboard accessibility.
-  - `EventModal.test.tsx`: Verify required form fields, invalid dates, and light-dismiss behavior.
-  - `EventCard.test.tsx`: Test touch swipe gesture logic, status changes, and deletion confirmations.
-  - `AuthScreen.test.tsx`: Test error translations for invalid credentials and password strength.
-  - `BatchUploadModal.test.tsx`: Verify batch JSON parsing, record count calculations, duplicate detection, and item exclusions.
-  - *(Note: Vitest test runner, jsdom environment, and unit test suites for `batchBeerParser` and `drinkFlags` are active).*
-
-- [x] **[P2] Test Event & 10 Test Beers Seeding / Insertion Suite ([#14](https://github.com/seanr89/keg-swap/issues/14))** `qa-auditor` `beer-catalog-manager`
-  - Provide a standardized test dataset of 10 diverse test beers (spanning styles, ABVs, Cask/Keg, Vegan, Gluten-Free) adhering to `BeerDrinkDoc` / `beers.json` schema.
-  - Support automated/dev seeding of a designated test event (`[TEST] Keg Swap Tasting Fest`) and batch insertion of the 10 test beers into Firestore (`addDrinks`).
-  - Verify drink insertion, `drinkCount` atomic increment, beer filtering/sorting, review submissions, and cascade deletion (`deleteEventCascade`).
-  - Add Vitest verification test to ensure batch insertion logic executes without schema violations.
-
----
-
 ## 🏗️ 3. Code Quality & Component Decomposition
 
-- [ ] **[P1] Extract Custom Hooks from `App.tsx`** `frontend-refactorer`
+- [x] **[P1] Extract Custom Hooks from `App.tsx`** `frontend-refactorer`
   - Extract `src/hooks/useAuth.ts`: Auth listener, user profile snapshot, admin verification.
   - Extract `src/hooks/useEvents.ts`: Firestore events query, event addition/deletion, status updates.
   - Extract `src/hooks/useLocations.ts`: Firestore locations query and CRUD.
@@ -73,7 +55,7 @@ This document tracks active feature additions, testing requirements, code qualit
 | :--- | :---: | :--- | :---: |
 | Core unit & component test suite | P1 | `qa-auditor` | Pending |
 | Test event & 10 test beers seeding suite ([#14](https://github.com/seanr89/keg-swap/issues/14)) | P2 | `qa-auditor` / `beer-catalog-manager` | Completed |
-| Extract custom hooks (`useAuth`, `useEvents`, `useLocations`) | P1 | `frontend-refactorer` | Pending |
+| Extract custom hooks (`useAuth`, `useEvents`, `useLocations`) | P1 | `frontend-refactorer` | Completed |
 | Deconstruct `EventDetailScreen.tsx` (`DrinkCard`, `DrinkFormModal`) | P1 | `frontend-refactorer` | Pending |
 | Social tasting feed & friend comparison | P2 | `firebase-specialist` / `frontend-refactorer` | Backlog |
 | Query param deep linking (`?event=&drink=`) | P3 | `frontend-refactorer` | Backlog |
