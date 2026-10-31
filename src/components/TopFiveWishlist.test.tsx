@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, renderHook, act } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import type { BeerDrink } from '../types';
+import type { User } from 'firebase/auth';
+import type { BeerDrink, BeerEvent } from '../types';
 import { TopFiveHeroTray } from './TopFiveHeroTray';
 import { TopFiveSwapModal } from './TopFiveSwapModal';
+import { EventDetailScreen } from './EventDetailScreen';
 import { useWishlist } from '../hooks/useWishlist';
 
 type SnapshotCallback = (snapshot: { data: () => Record<string, unknown> | undefined }) => void;
@@ -174,10 +176,130 @@ describe('useWishlist hook with Top 5 support', () => {
     expect(actionResult).toBe('limit-reached');
     expect(mockSetDoc).not.toHaveBeenCalled();
 
-    // Swapping d2 with d6 writes updated topFiveDrinkIds to Firestore
+    // Swapping d2 with d6 writes updated topFiveDrinkIds to Firestore and updates state immediately
     await act(async () => {
       await result.current.swapTopFive('d2', 'd6');
     });
     expect(mockSetDoc).toHaveBeenCalledTimes(1);
+    expect(result.current.topFiveDrinkIds).toEqual(['d1', 'd6', 'd3', 'd4', 'd5']);
+    expect(result.current.wishlist.has('d6')).toBe(true);
+  });
+
+  it('optimistically updates wishlist and Top 5 state immediately when adding, removing, and reordering', async () => {
+    const { result } = renderHook(() => useWishlist('user-1', 'event-1'));
+
+    // Add d1 to Top 5 before any snapshot arrives
+    await act(async () => {
+      const action = await result.current.toggleTopFive('d1');
+      expect(action).toBe('added');
+    });
+    expect(result.current.topFiveDrinkIds).toEqual(['d1']);
+    expect(result.current.wishlist.has('d1')).toBe(true);
+
+    // Toggle d2 in general wishlist
+    act(() => {
+      result.current.toggle('d2');
+    });
+    expect(result.current.wishlist.has('d2')).toBe(true);
+
+    // Remove d1 from Top 5
+    await act(async () => {
+      const action = await result.current.toggleTopFive('d1');
+      expect(action).toBe('removed');
+    });
+    expect(result.current.topFiveDrinkIds).toEqual([]);
+  });
+});
+
+describe('EventDetailScreen wishlist UI and filter controls refresh', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    latestSnapshotCallback = null;
+  });
+
+  it('refreshes Top 5 hero tray, drink card badges, and filter controls when items are added or removed', async () => {
+    const drinks: BeerDrink[] = [
+      {
+        id: 'drink-1',
+        name: 'Northern Haze',
+        brewery: 'Brewery One',
+        location: 'Leeds',
+        abv: '5.2%',
+        style: 'IPA',
+        type: 'Cask',
+        caskOrKeg: 'Cask',
+        isVegan: true,
+        description: 'Hoppy pale',
+        reviews: [],
+      },
+      {
+        id: 'drink-2',
+        name: 'Midnight Velvet',
+        brewery: 'Brewery Two',
+        location: 'York',
+        abv: '6.8%',
+        style: 'Stout',
+        type: 'Rotating Keg',
+        caskOrKeg: 'Keg',
+        description: 'Rich roast',
+        reviews: [],
+      },
+    ];
+
+    const event: BeerEvent = {
+      id: 'event-1',
+      name: 'Autumn Tap Takeover',
+      date: '2026-10-31',
+      address: 'Leeds Dock',
+      status: 'Ongoing',
+      drinks,
+    };
+
+    const mockUser = { uid: 'user-1', displayName: 'Test User', email: 'test@example.com' } as User;
+
+    render(
+      <EventDetailScreen
+        event={event}
+        user={mockUser}
+        onBack={vi.fn()}
+        onAddDrink={vi.fn()}
+        onAddReview={vi.fn()}
+        onAddDrinksBatch={vi.fn()}
+        onToggleAttendance={vi.fn()}
+      />
+    );
+
+    // Initial state: 0/5 selected in Top 5 and 0 in Wishlist
+    expect(screen.getByText('0/5 selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wishlist (0)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Top 5 (0/5)' })).toBeInTheDocument();
+
+    // Add Northern Haze (drink-1) to Top 5
+    const addTopFiveBtn = screen.getByRole('button', { name: /Add Northern Haze to Top 5 wishlist/i });
+    await act(async () => {
+      fireEvent.click(addTopFiveBtn);
+    });
+
+    // Hero tray and filter tabs immediately update
+    expect(screen.getByText('1/5 selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wishlist (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Top 5 (1/5)' })).toBeInTheDocument();
+
+    // Filter by Top 5 using the filter tab
+    fireEvent.click(screen.getByRole('button', { name: 'Top 5 (1/5)' }));
+    expect(screen.getByText('Drinks Available (1)')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'All Styles (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'IPA (1)' })).toBeInTheDocument();
+
+    // Remove the last Top 5 item via the Hero Tray remove button -> filter resets back to All (2)
+    const removeFromTrayBtn = screen.getByRole('button', { name: /Remove Northern Haze from Top 5$/i });
+    await act(async () => {
+      fireEvent.click(removeFromTrayBtn);
+    });
+
+    expect(screen.getByText('0/5 selected')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Top 5 (0/5)' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'All (2)' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Drinks Available (2)')).toBeInTheDocument();
   });
 });

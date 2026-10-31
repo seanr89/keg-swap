@@ -118,19 +118,44 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   const [swapCandidateDrink, setSwapCandidateDrink] = useState<BeerDrink | null>(null);
 
-  const handleToggleTopFive = async (drink: BeerDrink) => {
-    const action = await toggleTopFive(drink.id);
-    if (action === 'limit-reached') {
-      setSwapCandidateDrink(drink);
-    }
-  };
-
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
   const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
   const [selectedFormat, setSelectedFormat] = useState<'all' | ServingFormat>('all');
   const [selectedSort, setSelectedSort] = useState<string>('default');
+
+  const handleToggleTopFive = async (drink: BeerDrink) => {
+    const isRemovingLastTopFive =
+      topFiveSet.has(drink.id) &&
+      countMatching(event.drinks ?? [], 'top5', user.uid, wishlist, topFiveSet) <= 1;
+    const action = await toggleTopFive(drink.id);
+    if (action === 'limit-reached') {
+      setSwapCandidateDrink(drink);
+    } else if (action === 'removed' && isRemovingLastTopFive && selectedShow === 'top5') {
+      setSelectedShow('all');
+    }
+  };
+
+  const handleRemoveFromTopFive = (drinkId: string) => {
+    const isRemovingLastTopFive =
+      topFiveSet.has(drinkId) &&
+      countMatching(event.drinks ?? [], 'top5', user.uid, wishlist, topFiveSet) <= 1;
+    void toggleTopFive(drinkId);
+    if (isRemovingLastTopFive && selectedShow === 'top5') {
+      setSelectedShow('all');
+    }
+  };
+
+  const handleToggleWishlist = (drinkId: string) => {
+    const isRemovingLastWishlisted =
+      wishlist.has(drinkId) &&
+      countMatching(event.drinks ?? [], 'wishlist', user.uid, wishlist, topFiveSet) <= 1;
+    toggleWishlist(drinkId);
+    if (isRemovingLastWishlisted && selectedShow === 'wishlist') {
+      setSelectedShow('all');
+    }
+  };
 
   // Review Bottom Sheet state
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
@@ -231,13 +256,25 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     Cancelled: 'status-cancelled',
   };
 
-  const availableStyles = Array.from(
-    new Set((event.drinks || []).map((drink) => drink.style).filter(Boolean))
-  ).sort();
+  const showScopedDrinks = React.useMemo(
+    () =>
+      (event.drinks || []).filter((drink) =>
+        matchesShowFilter(drink, selectedShow, user.uid, wishlist, topFiveSet)
+      ),
+    [event.drinks, selectedShow, user.uid, wishlist, topFiveSet]
+  );
+
+  const availableStyles = React.useMemo(
+    () =>
+      Array.from(
+        new Set(showScopedDrinks.map((drink) => drink.style).filter(Boolean))
+      ).sort(),
+    [showScopedDrinks]
+  );
 
   const availableTypes = React.useMemo(() => {
     const typesSet = new Set<string>();
-    (event.drinks || []).forEach((drink) => {
+    showScopedDrinks.forEach((drink) => {
       typesSet.add(drink.type?.trim() || 'Unknown');
     });
     // Ensure 'Unknown' is always available so beers with an unknown status can be filtered/grouped
@@ -247,7 +284,50 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
       if (b.toLowerCase() === 'unknown') return -1;
       return a.localeCompare(b);
     });
-  }, [event.drinks]);
+  }, [showScopedDrinks]);
+
+  // Keep secondary filter controls valid when items are added or removed from the active view
+  React.useEffect(() => {
+    if (showScopedDrinks.length === 0) return;
+
+    if (selectedStyle !== 'All Styles' && !availableStyles.includes(selectedStyle)) {
+      setSelectedStyle('All Styles');
+    }
+    if (
+      selectedType !== 'all' &&
+      !showScopedDrinks.some(
+        (d) => (d.type?.trim() || 'Unknown').toLowerCase() === selectedType.toLowerCase()
+      )
+    ) {
+      setSelectedType('all');
+    }
+    if (
+      selectedAbv !== 'all' &&
+      !showScopedDrinks.some((d) => getAbvBracket(d.abv) === selectedAbv)
+    ) {
+      setSelectedAbv('all');
+    }
+    if (
+      selectedFormat !== 'all' &&
+      !showScopedDrinks.some((d) => d.caskOrKeg === selectedFormat)
+    ) {
+      setSelectedFormat('all');
+    }
+    if (
+      selectedDietary !== 'any' &&
+      !showScopedDrinks.some((d) => matchesDietaryFilter(d, selectedDietary))
+    ) {
+      setSelectedDietary('any');
+    }
+  }, [
+    showScopedDrinks,
+    availableStyles,
+    selectedStyle,
+    selectedType,
+    selectedAbv,
+    selectedFormat,
+    selectedDietary,
+  ]);
 
   const getAvgRatingNum = (drink: BeerDrink): number => {
     if (!drink.reviews || drink.reviews.length === 0) return 0;
@@ -715,9 +795,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
               onToggleFilterTopFive={() =>
                 setSelectedShow((prev) => (prev === 'top5' ? 'all' : 'top5'))
               }
-              onRemoveFromTopFive={(drinkId) => {
-                void toggleTopFive(drinkId);
-              }}
+              onRemoveFromTopFive={handleRemoveFromTopFive}
               onMoveTopFive={(fromIdx, toIdx) => {
                 void moveTopFive(fromIdx, toIdx);
               }}
@@ -747,9 +825,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     aria-label="Filter drinks by type"
                     style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
                   >
-                    <option value="all">All Types ({event.drinks?.length || 0})</option>
+                    <option value="all">All Types ({showScopedDrinks.length})</option>
                     {availableTypes.map((type) => {
-                      const count = (event.drinks || []).filter(
+                      const count = showScopedDrinks.filter(
                         (d) => (d.type?.trim() || 'Unknown').toLowerCase() === type.toLowerCase()
                       ).length;
                       return (
@@ -769,10 +847,10 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     className="form-select"
                     style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
                   >
-                    <option value="All Styles">All Styles ({event.drinks?.length || 0})</option>
+                    <option value="All Styles">All Styles ({showScopedDrinks.length})</option>
                     {availableStyles.map((style) => (
                       <option key={style} value={style}>
-                        {style} ({event.drinks?.filter(d => d.style === style).length || 0})
+                        {style} ({showScopedDrinks.filter(d => d.style === style).length})
                       </option>
                     ))}
                   </select>
@@ -790,7 +868,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     <option value="all">All ABV</option>
                     {ABV_BRACKETS.map((bracket) => (
                       <option key={bracket.id} value={bracket.id}>
-                        {bracket.label} ({event.drinks?.filter(d => getAbvBracket(d.abv) === bracket.id).length || 0})
+                        {bracket.label} ({showScopedDrinks.filter(d => getAbvBracket(d.abv) === bracket.id).length})
                       </option>
                     ))}
                   </select>
@@ -808,7 +886,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     <option value="all">All Formats</option>
                     {SERVING_FORMATS.map((format) => (
                       <option key={format} value={format}>
-                        {format} ({event.drinks?.filter(d => d.caskOrKeg === format).length || 0})
+                        {format} ({showScopedDrinks.filter(d => d.caskOrKeg === format).length})
                       </option>
                     ))}
                   </select>
@@ -824,9 +902,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
                   >
                     <option value="any">Dietary (where listed)</option>
-                    <option value="vegan">Vegan ({event.drinks?.filter(d => matchesDietaryFilter(d, 'vegan')).length || 0})</option>
-                    <option value="gluten-free">Gluten-free ({event.drinks?.filter(d => matchesDietaryFilter(d, 'gluten-free')).length || 0})</option>
-                    <option value="both">Vegan + GF ({event.drinks?.filter(d => matchesDietaryFilter(d, 'both')).length || 0})</option>
+                    <option value="vegan">Vegan ({showScopedDrinks.filter(d => matchesDietaryFilter(d, 'vegan')).length})</option>
+                    <option value="gluten-free">Gluten-free ({showScopedDrinks.filter(d => matchesDietaryFilter(d, 'gluten-free')).length})</option>
+                    <option value="both">Vegan + GF ({showScopedDrinks.filter(d => matchesDietaryFilter(d, 'both')).length})</option>
                   </select>
                 </div>
 
@@ -893,7 +971,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                             eventName={event.name}
                             userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                             isWishlisted={wishlist.has(drink.id)}
-                            onToggleWishlist={() => toggleWishlist(drink.id)}
+                            onToggleWishlist={() => handleToggleWishlist(drink.id)}
                             topFiveRank={getTopFiveRank(drink.id)}
                             onToggleTopFive={() => {
                               void handleToggleTopFive(drink);
@@ -915,7 +993,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       eventName={event.name}
                       userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                       isWishlisted={wishlist.has(drink.id)}
-                      onToggleWishlist={() => toggleWishlist(drink.id)}
+                      onToggleWishlist={() => handleToggleWishlist(drink.id)}
                       topFiveRank={getTopFiveRank(drink.id)}
                       onToggleTopFive={() => {
                         void handleToggleTopFive(drink);
