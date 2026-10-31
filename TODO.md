@@ -26,7 +26,7 @@ This document tracks active feature additions, testing requirements, code qualit
 
 ## 🏗️ 3. Code Quality & Component Decomposition
 
-- [ ] **[P1] Extract Custom Hooks from `App.tsx`** `frontend-refactorer`
+- [x] **[P1] Extract Custom Hooks from `App.tsx`** `frontend-refactorer`
   - Extract `src/hooks/useAuth.ts`: Auth listener, user profile snapshot, admin verification.
   - Extract `src/hooks/useEvents.ts`: Firestore events query, event addition/deletion, status updates.
   - Extract `src/hooks/useLocations.ts`: Firestore locations query and CRUD.
@@ -55,7 +55,7 @@ This document tracks active feature additions, testing requirements, code qualit
 | :--- | :---: | :--- | :---: |
 | Core unit & component test suite | P1 | `qa-auditor` | Pending |
 | Test event & 10 test beers seeding suite ([#14](https://github.com/seanr89/keg-swap/issues/14)) | P2 | `qa-auditor` / `beer-catalog-manager` | Completed |
-| Extract custom hooks (`useAuth`, `useEvents`, `useLocations`) | P1 | `frontend-refactorer` | Pending |
+| Extract custom hooks (`useAuth`, `useEvents`, `useLocations`) | P1 | `frontend-refactorer` | Completed |
 | Deconstruct `EventDetailScreen.tsx` (`DrinkCard`, `DrinkFormModal`) | P1 | `frontend-refactorer` | Pending |
 | Social tasting feed & friend comparison | P2 | `firebase-specialist` / `frontend-refactorer` | Backlog |
 | Query param deep linking (`?event=&drink=`) | P3 | `frontend-refactorer` | Backlog |
