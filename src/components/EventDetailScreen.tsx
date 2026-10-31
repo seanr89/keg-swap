@@ -803,12 +803,14 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             />
 
             {/* Search & Filter Toolbar inside Event Details */}
-            <div className="toolbar" style={{ marginBottom: '24px', padding: '12px 16px', gap: '16px', flexWrap: 'wrap' }}>
-              <div className="search-bar" style={{ flex: '1 1 250px' }}>
+            <div className="toolbar drinks-toolbar">
+              <div className="search-bar">
                 <Search className="search-icon" size={16} />
                 <input
                   type="text"
                   className="search-input"
+                  id="search-drinks-input"
+                  aria-label="Search drinks by name, brewery or style"
                   placeholder="Search drinks by name, brewery or style..."
                   value={drinkSearchQuery}
                   onChange={(e) => setDrinkSearchQuery(e.target.value)}

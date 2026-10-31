@@ -301,5 +301,15 @@ describe('EventDetailScreen wishlist UI and filter controls refresh', () => {
     expect(screen.getByRole('button', { name: 'Top 5 (0/5)' })).toHaveAttribute('aria-pressed', 'false');
     expect(screen.getByRole('button', { name: 'All (2)' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByText('Drinks Available (2)')).toBeInTheDocument();
+
+    // Verify search bar structure and styling without problematic inline flex height on mobile
+    const searchInput = screen.getByRole('textbox', { name: /search drinks by name, brewery or style/i });
+    expect(searchInput).toBeInTheDocument();
+    expect(searchInput).toHaveClass('search-input');
+    const searchBarContainer = searchInput.closest('.search-bar');
+    expect(searchBarContainer).not.toBeNull();
+    expect((searchBarContainer as HTMLElement).style.flex).not.toContain('250px');
+    const drinksToolbar = searchInput.closest('.toolbar');
+    expect(drinksToolbar).toHaveClass('drinks-toolbar');
   });
 });
