@@ -6,6 +6,8 @@ export interface TastingNotesInputProps {
   comment: string;
   onChange: (comment: string) => void;
   disabled?: boolean;
+  required?: boolean;
+  hasError?: boolean;
 }
 
 const MAX_NOTES_LENGTH = 600;
@@ -23,6 +25,8 @@ export const TastingNotesInput: React.FC<TastingNotesInputProps> = ({
   comment,
   onChange,
   disabled = false,
+  required = true,
+  hasError = false,
 }) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -67,7 +71,12 @@ export const TastingNotesInput: React.FC<TastingNotesInputProps> = ({
     <div className="form-group tasting-notes-group" style={{ margin: 0 }}>
       <div className="review-section-label-row">
         <label htmlFor="rev-comment" className="form-label" style={{ margin: 0 }}>
-          Tasting Notes
+          Tasting Notes{' '}
+          {required && (
+            <span className="required-asterisk" aria-hidden="true">
+              *
+            </span>
+          )}
         </label>
         <div className="notes-meta-actions">
           {comment.length > 0 && (
@@ -82,8 +91,15 @@ export const TastingNotesInput: React.FC<TastingNotesInputProps> = ({
               <span>Clear</span>
             </button>
           )}
-          <span className="review-optional-hint">
-            {comment.length > 0 ? `${comment.length}/${MAX_NOTES_LENGTH}` : 'Optional • 1-tap or type'}
+          <span
+            id="rev-comment-hint"
+            className={`review-optional-hint ${required && comment.length === 0 ? 'review-required-hint' : ''}`}
+          >
+            {comment.length > 0
+              ? `${comment.length}/${MAX_NOTES_LENGTH}`
+              : required
+                ? 'Required • 1-tap or type'
+                : 'Optional • 1-tap or type'}
           </span>
         </div>
       </div>
@@ -111,11 +127,16 @@ export const TastingNotesInput: React.FC<TastingNotesInputProps> = ({
       <textarea
         ref={textareaRef}
         id="rev-comment"
-        className="form-input review-textarea-mobile"
+        name="comment"
+        className={`form-input review-textarea-mobile ${hasError ? 'input-error' : ''}`}
         placeholder="Tap an impression above or describe aroma, body, finish..."
         maxLength={MAX_NOTES_LENGTH}
         value={comment}
         disabled={disabled}
+        required={required}
+        aria-required={required}
+        aria-invalid={hasError ? true : undefined}
+        aria-describedby="rev-comment-hint"
         onChange={(e) => onChange(e.target.value)}
         rows={2}
       />

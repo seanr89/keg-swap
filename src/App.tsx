@@ -9,7 +9,7 @@ import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserSearchModal } from './components/UserSearchModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { Beer, Plus, Search, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Beer, Plus, Search, User as UserIcon, ShieldAlert, Loader2 } from 'lucide-react';
 import { parseLocalDate } from './utils/dateUtils';
 import { useAuth } from './hooks/useAuth';
 import { useEvents } from './hooks/useEvents';
@@ -23,9 +23,12 @@ const UserProfileScreen = lazy(() => import('./components/UserProfileScreen').th
 const AdminScreen = lazy(() => import('./components/AdminScreen').then(m => ({ default: m.AdminScreen })));
 
 const ScreenFallback = () => (
-  <div className="loading-container" role="status" aria-live="polite">
-    <Beer className="animate-float" size={32} />
-    <p>Loading...</p>
+  <div className="loading-container event-drinks-loading" role="status" aria-live="polite">
+    <div className="event-loading-visual">
+      <progress aria-label="Loading screen" className="loading-spinner" />
+      <Loader2 className="event-loading-icon animate-spin" size={24} aria-hidden="true" />
+    </div>
+    <p>Loading event...</p>
   </div>
 );
 
@@ -172,7 +175,13 @@ function App() {
     });
 
   const baseActiveEvent = events.find((e) => e.id === activeEventId);
-  const { drinks: activeDrinks, loading: drinksLoading } = useEventDrinks(
+  const {
+    drinks: activeDrinks,
+    loading: drinksLoading,
+    retrying: drinksRetrying,
+    error: drinksError,
+    retry: retryLoadDrinks,
+  } = useEventDrinks(
     baseActiveEvent ? baseActiveEvent.id : null,
     baseActiveEvent?.drinks
   );
@@ -300,6 +309,9 @@ function App() {
             <EventDetailScreen
               event={activeEvent}
               drinksLoading={drinksLoading}
+              drinksRetrying={drinksRetrying}
+              drinksError={drinksError}
+              onRetryDrinks={retryLoadDrinks}
               user={user}
               onBack={() => setActiveEventId(null)}
               onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}

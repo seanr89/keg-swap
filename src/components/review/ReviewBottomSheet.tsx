@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { BeerDrink } from '../../types';
-import { X, Check, AlertCircle, RotateCcw, UserCheck } from 'lucide-react';
+import { X, Check, AlertCircle, RotateCcw, UserCheck, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useReviewDraft } from '../../hooks/useReviewDraft';
 import { RatingScrubber } from './RatingScrubber';
 import { ServingFormatSelector } from './ServingFormatSelector';
@@ -46,6 +46,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
 
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
+  const [isAdditionalOpen, setIsAdditionalOpen] = useState(false);
 
   const {
     reviewerName,
@@ -92,6 +93,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
 
     setDragOffsetY(0);
     setIsDraggingSheet(false);
+    setIsAdditionalOpen(false);
 
     if (drink) {
       if (!dialog.open) {
@@ -172,6 +174,14 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
         }
       : {};
 
+  const effectiveServingSize =
+    servingSize === 'Other' ? customServingSize.trim() : servingSize.trim();
+  const additionalItemsCount =
+    (effectiveServingSize ? 1 : 0) +
+    (price.trim() ? 1 : 0) +
+    (tags.length > 0 ? 1 : 0) +
+    (imageUrl.trim() ? 1 : 0);
+
   return (
     <dialog
       ref={dialogRef}
@@ -213,7 +223,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="modal-form review-sheet-form">
+          <form onSubmit={handleSubmit} className="modal-form review-sheet-form" noValidate>
             {error && (
               <div className="form-alert review-alert" role="alert">
                 <AlertCircle size={15} />
@@ -242,39 +252,74 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
               disabled={uploadingImage}
             />
 
-            {/* 2. 1-Tap Serving Format Pills & Decimal Price Input */}
-            <ServingFormatSelector
-              servingSize={servingSize}
-              customServingSize={customServingSize}
-              price={price}
-              onServingSizeChange={setServingSize}
-              onCustomServingSizeChange={setCustomServingSize}
-              onPriceChange={setPrice}
-              disabled={uploadingImage}
-            />
-
-            {/* 3. Categorized Flavor Profile Tags */}
-            <TastingTagPicker
-              selectedTags={tags}
-              onChange={setTags}
-              disabled={uploadingImage}
-            />
-
-            {/* 4. Quick Impressions & Auto-Expanding Notes */}
+            {/* 2. Quick Impressions & Auto-Expanding Notes (Required) */}
             <TastingNotesInput
               comment={comment}
               onChange={setComment}
               disabled={uploadingImage}
+              required
+              hasError={error === 'Tasting notes are required'}
             />
 
-            {/* 5. Mobile Camera Capture & Photo Preview */}
-            <ReviewPhotoControl
-              imageUrl={imageUrl}
-              uploading={uploadingImage}
-              onFileSelect={handlePhotoFileSelect}
-              onImageUrlChange={setImageUrl}
-              disabled={uploadingImage}
-            />
+            {/* 3. Collapsible Additional Feedback Section */}
+            <details
+              className="review-additional-feedback"
+              open={isAdditionalOpen}
+              onToggle={(e) => setIsAdditionalOpen(e.currentTarget.open)}
+            >
+              <summary className="review-additional-summary">
+                <div className="review-additional-summary-text">
+                  <span className="review-additional-title">
+                    <SlidersHorizontal size={15} aria-hidden="true" />
+                    <span>Additional Feedback</span>
+                  </span>
+                  <span className="review-additional-subtitle">
+                    Optional • Serving format, price, flavor tags &amp; photo
+                  </span>
+                </div>
+                <div className="review-additional-summary-meta">
+                  {additionalItemsCount > 0 && (
+                    <span className="review-additional-count-badge">
+                      {additionalItemsCount} added
+                    </span>
+                  )}
+                  <ChevronDown
+                    size={16}
+                    className="review-additional-chevron"
+                    aria-hidden="true"
+                  />
+                </div>
+              </summary>
+
+              <div className="review-additional-content">
+                {/* Serving Format Pills & Decimal Price Input */}
+                <ServingFormatSelector
+                  servingSize={servingSize}
+                  customServingSize={customServingSize}
+                  price={price}
+                  onServingSizeChange={setServingSize}
+                  onCustomServingSizeChange={setCustomServingSize}
+                  onPriceChange={setPrice}
+                  disabled={uploadingImage}
+                />
+
+                {/* Categorized Flavor Profile Tags */}
+                <TastingTagPicker
+                  selectedTags={tags}
+                  onChange={setTags}
+                  disabled={uploadingImage}
+                />
+
+                {/* Mobile Camera Capture & Photo Preview */}
+                <ReviewPhotoControl
+                  imageUrl={imageUrl}
+                  uploading={uploadingImage}
+                  onFileSelect={handlePhotoFileSelect}
+                  onImageUrlChange={setImageUrl}
+                  disabled={uploadingImage}
+                />
+              </div>
+            </details>
 
             {/* Reviewer Attribution Pill */}
             <div className="reviewer-attribution-row">

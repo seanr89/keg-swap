@@ -1838,13 +1838,6 @@ a.detail-meta-link:hover {
   font-size: 16px;
 }
 
-.avg-val-none {
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .btn-toggle-reviews {
   display: inline-flex;
   align-items: center;
@@ -2367,6 +2360,172 @@ a.detail-meta-link:hover {
   margin: 0;
   font-size: 14px;
   color: var(--text-secondary);
+}
+
+.loading-container h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+@property --arc-start {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --arc-end {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --progress-dash-animation {
+  syntax: "*";
+  inherits: false;
+  initial-value: , progress-dash 3s ease-in-out infinite;
+}
+
+/* Hide native indeterminate progress bars */
+progress.loading-spinner:indeterminate::-webkit-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::-webkit-progress-value {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate::-moz-progress-bar {
+  display: none;
+  background: none;
+}
+
+progress.loading-spinner:indeterminate {
+  --_from: calc(90deg + var(--arc-start, 0deg));
+  --_to: calc(90deg + var(--arc-end, 158deg));
+  --size: 56px;
+  --thickness: 3px;
+  --spinner-color: var(--primary);
+  --track-color: var(--border-color);
+  --spinner-duration: 1.5s;
+  --_used-spinner-duration: var(--spinner-duration);
+
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  appearance: none;
+  background: conic-gradient(
+      from var(--_from),
+      var(--spinner-color) calc(var(--_to) - var(--_from)),
+      transparent 0
+    )
+    var(--track-color);
+  animation:
+    progress-spin var(--_used-spinner-duration) linear infinite
+    var(--progress-dash-animation, );
+}
+
+@supports (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    background-clip: border-area;
+    border: var(--thickness) solid transparent;
+    background-origin: border-box;
+  }
+}
+
+@supports not (background-clip: border-area) {
+  progress.loading-spinner:indeterminate {
+    --clip-boundary: calc(100% - var(--thickness));
+    mask-image: radial-gradient(
+      farthest-side,
+      transparent var(--clip-boundary),
+      black var(--clip-boundary)
+    );
+    border: 0;
+  }
+}
+
+@keyframes progress-spin {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@keyframes progress-dash {
+  from {
+    --arc-start: 0deg;
+    --arc-end: 3deg;
+  }
+  50% {
+    --arc-start: 100deg;
+    --arc-end: 358deg;
+  }
+  to {
+    --arc-start: 360deg;
+    --arc-end: 363deg;
+  }
+}
+
+.event-drinks-loading {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 48px 24px;
+  gap: 12px;
+}
+
+.event-loading-visual {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+}
+
+.event-loading-icon {
+  position: absolute;
+  color: var(--primary);
+}
+
+.animate-spin {
+  animation: progress-spin 1.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  progress.loading-spinner:indeterminate {
+    --_used-spinner-duration: 6s;
+  }
+
+  .animate-spin {
+    animation-duration: 6s;
+  }
+}
+
+.section-title-loading-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-glow);
+  border: 1px solid var(--border-focus);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.btn-retry-drinks {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Review Action & Close Buttons */
@@ -4524,6 +4683,120 @@ button, input, select, textarea, a, label {
   font-size: 11.5px;
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.review-required-hint {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.required-asterisk {
+  color: var(--status-cancelled-text);
+  font-weight: 800;
+  margin-left: 2px;
+}
+
+/* Collapsible Additional Feedback Section */
+.review-additional-feedback {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--bg-main);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+}
+
+.review-additional-feedback[open] {
+  border-color: var(--border-focus);
+}
+
+.review-additional-summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  min-height: 48px;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease;
+}
+
+.review-additional-summary::-webkit-details-marker {
+  display: none;
+}
+
+.review-additional-summary:hover {
+  background: var(--bg-card-hover);
+}
+
+.review-additional-summary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.review-additional-summary-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.review-additional-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.review-additional-title svg {
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.review-additional-subtitle {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.review-additional-summary-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.review-additional-count-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-glow);
+  border: 1px solid var(--border-focus);
+  color: var(--primary);
+}
+
+.review-additional-chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.review-additional-feedback[open] .review-additional-chevron {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.review-additional-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 14px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
 }
 
 /* 1. RatingScrubber Styles */
