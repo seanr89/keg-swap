@@ -28,16 +28,16 @@ import {
   Trash2,
   Bookmark,
   Star,
-  Trophy
+  Trophy,
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import { StarRating } from './StarRating';
-import { ShareButton } from './ShareButton';
 import { ReviewBottomSheet } from './review/ReviewBottomSheet';
 import { BatchUploadModal } from './BatchUploadModal';
 import { TopFiveHeroTray } from './TopFiveHeroTray';
 import { TopFiveSwapModal } from './TopFiveSwapModal';
 import { MAX_TOP_FIVE } from '../utils/wishlist';
-import { getAppShareUrl } from '../utils/shareUtils';
 import { 
   uploadImageFile, 
   sanitizeOrUploadImageUrl, 
@@ -47,6 +47,9 @@ import {
 interface EventDetailScreenProps {
   event: BeerEvent;
   drinksLoading?: boolean;
+  drinksRetrying?: boolean;
+  drinksError?: string | null;
+  onRetryDrinks?: () => void;
   user: User;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }) => void;
@@ -68,6 +71,9 @@ interface EventDetailScreenProps {
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   event,
   drinksLoading = false,
+  drinksRetrying = false,
+  drinksError = null,
+  onRetryDrinks,
   user,
   onBack,
   onAddDrink,
@@ -782,7 +788,20 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
       {/* Beers List Section */}
       <div className="drinks-feed-section">
-        <h3 className="section-title">Drinks Available ({filteredDrinks.length})</h3>
+        <h3 className="section-title">
+          <span>
+            Drinks Available
+            {!drinksLoading || (event.drinks && event.drinks.length > 0)
+              ? ` (${filteredDrinks.length})`
+              : ''}
+          </span>
+          {drinksLoading && (
+            <span className="section-title-loading-pill" role="status" aria-live="polite">
+              <Loader2 className="animate-spin" size={14} aria-hidden="true" />
+              <span>{drinksRetrying ? 'Retrying...' : 'Loading...'}</span>
+            </span>
+          )}
+        </h3>
         
         {event.drinks && event.drinks.length > 0 ? (
           <>
@@ -970,7 +989,6 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                           <BeerDrinkCard
                             key={drink.id}
                             drink={drink}
-                            eventName={event.name}
                             userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                             isWishlisted={wishlist.has(drink.id)}
                             onToggleWishlist={() => handleToggleWishlist(drink.id)}
@@ -992,7 +1010,6 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     <BeerDrinkCard
                       key={drink.id}
                       drink={drink}
-                      eventName={event.name}
                       userRating={drink.reviews.find((r) => r.userId === user.uid)?.rating}
                       isWishlisted={wishlist.has(drink.id)}
                       onToggleWishlist={() => handleToggleWishlist(drink.id)}
@@ -1015,9 +1032,36 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
             )}
           </>
         ) : drinksLoading ? (
-          <div className="loading-container" role="status" aria-live="polite">
-            <Beer className="animate-float" size={32} />
-            <p>Loading drinks...</p>
+          <div className="loading-container event-drinks-loading" role="status" aria-live="polite">
+            <div className="event-loading-visual">
+              <progress
+                aria-label={drinksRetrying ? 'Retrying event drinks load' : 'Loading event drinks'}
+                className="loading-spinner"
+              />
+              <Loader2 className="event-loading-icon animate-spin" size={26} aria-hidden="true" />
+            </div>
+            <h4>{drinksRetrying ? 'Retrying connection...' : 'Loading event drinks...'}</h4>
+            <p>
+              {drinksRetrying
+                ? 'Initial wait timed out — retrying automatically (attempt 2 of 2)...'
+                : 'Fetching tap list and taster reviews for this event.'}
+            </p>
+          </div>
+        ) : drinksError ? (
+          <div className="empty-state drinks-empty drinks-error-state" role="alert">
+            <AlertCircle size={32} />
+            <h4>Could not load event drinks</h4>
+            <p>{drinksError}</p>
+            {onRetryDrinks && (
+              <button
+                type="button"
+                className="btn-secondary btn-retry-drinks"
+                onClick={onRetryDrinks}
+              >
+                <RotateCcw size={15} />
+                <span>Retry Loading Drinks</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="empty-state drinks-empty">
@@ -1097,7 +1141,6 @@ interface BeerDrinkCardProps {
   drink: BeerDrink;
   onTriggerReview: () => void;
   onOpenLightbox: (url: string, title: string, subtitle?: string) => void;
-  eventName: string;
   userRating?: number;
   isWishlisted: boolean;
   onToggleWishlist: () => void;
@@ -1107,7 +1150,6 @@ interface BeerDrinkCardProps {
 
 const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   drink,
-  eventName,
   userRating,
   isWishlisted,
   onToggleWishlist,
@@ -1197,17 +1239,13 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
 
         {/* Right Side Metric / Star Dashboard */}
         <div className="beer-card-rating-dash">
-          <div className="avg-rating-badge">
-            {avgRating ? (
-              <>
-                <Beer className="star-filled" size={18} fill="currentColor" />
-                <span className="avg-val">{avgRating}</span>
-                <span className="avg-val-scale" style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.85 }}>/10</span>
-              </>
-            ) : (
-              <span className="avg-val-none">No Reviews</span>
-            )}
-          </div>
+          {avgRating && (
+            <div className="avg-rating-badge">
+              <Beer className="star-filled" size={18} fill="currentColor" />
+              <span className="avg-val">{avgRating}</span>
+              <span className="avg-val-scale" style={{ fontSize: '11px', color: 'var(--text-muted)', opacity: 0.85 }}>/10</span>
+            </div>
+          )}
           
           <button 
             type="button" 
@@ -1268,13 +1306,6 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
             >
               <Bookmark size={15} fill={isWishlisted ? 'currentColor' : 'none'} />
             </button>
-
-            <ShareButton
-              label={`Share ${drink.name}`}
-              title="Keg Swap"
-              text={`${drink.name} by ${drink.brewery} (${drink.abv}), at ${eventName} on Keg Swap`}
-              url={getAppShareUrl()}
-            />
           </div>
         </div>
       </div>

@@ -214,6 +214,17 @@ export function useReviewDraft({
     };
   }, []);
 
+  const handleCommentChange = useCallback((val: React.SetStateAction<string>) => {
+    setHasInteracted(true);
+    setComment((prev) => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (next.trim()) {
+        setError((currErr) => (currErr === 'Tasting notes are required' ? '' : currErr));
+      }
+      return next;
+    });
+  }, []);
+
   const handlePhotoFileSelect = async (file: File) => {
     if (!drink) return;
     setUploadingImage(true);
@@ -236,6 +247,10 @@ export function useReviewDraft({
     if (!drink) return;
     if (rating < 0.5 || rating > 10.0) {
       setError('Rating must be between 0.5 and 10.0');
+      return;
+    }
+    if (!comment.trim()) {
+      setError('Tasting notes are required');
       return;
     }
 
@@ -298,7 +313,7 @@ export function useReviewDraft({
     rating,
     setRating: markInteracted(setRating),
     comment,
-    setComment: markInteracted(setComment),
+    setComment: handleCommentChange,
     price,
     setPrice: markInteracted(setPrice),
     servingSize,
