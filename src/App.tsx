@@ -7,10 +7,11 @@ import { ConfirmDialog } from './components/ConfirmDialog';
 import { AuthScreen } from './components/AuthScreen';
 import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
-import { UserSearchModal } from './components/UserSearchModal';
+import { UserSearchModal, type FriendModalTab } from './components/UserSearchModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { Beer, Plus, Search, User as UserIcon, ShieldAlert, Loader2 } from 'lucide-react';
 import { parseLocalDate } from './utils/dateUtils';
+import { extractFriendCodeFromUrl } from './utils/friendCode';
 import { useAuth } from './hooks/useAuth';
 import { useEvents } from './hooks/useEvents';
 import { useLocations } from './hooks/useLocations';
@@ -42,6 +43,12 @@ function App() {
   const [profileSection, setProfileSection] = useState<'overview' | 'diary'>('overview');
   const [showAdmin, setShowAdmin] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [searchModalTab, setSearchModalTab] = useState<FriendModalTab>('search');
+  const [pendingFriendCode, setPendingFriendCode] = useState<string | null>(() => {
+    const fromUrl = extractFriendCodeFromUrl(window.location.search);
+    if (fromUrl) return fromUrl;
+    return sessionStorage.getItem('keg_swap_pending_friend_code');
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | BeerEvent['status']>('All');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +64,36 @@ function App() {
     togglePrivacy: handleTogglePrivacy,
     addFriend: handleAddFriend,
     removeFriend: handleRemoveFriend,
+    syncFriendCode,
+    lookupUserByFriendCode,
   } = useAuth();
+
+  // Detect ?addFriend=CODE deep links on initial page load
+  useEffect(() => {
+    const fromUrl = extractFriendCodeFromUrl(window.location.search);
+    if (fromUrl) {
+      sessionStorage.setItem('keg_swap_pending_friend_code', fromUrl);
+      setPendingFriendCode(fromUrl);
+      const cleanUrl = new URL(window.location.href);
+      cleanUrl.searchParams.delete('addFriend');
+      cleanUrl.searchParams.delete('friendCode');
+      window.history.replaceState({}, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash);
+    }
+  }, []);
+
+  // Once signed in, open the Friend Connect modal if a deep-link friend code is waiting
+  useEffect(() => {
+    if (user && pendingFriendCode) {
+      sessionStorage.removeItem('keg_swap_pending_friend_code');
+      setSearchModalTab('scan-code');
+      setIsSearchModalOpen(true);
+    }
+  }, [user, pendingFriendCode]);
+
+  const handleOpenSearchModal = (tab: FriendModalTab = 'search') => {
+    setSearchModalTab(tab);
+    setIsSearchModalOpen(true);
+  };
 
   const {
     events,
@@ -358,8 +394,15 @@ function App() {
             isOpen={isSearchModalOpen}
             onClose={() => setIsSearchModalOpen(false)}
             currentUserId={user.uid}
+            currentUserDisplayName={userProfile?.displayName || user.displayName || ''}
+            currentUserFriendCode={userProfile?.friendCode}
             currentUserFriends={userProfile?.friends || []}
             publicUsers={allUsers}
+            initialTab={searchModalTab}
+            initialFriendCode={pendingFriendCode}
+            onClearInitialFriendCode={() => setPendingFriendCode(null)}
+            onSyncFriendCode={syncFriendCode}
+            onLookupFriendByCode={lookupUserByFriendCode}
             onAddFriend={handleAddFriend}
             onRemoveFriend={handleRemoveFriend}
           />
@@ -377,7 +420,7 @@ function App() {
             setShowProfile(false);
             setShowAdmin(false);
           }}
-          onOpenFriends={() => setIsSearchModalOpen(true)}
+          onOpenFriends={() => handleOpenSearchModal('search')}
           onAddEvent={() => setIsModalOpen(true)}
           onSelectDiary={() => {
             setProfileSection('diary');
@@ -488,7 +531,7 @@ function App() {
                 setActiveEventId(eventId);
               }}
               onTogglePrivacy={handleTogglePrivacy}
-              onOpenSearchModal={() => setIsSearchModalOpen(true)}
+              onOpenSearchModal={(tab = 'search') => handleOpenSearchModal(tab)}
               onRemoveFriend={handleRemoveFriend}
             />
           </Suspense>
@@ -642,8 +685,15 @@ function App() {
           isOpen={isSearchModalOpen}
           onClose={() => setIsSearchModalOpen(false)}
           currentUserId={user.uid}
+          currentUserDisplayName={userProfile?.displayName || user.displayName || ''}
+          currentUserFriendCode={userProfile?.friendCode}
           currentUserFriends={userProfile?.friends || []}
           publicUsers={allUsers}
+          initialTab={searchModalTab}
+          initialFriendCode={pendingFriendCode}
+          onClearInitialFriendCode={() => setPendingFriendCode(null)}
+          onSyncFriendCode={syncFriendCode}
+          onLookupFriendByCode={lookupUserByFriendCode}
           onAddFriend={handleAddFriend}
           onRemoveFriend={handleRemoveFriend}
         />
@@ -661,7 +711,7 @@ function App() {
           setShowProfile(false);
           setShowAdmin(false);
         }}
-        onOpenFriends={() => setIsSearchModalOpen(true)}
+        onOpenFriends={() => handleOpenSearchModal('search')}
         onAddEvent={() => setIsModalOpen(true)}
         onSelectDiary={() => {
           setProfileSection('diary');

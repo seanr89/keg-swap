@@ -23,11 +23,17 @@ import {
   Sun,
   Moon,
   LogOut,
-  ShieldAlert
+  ShieldAlert,
+  QrCode,
+  ScanLine,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { useUserReviews } from '../hooks/useUserReviews';
 import { buildDiaryCsv, downloadTextFile } from '../utils/exportDiary';
+import { deriveFriendCodeFromUid } from '../utils/friendCode';
+import type { FriendModalTab } from './UserSearchModal';
 
 interface UserProfileScreenProps {
   user: User;
@@ -43,7 +49,7 @@ interface UserProfileScreenProps {
   onBack: () => void;
   onNavigateToEvent: (eventId: string) => void;
   onTogglePrivacy: () => void;
-  onOpenSearchModal: () => void;
+  onOpenSearchModal: (tab?: FriendModalTab) => void;
   onRemoveFriend: (friendUid: string) => void;
 }
 
@@ -201,6 +207,20 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
   const isPublic = userProfile?.isPublic !== false;
   const friendUids = userProfile?.friends || [];
+  const myFriendCode = userProfile?.friendCode || deriveFriendCodeFromUid(user.uid);
+  const [copiedCode, setCopiedCode] = React.useState(false);
+
+  const handleCopyFriendCode = async () => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(myFriendCode);
+      }
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch {
+      setCopiedCode(true);
+    }
+  };
 
   // Resolve friend profile details from allUsers
   const friendProfiles = friendUids.map((uid) => {
@@ -361,11 +381,51 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
               <button
                 type="button"
                 className="btn-primary btn-small"
-                onClick={onOpenSearchModal}
+                onClick={() => onOpenSearchModal('search')}
               >
                 <UserPlus size={14} />
                 <span>Find Friends</span>
               </button>
+            </div>
+
+            {/* In-Person Friend Code & QR Quick Connect Bar */}
+            <div className="profile-friend-code-banner">
+              <div className="profile-friend-code-info">
+                <span className="profile-friend-code-caption">Your Friend Code</span>
+                <div className="profile-friend-code-row">
+                  <strong className="profile-friend-code-badge" data-testid="profile-friend-code">
+                    {myFriendCode}
+                  </strong>
+                  <button
+                    type="button"
+                    className="btn-icon-inline"
+                    onClick={handleCopyFriendCode}
+                    aria-label={`Copy friend code ${myFriendCode}`}
+                    title="Copy Friend Code"
+                  >
+                    {copiedCode ? <Check size={14} aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                    <span>{copiedCode ? 'Copied' : 'Copy'}</span>
+                  </button>
+                </div>
+              </div>
+              <div className="profile-friend-code-actions">
+                <button
+                  type="button"
+                  className="btn-secondary btn-small"
+                  onClick={() => onOpenSearchModal('my-code')}
+                >
+                  <QrCode size={14} aria-hidden="true" />
+                  <span>My QR</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary btn-small"
+                  onClick={() => onOpenSearchModal('scan-code')}
+                >
+                  <ScanLine size={14} aria-hidden="true" />
+                  <span>Scan / Code</span>
+                </button>
+              </div>
             </div>
 
             {friendProfiles.length > 0 ? (
@@ -383,7 +443,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                         <div className="friend-avatar">{avatarLetter}</div>
                         <div className="friend-details">
                           <span className="friend-name">{friend.displayName}</span>
-                          <span className="friend-email">{friend.email}</span>
+                          <span className="friend-email">{friend.email || friend.friendCode || 'Friend'}</span>
                         </div>
                       </div>
                       <button
@@ -400,7 +460,9 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
               </div>
             ) : (
               <div className="friends-empty-state">
-                <p>No friends added yet. Click <strong>"Find Friends"</strong> to search and add public users!</p>
+                <p>
+                  No friends added yet. Tap <strong>"My QR"</strong> or <strong>"Scan / Code"</strong> to connect side-by-side, or <strong>"Find Friends"</strong> to search public users!
+                </p>
               </div>
             )}
           </div>

@@ -82,7 +82,20 @@ export interface UserProfile {
   email: string;
   isPublic: boolean;
   friends?: string[];
+  friendCode?: string; // e.g. "KEG-7X9B" - unique uppercase friend code for QR & in-person sharing
   createdAt?: string;
+}
+
+/**
+ * Friend code directory entry stored at `friendCodes/{friendCode}`.
+ * Allows O(1) lookup by explicit code even when the owner's profile has `isPublic: false`.
+ */
+export interface FriendCodeDoc {
+  uid: string;
+  displayName: string;
+  email: string;
+  friendCode: string;
+  updatedAt: string;
 }
 
 export interface EventLocation {
