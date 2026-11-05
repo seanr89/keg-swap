@@ -43,6 +43,9 @@
   --status-cancelled-bg: rgba(239, 68, 68, 0.12);
   --status-cancelled-text: #f87171;
   --status-cancelled-border: rgba(239, 68, 68, 0.25);
+
+  --qr-surface-bg: #ffffff;
+  --qr-module-fg: #0c0a09;
   
   font-family: var(--font-sans);
   font-size: 16px;
@@ -91,6 +94,9 @@
   --status-cancelled-bg: #fee2e2; /* Red 100 */
   --status-cancelled-text: #991b1b; /* Red 800 */
   --status-cancelled-border: rgba(239, 68, 68, 0.2);
+
+  --qr-surface-bg: #ffffff;
+  --qr-module-fg: #1c1917;
   
   color-scheme: light;
 }
