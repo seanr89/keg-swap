@@ -2,7 +2,7 @@
  * Utility functions for image processing, compression, and Firebase Cloud Storage uploads.
  */
 
-import { ref, uploadBytes, uploadString, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../firebase';
 import type { BeerEvent } from '../types';
 
@@ -176,6 +176,39 @@ export function isValidImageUrl(urlStr: string): boolean {
     return parsed.protocol === 'http:' || parsed.protocol === 'https:';
   } catch {
     return false;
+  }
+}
+
+/**
+ * Checks whether an image URL points to a Firebase Cloud Storage asset.
+ */
+export function isFirebaseStorageUrl(urlStr?: string): boolean {
+  if (!urlStr) return false;
+  const trimmed = urlStr.trim();
+  if (!trimmed) return false;
+  try {
+    const parsed = new URL(trimmed);
+    return (
+      parsed.hostname === 'firebasestorage.googleapis.com' ||
+      parsed.hostname.endsWith('.firebasestorage.app')
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Best-effort deletion of a Firebase Cloud Storage image if the URL belongs to Firebase Storage.
+ * Errors (such as `storage/object-not-found` or network errors) are caught and logged so
+ * Firestore document cleanup is never blocked.
+ */
+export async function deleteStorageImageIfOwned(imageUrl?: string): Promise<void> {
+  if (!isFirebaseStorageUrl(imageUrl)) return;
+  try {
+    const storageRef = ref(storage, imageUrl!.trim());
+    await deleteObject(storageRef);
+  } catch (err) {
+    console.warn('Could not delete review image from Cloud Storage:', err);
   }
 }
 

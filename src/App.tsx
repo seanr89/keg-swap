@@ -117,6 +117,7 @@ function App() {
     addDrink: handleAddDrink,
     addDrinksBatch: handleAddDrinksBatch,
     addDrinkReview,
+    deleteDrinkReview: handleDeleteDrinkReview,
     seedTestEvent: handleSeedTestEvent,
   } = useEvents(user, isAdmin);
 
@@ -362,10 +363,14 @@ function App() {
                 drinksError={drinksError}
                 onRetryDrinks={retryLoadDrinks}
                 user={user}
+                isAdmin={isAdmin}
                 onBack={() => setActiveEventId(null)}
                 onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
                 onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags) =>
                   handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags)
+                }
+                onDeleteReview={(drinkId, reviewId, imageUrl) =>
+                  handleDeleteDrinkReview(activeEvent.id, drinkId, reviewId, imageUrl)
                 }
                 onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
                 onToggleAttendance={handleToggleAttendance}
@@ -550,6 +555,7 @@ function App() {
                 onTogglePrivacy={handleTogglePrivacy}
                 onOpenSearchModal={(tab = 'search') => handleOpenSearchModal(tab)}
                 onRemoveFriend={handleRemoveFriend}
+                onDeleteReview={handleDeleteDrinkReview}
               />
             </Suspense>
           </ErrorBoundary>

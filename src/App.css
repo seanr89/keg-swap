@@ -7157,6 +7157,104 @@ dialog::backdrop {
   cursor: pointer;
 }
 
+/* ─── Review Deletion Styles ─────────────────────────────────────────── */
+.btn-icon-delete-review {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-delete-review:hover {
+  color: var(--status-cancelled-text);
+  background: var(--status-cancelled-bg);
+  border-color: var(--status-cancelled-border);
+}
+
+.review-sheet-delete-section {
+  padding-top: 8px;
+}
+
+.btn-delete-review-sheet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--status-cancelled-border);
+  background: transparent;
+  color: var(--status-cancelled-text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-review-sheet:hover {
+  background: var(--status-cancelled-bg);
+}
+
+.review-sheet-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--status-cancelled-bg);
+  border: 1px solid var(--status-cancelled-border);
+}
+
+.review-sheet-delete-prompt {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--status-cancelled-text);
+}
+
+.review-sheet-delete-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.profile-review-footer-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-delete-diary-review {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-diary-review:hover {
+  color: var(--status-cancelled-text);
+  background: var(--status-cancelled-bg);
+  border-color: var(--status-cancelled-border);
+}
+
+
 
 
 

@@ -28,8 +28,10 @@ import {
   ScanLine,
   Copy,
   Check,
+  Trash2,
 } from 'lucide-react';
 import { StarRating } from './StarRating';
+import { ConfirmDialog } from './ConfirmDialog';
 import { useUserReviews } from '../hooks/useUserReviews';
 import { buildDiaryCsv, downloadTextFile } from '../utils/exportDiary';
 import { deriveFriendCodeFromUid } from '../utils/friendCode';
@@ -51,10 +53,12 @@ interface UserProfileScreenProps {
   onTogglePrivacy: () => void;
   onOpenSearchModal: (tab?: FriendModalTab) => void;
   onRemoveFriend: (friendUid: string) => void;
+  onDeleteReview?: (eventId: string, drinkId: string, reviewId: string, imageUrl?: string) => Promise<boolean | void> | void;
 }
 
 interface UserReviewItem {
   review: BeerReview;
+  drinkId: string;
   drinkName: string;
   brewery: string;
   style: string;
@@ -78,8 +82,17 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   onTogglePrivacy,
   onOpenSearchModal,
   onRemoveFriend,
+  onDeleteReview,
 }) => {
   const [lightboxImage, setLightboxImage] = React.useState<{ url: string; title: string; subtitle?: string } | null>(null);
+  const [reviewPendingDelete, setReviewPendingDelete] = React.useState<UserReviewItem | null>(null);
+
+  const handleConfirmDeleteReview = async () => {
+    if (!reviewPendingDelete) return;
+    const { eventId, drinkId, review } = reviewPendingDelete;
+    setReviewPendingDelete(null);
+    await onDeleteReview?.(eventId, drinkId, review.id, review.imageUrl);
+  };
 
   React.useEffect(() => {
     if (initialSection === 'diary') {
@@ -99,11 +112,11 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   const userReviews: UserReviewItem[] = [];
   const seenReviewIds = new Set<string>();
 
-  storedReviews.forEach(({ eventId, drinkId: _drinkId, drinkName, brewery, style, ...review }) => {
+  storedReviews.forEach(({ eventId, drinkId, drinkName, brewery, style, ...review }) => {
     const eventName = eventNames.get(eventId);
     if (eventName === undefined) return; // event no longer exists
     seenReviewIds.add(review.id);
-    userReviews.push({ review, drinkName, brewery, style, eventName, eventId });
+    userReviews.push({ review, drinkId, drinkName, brewery, style, eventName, eventId });
   });
 
   events.forEach((event) => {
@@ -113,6 +126,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
         if (review.userId === user.uid && !seenReviewIds.has(review.id)) {
           userReviews.push({
             review,
+            drinkId: drink.id,
             drinkName: drink.name,
             brewery: drink.brewery,
             style: drink.style,
@@ -658,7 +672,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
 
             {recentReviews.length > 0 ? (
               <div className="profile-reviews-list">
-                {recentReviews.map(({ review, drinkName, brewery, style, eventName, eventId }) => (
+                {recentReviews.map(({ review, drinkId, drinkName, brewery, style, eventName, eventId }) => (
                   <div key={review.id} className="profile-review-card">
                     <div className="profile-review-header">
                       <div>
@@ -705,15 +719,40 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                         })}
                       </span>
 
-                      <button
-                        type="button"
-                        className="btn-profile-event-link"
-                        onClick={() => onNavigateToEvent(eventId)}
-                        title={`Go to ${eventName}`}
-                      >
-                        <span>at {eventName}</span>
-                        <ChevronRight size={14} />
-                      </button>
+                      <div className="profile-review-footer-actions">
+                        {onDeleteReview && (
+                          <button
+                            type="button"
+                            className="btn-delete-diary-review"
+                            onClick={() =>
+                              setReviewPendingDelete({
+                                review,
+                                drinkId,
+                                drinkName,
+                                brewery,
+                                style,
+                                eventName,
+                                eventId,
+                              })
+                            }
+                            title={`Delete review for ${drinkName}`}
+                            aria-label={`Delete review for ${drinkName}`}
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn-profile-event-link"
+                          onClick={() => onNavigateToEvent(eventId)}
+                          title={`Go to ${eventName}`}
+                        >
+                          <span>at {eventName}</span>
+                          <ChevronRight size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -731,6 +770,24 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Review Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={reviewPendingDelete !== null}
+        title="Delete Review"
+        message={
+          <>
+            Delete your review for{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>
+              {reviewPendingDelete?.drinkName}
+            </strong>{' '}
+            at <strong>{reviewPendingDelete?.eventName}</strong>? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Review"
+        onConfirm={handleConfirmDeleteReview}
+        onCancel={() => setReviewPendingDelete(null)}
+      />
 
       {/* Lightbox Modal */}
       {lightboxImage && (

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { BeerDrink } from '../../types';
-import { X, Check, AlertCircle, RotateCcw, UserCheck, ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { X, Check, AlertCircle, RotateCcw, UserCheck, ChevronDown, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { useReviewDraft } from '../../hooks/useReviewDraft';
 import { RatingScrubber } from './RatingScrubber';
 import { ServingFormatSelector } from './ServingFormatSelector';
@@ -25,6 +25,7 @@ export interface ReviewBottomSheetProps {
     reviewId?: string,
     tags?: string[]
   ) => void;
+  onDeleteReview?: (drinkId: string, reviewId: string, imageUrl?: string) => void | Promise<void>;
 }
 
 const DISMISS_DISTANCE_PX = 100;
@@ -36,6 +37,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
   user,
   onClose,
   onSubmitReview,
+  onDeleteReview,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const dragStateRef = useRef<{
@@ -47,6 +49,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
   const [dragOffsetY, setDragOffsetY] = useState(0);
   const [isDraggingSheet, setIsDraggingSheet] = useState(false);
   const [isAdditionalOpen, setIsAdditionalOpen] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   const {
     reviewerName,
@@ -71,11 +74,13 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
     handlePhotoFileSelect,
     handleSubmit,
     handleDiscardDraft,
+    handleDeleteExistingReview,
   } = useReviewDraft({
     drink,
     eventId,
     user,
     onSubmitReview,
+    onDeleteReview,
     onClose,
   });
 
@@ -94,6 +99,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
     setDragOffsetY(0);
     setIsDraggingSheet(false);
     setIsAdditionalOpen(false);
+    setConfirmingDelete(false);
 
     if (drink) {
       if (!dialog.open) {
@@ -328,6 +334,47 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
                 Posting as <strong>{reviewerName}</strong>
               </span>
             </div>
+
+            {/* Delete Existing Review Section (with Confirmation Guardrail) */}
+            {isEditingExisting && onDeleteReview && (
+              <div className="review-sheet-delete-section">
+                {confirmingDelete ? (
+                  <div className="review-sheet-delete-confirm" role="alert">
+                    <span className="review-sheet-delete-prompt">
+                      Delete your review for <strong>{drink.name}</strong>? This cannot be undone.
+                    </span>
+                    <div className="review-sheet-delete-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary btn-small"
+                        onClick={() => setConfirmingDelete(false)}
+                      >
+                        Keep Review
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger btn-small"
+                        onClick={() => {
+                          void handleDeleteExistingReview();
+                        }}
+                      >
+                        <Trash2 size={14} />
+                        <span>Confirm Delete</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-delete-review-sheet"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    <Trash2 size={14} />
+                    <span>Delete My Review</span>
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Sticky Bottom Thumb-Zone Action Bar */}
             <div className="modal-actions review-sheet-actions">

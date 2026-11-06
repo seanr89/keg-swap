@@ -15,8 +15,10 @@ import {
   addDrinks,
   addReview as persistReview,
   deleteEventCascade,
+  deleteReview as removeReview,
   migrateLegacyEvent,
 } from '../utils/eventData';
+import { removeStoredDraft } from './useReviewDraft';
 import { isBase64DataUrl, sanitizeOrUploadImageUrl } from '../utils/imageUtils';
 import { cleanTags } from '../utils/tastingTags';
 import { generateDrinkId, seedTestEventWithDrinks } from '../utils/testEventSeeder';
@@ -296,6 +298,26 @@ export function useEvents(user: User | null, isAdmin = false) {
     [user]
   );
 
+  const deleteDrinkReview = useCallback(
+    async (
+      eventId: string,
+      drinkId: string,
+      reviewId: string,
+      imageUrl?: string
+    ): Promise<boolean> => {
+      if (!user) return false;
+      try {
+        await removeReview(eventId, drinkId, reviewId, imageUrl);
+        removeStoredDraft(eventId, drinkId);
+        return true;
+      } catch (err) {
+        console.error('Failed to delete review from Firestore:', err);
+        return false;
+      }
+    },
+    [user]
+  );
+
   const seedTestEvent = useCallback(async (): Promise<void> => {
     if (!user) return;
     try {
@@ -316,6 +338,7 @@ export function useEvents(user: User | null, isAdmin = false) {
     addDrink,
     addDrinksBatch,
     addDrinkReview,
+    deleteDrinkReview,
     seedTestEvent,
   };
 }
