@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import type { BeerEvent, BeerDrink } from './types';
 import { StatsHeader } from './components/StatsHeader';
 import { EventCard } from './components/EventCard';
@@ -9,9 +9,11 @@ import { CookieConsent } from './components/CookieConsent';
 import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserSearchModal, type FriendModalTab } from './components/UserSearchModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { Beer, Plus, Search, User as UserIcon, ShieldAlert, Loader2 } from 'lucide-react';
 import { parseLocalDate } from './utils/dateUtils';
 import { extractFriendCodeFromUrl } from './utils/friendCode';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 import { useAuth } from './hooks/useAuth';
 import { useEvents } from './hooks/useEvents';
 import { useLocations } from './hooks/useLocations';
@@ -19,9 +21,19 @@ import { useEventDrinks } from './hooks/useEventDrinks';
 import './App.css';
 
 // Heavy screens are only needed after sign-in and navigation, so load them on demand.
-const EventDetailScreen = lazy(() => import('./components/EventDetailScreen').then(m => ({ default: m.EventDetailScreen })));
-const UserProfileScreen = lazy(() => import('./components/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })));
-const AdminScreen = lazy(() => import('./components/AdminScreen').then(m => ({ default: m.AdminScreen })));
+// lazyWithRetry catches chunk loading failures after new deployments and reloads safely.
+const EventDetailScreen = lazyWithRetry(
+  () => import('./components/EventDetailScreen').then(m => ({ default: m.EventDetailScreen })),
+  'EventDetailScreen'
+);
+const UserProfileScreen = lazyWithRetry(
+  () => import('./components/UserProfileScreen').then(m => ({ default: m.UserProfileScreen })),
+  'UserProfileScreen'
+);
+const AdminScreen = lazyWithRetry(
+  () => import('./components/AdminScreen').then(m => ({ default: m.AdminScreen })),
+  'AdminScreen'
+);
 
 const ScreenFallback = () => (
   <div className="loading-container event-drinks-loading" role="status" aria-live="polite">
@@ -341,23 +353,25 @@ function App() {
         </header>
 
         <main className="app-main">
-          <Suspense fallback={<ScreenFallback />}>
-            <EventDetailScreen
-              event={activeEvent}
-              drinksLoading={drinksLoading}
-              drinksRetrying={drinksRetrying}
-              drinksError={drinksError}
-              onRetryDrinks={retryLoadDrinks}
-              user={user}
-              onBack={() => setActiveEventId(null)}
-              onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
-              onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags) =>
-                handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags)
-              }
-              onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
-              onToggleAttendance={handleToggleAttendance}
-            />
-          </Suspense>
+          <ErrorBoundary onReset={() => setActiveEventId(null)}>
+            <Suspense fallback={<ScreenFallback />}>
+              <EventDetailScreen
+                event={activeEvent}
+                drinksLoading={drinksLoading}
+                drinksRetrying={drinksRetrying}
+                drinksError={drinksError}
+                onRetryDrinks={retryLoadDrinks}
+                user={user}
+                onBack={() => setActiveEventId(null)}
+                onAddDrink={(drinkData) => handleAddDrink(activeEvent.id, drinkData)}
+                onAddReview={(drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags) =>
+                  handleAddReview(activeEvent.id, drinkId, reviewer, rating, comment, price, servingSize, imageUrl, reviewId, tags)
+                }
+                onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
+                onToggleAttendance={handleToggleAttendance}
+              />
+            </Suspense>
+          </ErrorBoundary>
         </main>
 
         <footer className="app-footer">
@@ -502,39 +516,43 @@ function App() {
       {/* Main Content Area */}
       <main className="app-main">
         {showAdmin ? (
-          <Suspense fallback={<ScreenFallback />}>
-            <AdminScreen
-              isAdmin={isAdmin}
-              locations={locations}
-              onBack={() => setShowAdmin(false)}
-              onSaveLocation={handleSaveLocation}
-              onDeleteLocation={handleDeleteLocation}
-              onSeedTestEvent={handleSeedTestEvent}
-            />
-          </Suspense>
+          <ErrorBoundary onReset={() => setShowAdmin(false)}>
+            <Suspense fallback={<ScreenFallback />}>
+              <AdminScreen
+                isAdmin={isAdmin}
+                locations={locations}
+                onBack={() => setShowAdmin(false)}
+                onSaveLocation={handleSaveLocation}
+                onDeleteLocation={handleDeleteLocation}
+                onSeedTestEvent={handleSeedTestEvent}
+              />
+            </Suspense>
+          </ErrorBoundary>
         ) : showProfile ? (
-          <Suspense fallback={<ScreenFallback />}>
-            <UserProfileScreen
-              user={user}
-              userProfile={userProfile}
-              allUsers={allUsers}
-              events={events}
-              theme={theme}
-              onToggleTheme={toggleTheme}
-              onSignOut={handleSignOut}
-              isAdmin={isAdmin}
-              onNavigateToAdmin={handleNavigateToAdmin}
-              initialSection={profileSection}
-              onBack={() => setShowProfile(false)}
-              onNavigateToEvent={(eventId) => {
-                setShowProfile(false);
-                setActiveEventId(eventId);
-              }}
-              onTogglePrivacy={handleTogglePrivacy}
-              onOpenSearchModal={(tab = 'search') => handleOpenSearchModal(tab)}
-              onRemoveFriend={handleRemoveFriend}
-            />
-          </Suspense>
+          <ErrorBoundary onReset={() => setShowProfile(false)}>
+            <Suspense fallback={<ScreenFallback />}>
+              <UserProfileScreen
+                user={user}
+                userProfile={userProfile}
+                allUsers={allUsers}
+                events={events}
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                onSignOut={handleSignOut}
+                isAdmin={isAdmin}
+                onNavigateToAdmin={handleNavigateToAdmin}
+                initialSection={profileSection}
+                onBack={() => setShowProfile(false)}
+                onNavigateToEvent={(eventId) => {
+                  setShowProfile(false);
+                  setActiveEventId(eventId);
+                }}
+                onTogglePrivacy={handleTogglePrivacy}
+                onOpenSearchModal={(tab = 'search') => handleOpenSearchModal(tab)}
+                onRemoveFriend={handleRemoveFriend}
+              />
+            </Suspense>
+          </ErrorBoundary>
         ) : (
           <>
             {/* Statistics Dashboard */}
