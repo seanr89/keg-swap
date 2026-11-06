@@ -77,15 +77,17 @@ service cloud.firestore {
       }
 
       // Drinks and reviews are subcollections. Anyone signed in can add and edit them, as
-      // when they were embedded in the event; deletes (used when an event is deleted)
-      // are limited to the event's owner or an admin.
+      // when they were embedded in the event; drink deletes (used when an event is deleted)
+      // are limited to the event's owner or an admin, while reviews can also be deleted
+      // by the review's author.
       match /drinks/{drinkId} {
         allow read, create, update: if isSignedIn();
         allow delete: if isSignedIn() && (isAdmin() || isEventOwner());
 
         match /reviews/{reviewId} {
           allow read, create, update: if isSignedIn();
-          allow delete: if isSignedIn() && (isAdmin() || isEventOwner());
+          allow delete: if isSignedIn()
+            && (isAdmin() || isEventOwner() || resource.data.get('userId', null) == request.auth.uid);
         }
       }
     }

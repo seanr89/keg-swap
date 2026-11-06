@@ -27,7 +27,7 @@ import {
 } from 'firebase/firestore';
 import type { DocumentReference } from 'firebase/firestore';
 import { db } from '../firebase';
-import { migrateEventImagesToStorage } from './imageUtils';
+import { deleteStorageImageIfOwned, migrateEventImagesToStorage } from './imageUtils';
 import type { BeerDrink, BeerDrinkDoc, BeerEvent, BeerReview, BeerReviewDoc } from '../types';
 
 // Firestore allows 500 writes per batch; stay well below it.
@@ -102,6 +102,16 @@ export async function addReview(
   review: BeerReview
 ): Promise<void> {
   await setDoc(reviewRef(eventId, drink.id, review.id), toReviewDoc(eventId, drink, review));
+}
+
+export async function deleteReview(
+  eventId: string,
+  drinkId: string,
+  reviewId: string,
+  imageUrl?: string
+): Promise<void> {
+  await deleteDoc(reviewRef(eventId, drinkId, reviewId));
+  await deleteStorageImageIfOwned(imageUrl);
 }
 
 /** Firestore does not cascade deletes, so remove the drinks and reviews before the event itself. */

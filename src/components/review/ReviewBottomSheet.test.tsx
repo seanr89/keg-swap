@@ -157,4 +157,62 @@ describe('ReviewBottomSheet', () => {
       ['Hoppy']
     );
   });
+
+  it('allows deleting an existing review with a confirmation step', async () => {
+    const onDeleteReview = vi.fn();
+    const onClose = vi.fn();
+
+    const drinkWithUserReview: BeerDrink = {
+      ...mockDrink,
+      reviews: [
+        {
+          id: 'review-123',
+          reviewer: 'Ale Explorer',
+          rating: 8.5,
+          comment: 'Very tasty ale',
+          createdAt: '2026-11-01T12:00:00Z',
+          userId: 'user-1',
+          imageUrl: 'https://firebasestorage.googleapis.com/v0/b/app/o/rev.jpg',
+        },
+      ],
+    };
+
+    render(
+      <ReviewBottomSheet
+        drink={drinkWithUserReview}
+        eventId="event-1"
+        user={mockUser}
+        onClose={onClose}
+        onSubmitReview={vi.fn()}
+        onDeleteReview={onDeleteReview}
+      />
+    );
+
+    // Initial state: "Delete My Review" button is visible for existing review
+    const deleteBtn = screen.getByRole('button', { name: /delete my review/i });
+    expect(deleteBtn).toBeInTheDocument();
+
+    // Click Delete My Review -> confirmation prompt appears
+    fireEvent.click(deleteBtn);
+    expect(screen.getByText(/Delete your review for/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /keep review/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /confirm delete/i })).toBeInTheDocument();
+
+    // Test cancelling the deletion
+    fireEvent.click(screen.getByRole('button', { name: /keep review/i }));
+    expect(screen.queryByText(/Delete your review for/i)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete my review/i })).toBeInTheDocument();
+    expect(onDeleteReview).not.toHaveBeenCalled();
+
+    // Test confirming the deletion
+    fireEvent.click(screen.getByRole('button', { name: /delete my review/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }));
+
+    expect(onDeleteReview).toHaveBeenCalledWith(
+      'drink-1',
+      'review-123',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/rev.jpg'
+    );
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
 });

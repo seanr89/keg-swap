@@ -46,6 +46,7 @@ export interface UseReviewDraftOptions {
     reviewId?: string,
     tags?: string[]
   ) => void;
+  onDeleteReview?: (drinkId: string, reviewId: string, imageUrl?: string) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -87,7 +88,7 @@ function writeStoredDraft(eventId: string, drinkId: string, draft: StoredReviewD
   }
 }
 
-function removeStoredDraft(eventId: string, drinkId: string): void {
+export function removeStoredDraft(eventId: string, drinkId: string): void {
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.removeItem(getDraftStorageKey(eventId, drinkId));
@@ -101,6 +102,7 @@ export function useReviewDraft({
   eventId,
   user,
   onSubmitReview,
+  onDeleteReview,
   onClose,
 }: UseReviewDraftOptions) {
   const reviewerName = user.displayName || user.email || 'Anonymous Taster';
@@ -308,6 +310,19 @@ export function useReviewDraft({
     setDraftId(makeUuid());
   };
 
+  const existingUserReview = drink?.reviews.find((r) => r.userId === user.uid);
+
+  const handleDeleteExistingReview = async () => {
+    if (!drink || !existingUserReview || !onDeleteReview) return;
+    await onDeleteReview(
+      drink.id,
+      existingUserReview.id,
+      existingUserReview.imageUrl || imageUrl.trim() || undefined
+    );
+    removeStoredDraft(eventId, drink.id);
+    onClose();
+  };
+
   return {
     reviewerName,
     rating,
@@ -329,8 +344,10 @@ export function useReviewDraft({
     setError,
     restoredDraft,
     isEditingExisting,
+    existingReviewId: existingUserReview?.id,
     handlePhotoFileSelect,
     handleSubmit,
     handleDiscardDraft,
+    handleDeleteExistingReview,
   };
 }

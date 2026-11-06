@@ -8,6 +8,7 @@ const mockAddDoc = vi.fn(async () => ({ id: 'new-event-id' }));
 const mockUpdateDoc = vi.fn(async () => Promise.resolve());
 const mockAddDrinks = vi.fn(async () => Promise.resolve());
 const mockAddReview = vi.fn(async () => Promise.resolve());
+const mockDeleteReview = vi.fn(async () => Promise.resolve());
 const mockDeleteEventCascade = vi.fn(async () => Promise.resolve());
 const mockMigrateLegacyEvent = vi.fn(async () => Promise.resolve());
 
@@ -40,6 +41,7 @@ vi.mock('../firebase', () => ({
 vi.mock('../utils/eventData', () => ({
   addDrinks: (...args: unknown[]) => mockAddDrinks(...(args as [])),
   addReview: (...args: unknown[]) => mockAddReview(...(args as [])),
+  deleteReview: (...args: unknown[]) => mockDeleteReview(...(args as [])),
   deleteEventCascade: (...args: unknown[]) => mockDeleteEventCascade(...(args as [])),
   migrateLegacyEvent: (...args: unknown[]) => mockMigrateLegacyEvent(...(args as [])),
 }));
@@ -150,5 +152,22 @@ describe('useEvents hook', () => {
     });
     expect(mockDeleteEventCascade).toHaveBeenCalledTimes(1);
     expect(mockDeleteEventCascade).toHaveBeenCalledWith('ev-1');
+
+    // Delete drink review
+    await act(async () => {
+      const ok = await result.current.deleteDrinkReview(
+        'ev-1',
+        'drink-1',
+        'rev-1',
+        'https://firebasestorage.googleapis.com/v0/b/app/o/img.jpg'
+      );
+      expect(ok).toBe(true);
+    });
+    expect(mockDeleteReview).toHaveBeenCalledWith(
+      'ev-1',
+      'drink-1',
+      'rev-1',
+      'https://firebasestorage.googleapis.com/v0/b/app/o/img.jpg'
+    );
   });
 });

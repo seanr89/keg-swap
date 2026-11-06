@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type ServingFormat } from '../types';
+import { SERVING_FORMATS, type BeerEvent, type BeerDrink, type BeerReview, type ServingFormat } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
 import { ABV_BRACKETS, getAbvBracket, type AbvBracket } from '../utils/abvUtils';
 import { useWishlist } from '../hooks/useWishlist';
-import { countMatching, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
+import { countMatching, isTried, matchesShowFilter, type ShowFilter } from '../utils/showFilter';
 import { matchesDietaryFilter, parseServingFormat, type DietaryFilter } from '../utils/drinkFlags';
 import { topTags } from '../utils/tastingTags';
 import {
@@ -33,6 +33,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { StarRating } from './StarRating';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ReviewBottomSheet } from './review/ReviewBottomSheet';
 import { BatchUploadModal } from './BatchUploadModal';
 import { TopFiveHeroTray } from './TopFiveHeroTray';
@@ -51,6 +52,7 @@ interface EventDetailScreenProps {
   drinksError?: string | null;
   onRetryDrinks?: () => void;
   user: User;
+  isAdmin?: boolean;
   onBack: () => void;
   onAddDrink: (drinkData: Omit<BeerDrink, 'id' | 'reviews'> & { id?: string }) => void;
   onAddReview: (
@@ -64,6 +66,7 @@ interface EventDetailScreenProps {
     reviewId?: string,
     tags?: string[]
   ) => void;
+  onDeleteReview?: (drinkId: string, reviewId: string, imageUrl?: string) => Promise<boolean | void> | void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
 }
@@ -75,9 +78,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   drinksError = null,
   onRetryDrinks,
   user,
+  isAdmin,
   onBack,
   onAddDrink,
   onAddReview,
+  onDeleteReview,
   onAddDrinksBatch,
   onToggleAttendance,
 }) => {
@@ -165,6 +170,38 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
   // Review Bottom Sheet state
   const [activeReviewDrink, setActiveReviewDrink] = useState<BeerDrink | null>(null);
+  const [reviewPendingDelete, setReviewPendingDelete] = useState<{
+    drinkId: string;
+    drinkName: string;
+    review: BeerReview;
+  } | null>(null);
+
+  const handleConfirmDeleteReview = async () => {
+    if (!reviewPendingDelete) return;
+    const { drinkId, review } = reviewPendingDelete;
+    setReviewPendingDelete(null);
+
+    const isRemovingLastTried =
+      isTried({ reviews: [review] }, user.uid) &&
+      countMatching(event.drinks ?? [], 'tried', user.uid, wishlist, topFiveSet) <= 1;
+
+    await onDeleteReview?.(drinkId, review.id, review.imageUrl);
+
+    if (isRemovingLastTried && selectedShow === 'tried') {
+      setSelectedShow('all');
+    }
+  };
+
+  const handleDeleteFromSheet = async (drinkId: string, reviewId: string, imageUrl?: string) => {
+    const isRemovingLastTried =
+      countMatching(event.drinks ?? [], 'tried', user.uid, wishlist, topFiveSet) <= 1;
+
+    await onDeleteReview?.(drinkId, reviewId, imageUrl);
+
+    if (isRemovingLastTried && selectedShow === 'tried') {
+      setSelectedShow('all');
+    }
+  };
 
   // Lightbox Modal state
   const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle?: string } | null>(null);
@@ -998,6 +1035,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                             }}
                             onTriggerReview={() => setActiveReviewDrink(drink)}
                             onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
+                            currentUserId={user.uid}
+                            isAdmin={isAdmin}
+                            onRequestDeleteReview={(dId, dName, rev) =>
+                              setReviewPendingDelete({ drinkId: dId, drinkName: dName, review: rev })
+                            }
                           />
                         ))}
                       </div>
@@ -1019,6 +1061,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       }}
                       onTriggerReview={() => setActiveReviewDrink(drink)}
                       onOpenLightbox={(url, title, subtitle) => setLightboxImage({ url, title, subtitle })}
+                      currentUserId={user.uid}
+                      isAdmin={isAdmin}
+                      onRequestDeleteReview={(dId, dName, rev) =>
+                        setReviewPendingDelete({ drinkId: dId, drinkName: dName, review: rev })
+                      }
                     />
                   ))}
                 </div>
@@ -1079,6 +1126,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         user={user}
         onClose={() => setActiveReviewDrink(null)}
         onSubmitReview={onAddReview}
+        onDeleteReview={handleDeleteFromSheet}
       />
 
       {/* Batch Beers Upload Dialog */}
@@ -1110,6 +1158,24 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
         onSwap={(removeId, addId) => {
           void swapTopFive(removeId, addId);
         }}
+      />
+
+      {/* Review Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={reviewPendingDelete !== null}
+        title="Delete Review"
+        message={
+          <>
+            Delete your review for{' '}
+            <strong style={{ color: 'var(--text-primary)' }}>
+              {reviewPendingDelete?.drinkName}
+            </strong>
+            ? This action cannot be undone.
+          </>
+        }
+        confirmLabel="Delete Review"
+        onConfirm={handleConfirmDeleteReview}
+        onCancel={() => setReviewPendingDelete(null)}
       />
 
       {/* Lightbox / Full-screen Image Preview Overlay */}
@@ -1146,6 +1212,9 @@ interface BeerDrinkCardProps {
   onToggleWishlist: () => void;
   topFiveRank: number | null;
   onToggleTopFive: () => void;
+  currentUserId: string;
+  isAdmin?: boolean;
+  onRequestDeleteReview?: (drinkId: string, drinkName: string, review: BeerReview) => void;
 }
 
 const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
@@ -1157,6 +1226,9 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   onToggleTopFive,
   onTriggerReview,
   onOpenLightbox,
+  currentUserId,
+  isAdmin,
+  onRequestDeleteReview,
 }) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
@@ -1337,11 +1409,24 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
                       {rev.servingSize && <span className="review-meta-tag">{rev.servingSize}</span>}
                       {rev.price && <span className="review-meta-tag price">{rev.price}</span>}
                     </div>
-                    <div className="review-stars-fixed" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                      <StarRating rating={rev.rating} maxStars={10} size={11} />
-                      <span className="review-rating-num" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        {rev.rating.toFixed(1)}
-                      </span>
+                    <div className="review-header-right" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="review-stars-fixed" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <StarRating rating={rev.rating} maxStars={10} size={11} />
+                        <span className="review-rating-num" style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {rev.rating.toFixed(1)}
+                        </span>
+                      </div>
+                      {(isAdmin || (rev.userId && rev.userId === currentUserId)) && onRequestDeleteReview && (
+                        <button
+                          type="button"
+                          className="btn-icon-delete-review"
+                          onClick={() => onRequestDeleteReview(drink.id, drink.name, rev)}
+                          title="Delete this review"
+                          aria-label={`Delete review by ${rev.reviewer}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
                     </div>
                   </div>
                   
