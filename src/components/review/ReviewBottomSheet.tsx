@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import type { User } from 'firebase/auth';
 import type { BeerDrink } from '../../types';
-import { X, Check, AlertCircle, RotateCcw, UserCheck, ChevronDown, SlidersHorizontal, Trash2 } from 'lucide-react';
+import { X, Check, AlertCircle, RotateCcw, UserCheck, ChevronDown, SlidersHorizontal, Trash2, Ban, CheckCircle2 } from 'lucide-react';
 import { useReviewDraft } from '../../hooks/useReviewDraft';
 import { RatingScrubber } from './RatingScrubber';
 import { ServingFormatSelector } from './ServingFormatSelector';
@@ -26,6 +26,7 @@ export interface ReviewBottomSheetProps {
     tags?: string[]
   ) => void;
   onDeleteReview?: (drinkId: string, reviewId: string, imageUrl?: string) => void | Promise<void>;
+  onToggleAvailability?: (isAvailable: boolean) => void | Promise<void>;
 }
 
 const DISMISS_DISTANCE_PX = 100;
@@ -38,6 +39,7 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
   onClose,
   onSubmitReview,
   onDeleteReview,
+  onToggleAvailability,
 }) => {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const dragStateRef = useRef<{
@@ -230,6 +232,47 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="modal-form review-sheet-form" noValidate>
+            {drink.isAvailable === false ? (
+              <div className="review-sheet-ran-out-banner" role="status">
+                <div className="review-sheet-banner-content">
+                  <Ban size={18} className="banner-icon" />
+                  <div>
+                    <p className="banner-title">Marked as Complete / Ran Out</p>
+                    <p className="banner-desc">This beer has run out. Reviews are closed.</p>
+                  </div>
+                </div>
+                {onToggleAvailability && (
+                  <button
+                    type="button"
+                    className="btn-toggle-availability-sheet"
+                    onClick={() => {
+                      void onToggleAvailability(true);
+                    }}
+                  >
+                    <CheckCircle2 size={13} />
+                    <span>Mark Available</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              onToggleAvailability && (
+                <div className="review-sheet-availability-bar">
+                  <span className="availability-status-text">Status: <strong>Available</strong></span>
+                  <button
+                    type="button"
+                    className="btn-mark-ran-out-sheet"
+                    onClick={() => {
+                      void onToggleAvailability(false);
+                    }}
+                    title="Mark this beer as ran out / complete"
+                  >
+                    <Ban size={13} />
+                    <span>Mark as Ran Out</span>
+                  </button>
+                </div>
+              )
+            )}
+
             {error && (
               <div className="form-alert review-alert" role="alert">
                 <AlertCircle size={15} />
@@ -387,15 +430,26 @@ export const ReviewBottomSheet: React.FC<ReviewBottomSheetProps> = ({
               </button>
               <button
                 type="submit"
-                className="btn-primary btn-sheet-submit"
-                disabled={uploadingImage}
+                className={`btn-primary btn-sheet-submit ${drink.isAvailable === false ? 'is-disabled' : ''}`}
+                disabled={uploadingImage || drink.isAvailable === false}
+                aria-disabled={uploadingImage || drink.isAvailable === false}
+                title={drink.isAvailable === false ? 'This beer has run out. Reviews are closed.' : undefined}
               >
-                <Check size={17} />
-                <span>
-                  {isEditingExisting
-                    ? `Update (${rating.toFixed(1)}/10)`
-                    : `Submit Review (${rating.toFixed(1)}/10)`}
-                </span>
+                {drink.isAvailable === false ? (
+                  <>
+                    <Ban size={17} />
+                    <span>Ran Out • Reviews Closed</span>
+                  </>
+                ) : (
+                  <>
+                    <Check size={17} />
+                    <span>
+                      {isEditingExisting
+                        ? `Update (${rating.toFixed(1)}/10)`
+                        : `Submit Review (${rating.toFixed(1)}/10)`}
+                    </span>
+                  </>
+                )}
               </button>
             </div>
           </form>

@@ -118,6 +118,7 @@ function App() {
     addDrinksBatch: handleAddDrinksBatch,
     addDrinkReview,
     deleteDrinkReview: handleDeleteDrinkReview,
+    updateDrinkAvailability: handleUpdateDrinkAvailability,
     seedTestEvent: handleSeedTestEvent,
   } = useEvents(user, isAdmin);
 
@@ -374,6 +375,9 @@ function App() {
                 }
                 onAddDrinksBatch={(drinksData) => handleAddDrinksBatch(activeEvent.id, drinksData)}
                 onToggleAttendance={handleToggleAttendance}
+                onUpdateDrinkAvailability={(drinkId, isAvailable) =>
+                  handleUpdateDrinkAvailability(activeEvent.id, drinkId, isAvailable)
+                }
               />
             </Suspense>
           </ErrorBoundary>

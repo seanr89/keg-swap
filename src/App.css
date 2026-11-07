@@ -7254,6 +7254,188 @@ dialog::backdrop {
   border-color: var(--status-cancelled-border);
 }
 
+/* Beer Availability & Ran Out / Completed Status */
+.beer-status-badge.badge-ran-out {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-text);
+  border: 1px solid var(--status-cancelled-border);
+  font-size: 11px;
+  font-weight: 750;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.beer-card.is-ran-out {
+  opacity: 0.88;
+  border-color: var(--status-cancelled-border);
+}
+
+.btn-add-review-trigger.is-unavailable,
+.btn-add-review-trigger:disabled {
+  background: var(--bg-secondary) !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border-color) !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-toggle-availability {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-availability:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.btn-toggle-availability.is-ran-out {
+  color: var(--primary);
+  border-color: var(--border-focus);
+}
+
+.reviews-drawer-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--status-cancelled-bg);
+  border: 1px solid var(--status-cancelled-border);
+  color: var(--status-cancelled-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.review-sheet-ran-out-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--status-cancelled-bg);
+  border: 1px solid var(--status-cancelled-border);
+  margin-bottom: 16px;
+}
+
+.review-sheet-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.review-sheet-banner-content .banner-icon {
+  color: var(--status-cancelled-text);
+  flex-shrink: 0;
+}
+
+.review-sheet-banner-content .banner-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--status-cancelled-text);
+}
+
+.review-sheet-banner-content .banner-desc {
+  margin: 2px 0 0 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.btn-toggle-availability-sheet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-toggle-availability-sheet:hover {
+  background: var(--primary);
+  color: #0c0a09;
+}
+
+.review-sheet-availability-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  margin-bottom: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.availability-status-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.btn-mark-ran-out-sheet {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--status-cancelled-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-mark-ran-out-sheet:hover {
+  background: var(--status-cancelled-bg);
+  border-color: var(--status-cancelled-border);
+}
+
+.top-five-status-badge.ran-out {
+  background: var(--status-cancelled-bg);
+  color: var(--status-cancelled-text);
+  border: 1px solid var(--status-cancelled-border);
+}
+
+.top-five-slot-rate-btn.is-unavailable,
+.top-five-slot-rate-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-sheet-submit.is-disabled,
+.btn-sheet-submit:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
 
 
 

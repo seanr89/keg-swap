@@ -116,4 +116,66 @@ describe('EventDetailScreen review deletion', () => {
 
     expect(onDeleteReview).toHaveBeenCalledWith('drink-1', 'rev-user-1', undefined);
   });
+
+  it('allows marking a drink as ran out and disables adding reviews when unavailable', () => {
+    const onUpdateDrinkAvailability = vi.fn();
+
+    const { rerender } = render(
+      <EventDetailScreen
+        event={mockEvent}
+        user={mockUser}
+        onBack={vi.fn()}
+        onAddDrink={vi.fn()}
+        onAddReview={vi.fn()}
+        onAddDrinksBatch={vi.fn()}
+        onToggleAttendance={vi.fn()}
+        onUpdateDrinkAvailability={onUpdateDrinkAvailability}
+      />
+    );
+
+    // Expand reviews drawer
+    const reviewsBtn = screen.getByRole('button', { name: /reviews \(2\)/i });
+    fireEvent.click(reviewsBtn);
+
+    // Toggle button should say "Mark as Ran Out"
+    const markRanOutBtn = screen.getByRole('button', { name: /mark beer as ran out/i });
+    expect(markRanOutBtn).toBeInTheDocument();
+    fireEvent.click(markRanOutBtn);
+
+    expect(onUpdateDrinkAvailability).toHaveBeenCalledWith('drink-1', false);
+
+    // Re-render with drink marked unavailable (isAvailable: false)
+    const unavailableDrink: BeerDrink = { ...mockDrink, isAvailable: false };
+    const eventWithUnavailableDrink: BeerEvent = {
+      ...mockEvent,
+      drinks: [unavailableDrink],
+    };
+
+    rerender(
+      <EventDetailScreen
+        event={eventWithUnavailableDrink}
+        user={mockUser}
+        onBack={vi.fn()}
+        onAddDrink={vi.fn()}
+        onAddReview={vi.fn()}
+        onAddDrinksBatch={vi.fn()}
+        onToggleAttendance={vi.fn()}
+        onUpdateDrinkAvailability={onUpdateDrinkAvailability}
+      />
+    );
+
+    // Should display Ran Out badge
+    expect(screen.getAllByText(/ran out/i).length).toBeGreaterThanOrEqual(1);
+
+    // Rate & Review button should be disabled
+    const reviewBtn = screen.getByRole('button', { name: /rated.*ran out/i });
+    expect(reviewBtn).toBeDisabled();
+
+    // Drawer button should now allow marking available
+    const markAvailableBtn = screen.getByRole('button', { name: /mark beer as available/i });
+    expect(markAvailableBtn).toBeInTheDocument();
+    fireEvent.click(markAvailableBtn);
+
+    expect(onUpdateDrinkAvailability).toHaveBeenCalledWith('drink-1', true);
+  });
 });

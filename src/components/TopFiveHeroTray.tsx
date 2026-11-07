@@ -8,6 +8,7 @@ import {
   Star,
   Trophy,
   X,
+  Ban,
 } from 'lucide-react';
 import type { BeerDrink } from '../types';
 import { MAX_TOP_FIVE } from '../utils/wishlist';
@@ -161,7 +162,12 @@ export const TopFiveHeroTray: React.FC<TopFiveHeroTrayProps> = ({
                 <div className="top-five-slot-top">
                   <div className="top-five-slot-badges">
                     <span className="top-five-rank-badge">#{rank}</span>
-                    {isTried ? (
+                    {drink.isAvailable === false ? (
+                      <span className="top-five-status-badge ran-out" title="This beer has run out">
+                        <Ban size={11} />
+                        Ran Out
+                      </span>
+                    ) : isTried ? (
                       <span className="top-five-status-badge tried">
                         <Check size={11} />
                         Tried • {userReview!.rating.toFixed(1)}
@@ -217,11 +223,23 @@ export const TopFiveHeroTray: React.FC<TopFiveHeroTrayProps> = ({
 
                 <button
                   type="button"
-                  className={`top-five-slot-rate-btn ${isTried ? 'rated' : ''}`}
-                  onClick={() => onTriggerReview(drink)}
+                  className={`top-five-slot-rate-btn ${drink.isAvailable === false ? 'is-unavailable' : ''} ${isTried ? 'rated' : ''}`}
+                  onClick={drink.isAvailable === false ? undefined : () => onTriggerReview(drink)}
+                  disabled={drink.isAvailable === false}
+                  aria-disabled={drink.isAvailable === false}
+                  title={drink.isAvailable === false ? 'This beer has run out. Reviews are closed.' : isTried ? 'Edit Rating' : 'Rate & Check Off'}
                 >
-                  <Star size={12} fill={isTried ? 'currentColor' : 'none'} />
-                  <span>{isTried ? 'Edit Rating' : 'Rate & Check Off'}</span>
+                  {drink.isAvailable === false ? (
+                    <>
+                      <Ban size={12} />
+                      <span>Ran Out</span>
+                    </>
+                  ) : (
+                    <>
+                      <Star size={12} fill={isTried ? 'currentColor' : 'none'} />
+                      <span>{isTried ? 'Edit Rating' : 'Rate & Check Off'}</span>
+                    </>
+                  )}
                 </button>
               </div>
             );

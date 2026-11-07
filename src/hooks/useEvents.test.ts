@@ -11,6 +11,7 @@ const mockAddReview = vi.fn(async () => Promise.resolve());
 const mockDeleteReview = vi.fn(async () => Promise.resolve());
 const mockDeleteEventCascade = vi.fn(async () => Promise.resolve());
 const mockMigrateLegacyEvent = vi.fn(async () => Promise.resolve());
+const mockUpdateDrinkAvailability = vi.fn(async () => Promise.resolve());
 
 type EventsSnapshotCallback = (snap: {
   empty: boolean;
@@ -44,6 +45,7 @@ vi.mock('../utils/eventData', () => ({
   deleteReview: (...args: unknown[]) => mockDeleteReview(...(args as [])),
   deleteEventCascade: (...args: unknown[]) => mockDeleteEventCascade(...(args as [])),
   migrateLegacyEvent: (...args: unknown[]) => mockMigrateLegacyEvent(...(args as [])),
+  updateDrinkAvailability: (...args: unknown[]) => mockUpdateDrinkAvailability(...(args as [])),
 }));
 
 vi.mock('../utils/imageUtils', () => ({
@@ -169,5 +171,33 @@ describe('useEvents hook', () => {
       'rev-1',
       'https://firebasestorage.googleapis.com/v0/b/app/o/img.jpg'
     );
+
+    // Update drink availability
+    await act(async () => {
+      await result.current.updateDrinkAvailability('ev-1', 'drink-1', false);
+    });
+    expect(mockUpdateDrinkAvailability).toHaveBeenCalledWith('ev-1', 'drink-1', false);
+
+    // Guard: cannot add review to unavailable drink
+    await act(async () => {
+      await result.current.addDrinkReview(
+        'ev-1',
+        {
+          id: 'drink-1',
+          name: 'Northern Star',
+          brewery: 'North Brew',
+          location: 'Leeds',
+          abv: '5.2%',
+          style: 'Porter',
+          description: 'Rich roasted malt',
+          reviews: [],
+          isAvailable: false,
+        },
+        'Ale Explorer',
+        9.0,
+        'Delicious'
+      );
+    });
+    expect(mockAddReview).not.toHaveBeenCalled();
   });
 });

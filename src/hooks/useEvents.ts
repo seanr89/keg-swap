@@ -17,6 +17,7 @@ import {
   deleteEventCascade,
   deleteReview as removeReview,
   migrateLegacyEvent,
+  updateDrinkAvailability as persistDrinkAvailability,
 } from '../utils/eventData';
 import { removeStoredDraft } from './useReviewDraft';
 import { isBase64DataUrl, sanitizeOrUploadImageUrl } from '../utils/imageUtils';
@@ -258,7 +259,7 @@ export function useEvents(user: User | null, isAdmin = false) {
       reviewId?: string,
       tags?: string[]
     ): Promise<void> => {
-      if (!drink) return;
+      if (!drink || drink.isAvailable === false) return;
 
       const finalReviewId =
         reviewId || (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString());
@@ -318,6 +319,17 @@ export function useEvents(user: User | null, isAdmin = false) {
     [user]
   );
 
+  const updateDrinkAvailability = useCallback(
+    async (eventId: string, drinkId: string, isAvailable: boolean): Promise<void> => {
+      try {
+        await persistDrinkAvailability(eventId, drinkId, isAvailable);
+      } catch (err) {
+        console.error('Failed to update drink availability in Firestore:', err);
+      }
+    },
+    []
+  );
+
   const seedTestEvent = useCallback(async (): Promise<void> => {
     if (!user) return;
     try {
@@ -339,6 +351,7 @@ export function useEvents(user: User | null, isAdmin = false) {
     addDrinksBatch,
     addDrinkReview,
     deleteDrinkReview,
+    updateDrinkAvailability,
     seedTestEvent,
   };
 }

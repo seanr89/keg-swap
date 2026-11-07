@@ -30,7 +30,9 @@ import {
   Star,
   Trophy,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  Ban,
+  CheckCircle2,
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -69,6 +71,7 @@ interface EventDetailScreenProps {
   onDeleteReview?: (drinkId: string, reviewId: string, imageUrl?: string) => Promise<boolean | void> | void;
   onAddDrinksBatch: (drinksData: Omit<BeerDrink, 'id' | 'reviews'>[]) => void;
   onToggleAttendance: (id: string) => void;
+  onUpdateDrinkAvailability?: (drinkId: string, isAvailable: boolean) => Promise<void> | void;
 }
 
 export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
@@ -85,6 +88,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   onDeleteReview,
   onAddDrinksBatch,
   onToggleAttendance,
+  onUpdateDrinkAvailability,
 }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newDrinkName, setNewDrinkName] = useState('');
@@ -1040,6 +1044,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                             onRequestDeleteReview={(dId, dName, rev) =>
                               setReviewPendingDelete({ drinkId: dId, drinkName: dName, review: rev })
                             }
+                            onToggleAvailability={
+                              onUpdateDrinkAvailability
+                                ? (isAvailable) => onUpdateDrinkAvailability(drink.id, isAvailable)
+                                : undefined
+                            }
                           />
                         ))}
                       </div>
@@ -1065,6 +1074,11 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       isAdmin={isAdmin}
                       onRequestDeleteReview={(dId, dName, rev) =>
                         setReviewPendingDelete({ drinkId: dId, drinkName: dName, review: rev })
+                      }
+                      onToggleAvailability={
+                        onUpdateDrinkAvailability
+                          ? (isAvailable) => onUpdateDrinkAvailability(drink.id, isAvailable)
+                          : undefined
                       }
                     />
                   ))}
@@ -1121,12 +1135,21 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
 
       {/* Mobile-First Review Bottom Sheet Dialog */}
       <ReviewBottomSheet
-        drink={activeReviewDrink}
+        drink={
+          activeReviewDrink
+            ? event.drinks?.find((d) => d.id === activeReviewDrink.id) ?? activeReviewDrink
+            : null
+        }
         eventId={event.id}
         user={user}
         onClose={() => setActiveReviewDrink(null)}
         onSubmitReview={onAddReview}
         onDeleteReview={handleDeleteFromSheet}
+        onToggleAvailability={
+          onUpdateDrinkAvailability && activeReviewDrink
+            ? (isAvailable) => onUpdateDrinkAvailability(activeReviewDrink.id, isAvailable)
+            : undefined
+        }
       />
 
       {/* Batch Beers Upload Dialog */}
@@ -1215,6 +1238,7 @@ interface BeerDrinkCardProps {
   currentUserId: string;
   isAdmin?: boolean;
   onRequestDeleteReview?: (drinkId: string, drinkName: string, review: BeerReview) => void;
+  onToggleAvailability?: (isAvailable: boolean) => void;
 }
 
 const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
@@ -1229,6 +1253,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   currentUserId,
   isAdmin,
   onRequestDeleteReview,
+  onToggleAvailability,
 }) => {
   const [isReviewsOpen, setIsReviewsOpen] = useState(false);
 
@@ -1239,7 +1264,7 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
   const flavorTags = topTags(drink.reviews);
 
   return (
-    <div className={`beer-card ${topFiveRank !== null ? 'is-top-five' : ''}`}>
+    <div className={`beer-card ${drink.isAvailable === false ? 'is-ran-out' : ''} ${topFiveRank !== null ? 'is-top-five' : ''}`}>
       {/* Optional Top Drink Image Header */}
       {drink.imageUrl && (
         <div 
@@ -1271,6 +1296,11 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
                 <Trophy size={11} />
                 <span>Top #{topFiveRank}</span>
                 {userRating !== undefined && <Check size={11} />}
+              </span>
+            )}
+            {drink.isAvailable === false && (
+              <span className="beer-status-badge badge-ran-out" title="This beer has run out">
+                <Ban size={11} /> Ran Out
               </span>
             )}
             <span className="beer-style-badge">{drink.style}</span>
@@ -1321,11 +1351,24 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
           
           <button 
             type="button" 
-            className={`btn-add-review-trigger ${userRating !== undefined ? 'has-user-rating' : ''}`}
-            onClick={onTriggerReview}
-            title={userRating !== undefined ? `You rated ${userRating.toFixed(1)}/10 — tap to edit` : 'Rate and review this beer'}
+            className={`btn-add-review-trigger ${drink.isAvailable === false ? 'is-unavailable' : ''} ${userRating !== undefined ? 'has-user-rating' : ''}`}
+            onClick={drink.isAvailable === false ? undefined : onTriggerReview}
+            disabled={drink.isAvailable === false}
+            aria-disabled={drink.isAvailable === false}
+            title={
+              drink.isAvailable === false
+                ? 'This beer has run out and is marked complete. New reviews are closed.'
+                : userRating !== undefined
+                  ? `You rated ${userRating.toFixed(1)}/10 — tap to edit`
+                  : 'Rate and review this beer'
+            }
           >
-            {userRating !== undefined ? (
+            {drink.isAvailable === false ? (
+              <>
+                <Ban size={14} />
+                <span>{userRating !== undefined ? `Rated ${userRating.toFixed(1)} • Ran Out` : 'Ran Out • Closed'}</span>
+              </>
+            ) : userRating !== undefined ? (
               <>
                 <Star size={14} fill="currentColor" />
                 <span>You rated: {userRating.toFixed(1)} • Edit</span>
@@ -1385,18 +1428,55 @@ const BeerDrinkCard: React.FC<BeerDrinkCardProps> = ({
       {/* Expanded Reviews Drawer */}
       {isReviewsOpen && (
         <div className="beer-reviews-drawer">
-          <div className="reviews-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <h5 style={{ margin: 0 }}>Reviews ({drink.reviews.length})</h5>
-            <button
-              type="button"
-              className="btn-close-reviews"
-              onClick={() => setIsReviewsOpen(false)}
-              title="Close reviews"
-              aria-label="Close reviews"
-            >
-              <X size={16} />
-            </button>
+          <div className="reviews-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', flexWrap: 'wrap', gap: '8px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <h5 style={{ margin: 0 }}>Reviews ({drink.reviews.length})</h5>
+              {drink.isAvailable === false && (
+                <span className="beer-status-badge badge-ran-out" title="Marked complete / ran out">
+                  <Ban size={10} /> Ran Out
+                </span>
+              )}
+            </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              {onToggleAvailability && (
+                <button
+                  type="button"
+                  className={`btn-toggle-availability ${drink.isAvailable === false ? 'is-ran-out' : ''}`}
+                  onClick={() => onToggleAvailability(drink.isAvailable === false)}
+                  title={drink.isAvailable === false ? 'Mark as available' : 'Mark as ran out / complete'}
+                  aria-label={drink.isAvailable === false ? 'Mark beer as available' : 'Mark beer as ran out / complete'}
+                >
+                  {drink.isAvailable === false ? (
+                    <>
+                      <CheckCircle2 size={13} />
+                      <span>Mark Available</span>
+                    </>
+                  ) : (
+                    <>
+                      <Ban size={13} />
+                      <span>Mark as Ran Out</span>
+                    </>
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn-close-reviews"
+                onClick={() => setIsReviewsOpen(false)}
+                title="Close reviews"
+                aria-label="Close reviews"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
+
+          {drink.isAvailable === false && (
+            <div className="reviews-drawer-alert" role="status">
+              <Ban size={14} />
+              <span>This beer has run out. Reviews are closed.</span>
+            </div>
+          )}
 
           {/* Individual Reviews Feed */}
           {drink.reviews.length > 0 ? (

@@ -96,6 +96,14 @@ export async function addDrinks(eventId: string, drinks: BeerDrink[]): Promise<v
   }
 }
 
+export async function updateDrinkAvailability(
+  eventId: string,
+  drinkId: string,
+  isAvailable: boolean
+): Promise<void> {
+  await setDoc(drinkRef(eventId, drinkId), { isAvailable }, { merge: true });
+}
+
 export async function addReview(
   eventId: string,
   drink: Pick<BeerDrink, 'id' | 'name' | 'brewery' | 'style'>,

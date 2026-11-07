@@ -247,6 +247,10 @@ export function useReviewDraft({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!drink) return;
+    if (drink.isAvailable === false) {
+      setError('This beer has run out. Reviews are closed.');
+      return;
+    }
     if (rating < 0.5 || rating > 10.0) {
       setError('Rating must be between 0.5 and 10.0');
       return;

@@ -215,4 +215,52 @@ describe('ReviewBottomSheet', () => {
     );
     await vi.waitFor(() => expect(onClose).toHaveBeenCalled());
   });
+
+  it('allows marking beer as ran out and disables reviews when complete', () => {
+    const onToggleAvailability = vi.fn();
+    const onSubmitReview = vi.fn();
+
+    const { rerender } = render(
+      <ReviewBottomSheet
+        drink={mockDrink}
+        eventId="event-1"
+        user={mockUser}
+        onClose={vi.fn()}
+        onSubmitReview={onSubmitReview}
+        onToggleAvailability={onToggleAvailability}
+      />
+    );
+
+    // Can mark as ran out
+    const markRanOutBtn = screen.getByRole('button', { name: /mark as ran out/i });
+    expect(markRanOutBtn).toBeInTheDocument();
+    fireEvent.click(markRanOutBtn);
+    expect(onToggleAvailability).toHaveBeenCalledWith(false);
+
+    // Rerender as ran out (isAvailable: false)
+    const ranOutDrink: BeerDrink = { ...mockDrink, isAvailable: false };
+    rerender(
+      <ReviewBottomSheet
+        drink={ranOutDrink}
+        eventId="event-1"
+        user={mockUser}
+        onClose={vi.fn()}
+        onSubmitReview={onSubmitReview}
+        onToggleAvailability={onToggleAvailability}
+      />
+    );
+
+    // Ran out banner shown
+    expect(screen.getByText(/marked as complete \/ ran out/i)).toBeInTheDocument();
+
+    // Submit button is disabled
+    const submitBtn = screen.getByRole('button', { name: /ran out • reviews closed/i });
+    expect(submitBtn).toBeDisabled();
+
+    // Can mark available again
+    const markAvailableBtn = screen.getByRole('button', { name: /mark available/i });
+    expect(markAvailableBtn).toBeInTheDocument();
+    fireEvent.click(markAvailableBtn);
+    expect(onToggleAvailability).toHaveBeenCalledWith(true);
+  });
 });

@@ -49,6 +49,7 @@ export interface BeerDrink {
   caskOrKeg?: ServingFormat;
   type?: string; // Drink type/group: 'Cask', 'Rotating Keg', 'Cider', 'Unknown', etc.
   createdAt?: string; // used to keep the drinks list in insertion order
+  isAvailable?: boolean; // absent or true = available, false = no longer available / ran out / complete
 }
 
 /** A drink as stored at `events/{eventId}/drinks/{drinkId}` (reviews live in a subcollection). */
