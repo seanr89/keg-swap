@@ -134,6 +134,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [swapCandidateDrink, setSwapCandidateDrink] = useState<BeerDrink | null>(null);
 
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedBrewery, setSelectedBrewery] = useState<string>('All Breweries');
   const [selectedStyle, setSelectedStyle] = useState<string>('All Styles');
   const [selectedAbv, setSelectedAbv] = useState<'all' | AbvBracket>('all');
   const [selectedDietary, setSelectedDietary] = useState<DietaryFilter>('any');
@@ -143,6 +144,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const handleClearAllFilters = () => {
     setDrinkSearchQuery('');
     setSelectedType('all');
+    setSelectedBrewery('All Breweries');
     setSelectedStyle('All Styles');
     setSelectedAbv('all');
     setSelectedDietary('any');
@@ -155,6 +157,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     let count = 0;
     if (drinkSearchQuery.trim().length > 0) count++;
     if (selectedType !== 'all') count++;
+    if (selectedBrewery !== 'All Breweries') count++;
     if (selectedStyle !== 'All Styles') count++;
     if (selectedAbv !== 'all') count++;
     if (selectedDietary !== 'any') count++;
@@ -165,6 +168,7 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   }, [
     drinkSearchQuery,
     selectedType,
+    selectedBrewery,
     selectedStyle,
     selectedAbv,
     selectedDietary,
@@ -345,6 +349,18 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     [event.drinks, selectedShow, user.uid, wishlist, topFiveSet]
   );
 
+  const availableBreweries = React.useMemo(
+    () =>
+      Array.from(
+        new Set(
+          showScopedDrinks
+            .map((drink) => drink.brewery?.trim())
+            .filter((b): b is string => Boolean(b))
+        )
+      ).sort((a, b) => a.localeCompare(b)),
+    [showScopedDrinks]
+  );
+
   const availableStyles = React.useMemo(
     () =>
       Array.from(
@@ -371,6 +387,9 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   React.useEffect(() => {
     if (showScopedDrinks.length === 0) return;
 
+    if (selectedBrewery !== 'All Breweries' && !availableBreweries.includes(selectedBrewery)) {
+      setSelectedBrewery('All Breweries');
+    }
     if (selectedStyle !== 'All Styles' && !availableStyles.includes(selectedStyle)) {
       setSelectedStyle('All Styles');
     }
@@ -402,6 +421,8 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     }
   }, [
     showScopedDrinks,
+    availableBreweries,
+    selectedBrewery,
     availableStyles,
     selectedStyle,
     selectedType,
@@ -426,11 +447,23 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
     const matchesType =
       selectedType === 'all' ||
       effectiveType.toLowerCase() === selectedType.toLowerCase();
+    const matchesBrewery =
+      selectedBrewery === 'All Breweries' ||
+      drink.brewery?.trim().toLowerCase() === selectedBrewery.toLowerCase();
     const matchesStyle = selectedStyle === 'All Styles' || drink.style === selectedStyle;
     const matchesAbv = selectedAbv === 'all' || getAbvBracket(drink.abv) === selectedAbv;
     const matchesDietary = matchesDietaryFilter(drink, selectedDietary);
     const matchesFormat = selectedFormat === 'all' || drink.caskOrKeg === selectedFormat;
-    return matchesSearch && matchesShow && matchesType && matchesStyle && matchesAbv && matchesDietary && matchesFormat;
+    return (
+      matchesSearch &&
+      matchesShow &&
+      matchesType &&
+      matchesBrewery &&
+      matchesStyle &&
+      matchesAbv &&
+      matchesDietary &&
+      matchesFormat
+    );
   });
 
   const sortedDrinks = [...filteredDrinks].sort((a, b) => {
@@ -929,6 +962,27 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                       return (
                         <option key={type} value={type}>
                           {type} ({count})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* Brewery Dropdown Filter */}
+                <div className="form-select-wrapper" style={{ width: 'auto', minWidth: '140px' }}>
+                  <select
+                    value={selectedBrewery}
+                    onChange={(e) => setSelectedBrewery(e.target.value)}
+                    className="form-select"
+                    aria-label="Filter drinks by brewery"
+                    style={{ padding: '8px 32px 8px 12px', fontSize: '13px', height: '36px' }}
+                  >
+                    <option value="All Breweries">All Breweries ({showScopedDrinks.length})</option>
+                    {availableBreweries.map((brewery) => {
+                      const count = showScopedDrinks.filter((d) => d.brewery?.trim() === brewery).length;
+                      return (
+                        <option key={brewery} value={brewery}>
+                          {brewery} ({count})
                         </option>
                       );
                     })}

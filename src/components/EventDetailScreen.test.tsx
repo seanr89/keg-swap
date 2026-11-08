@@ -179,6 +179,85 @@ describe('EventDetailScreen review deletion', () => {
     expect(onUpdateDrinkAvailability).toHaveBeenCalledWith('drink-1', true);
   });
 
+  it('filters drinks by brewery and resets when All Breweries is selected', () => {
+    const multiBreweryEvent: BeerEvent = {
+      ...mockEvent,
+      drinks: [
+        {
+          id: 'drink-1',
+          name: 'Northern Star',
+          brewery: 'North Brew',
+          location: 'Leeds',
+          abv: '5.2%',
+          style: 'Porter',
+          description: 'Rich roasted malt',
+          reviews: [],
+        },
+        {
+          id: 'drink-2',
+          name: 'Transmission',
+          brewery: 'North Brew',
+          location: 'Leeds',
+          abv: '6.9%',
+          style: 'IPA',
+          description: 'Hazy IPA',
+          reviews: [],
+        },
+        {
+          id: 'drink-3',
+          name: 'Sponge',
+          brewery: 'Deya Brewing',
+          location: 'Cheltenham',
+          abv: '4.8%',
+          style: 'Pale Ale',
+          description: 'Juicy pale ale',
+          reviews: [],
+        },
+      ],
+    };
+
+    render(
+      <EventDetailScreen
+        event={multiBreweryEvent}
+        user={mockUser}
+        onBack={vi.fn()}
+        onAddDrink={vi.fn()}
+        onAddReview={vi.fn()}
+        onAddDrinksBatch={vi.fn()}
+        onToggleAttendance={vi.fn()}
+      />
+    );
+
+    const brewerySelect = screen.getByRole('combobox', { name: /filter drinks by brewery/i });
+    expect(brewerySelect).toBeInTheDocument();
+
+    // Verify option labels and counts
+    expect(screen.getByRole('option', { name: 'All Breweries (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Deya Brewing (1)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'North Brew (2)' })).toBeInTheDocument();
+
+    // Filter by Deya Brewing
+    fireEvent.change(brewerySelect, { target: { value: 'Deya Brewing' } });
+
+    expect(screen.getByText('Sponge')).toBeInTheDocument();
+    expect(screen.queryByText('Northern Star')).not.toBeInTheDocument();
+    expect(screen.queryByText('Transmission')).not.toBeInTheDocument();
+
+    // Filter by North Brew
+    fireEvent.change(brewerySelect, { target: { value: 'North Brew' } });
+
+    expect(screen.queryByText('Sponge')).not.toBeInTheDocument();
+    expect(screen.getByText('Northern Star')).toBeInTheDocument();
+    expect(screen.getByText('Transmission')).toBeInTheDocument();
+
+    // Reset back to All Breweries
+    fireEvent.change(brewerySelect, { target: { value: 'All Breweries' } });
+
+    expect(screen.getByText('Sponge')).toBeInTheDocument();
+    expect(screen.getByText('Northern Star')).toBeInTheDocument();
+    expect(screen.getByText('Transmission')).toBeInTheDocument();
+  });
+
   describe('Clear All filters toggle control in beer event section', () => {
     const multiDrinkEvent: BeerEvent = {
       ...mockEvent,
@@ -259,6 +338,7 @@ describe('EventDetailScreen review deletion', () => {
       const clearAllBtn = screen.getByRole('button', { name: /clear all filters/i });
       const searchInput = screen.getByPlaceholderText(/search drinks by name/i);
       const typeSelect = screen.getByRole('combobox', { name: /filter drinks by type/i });
+      const brewerySelect = screen.getByRole('combobox', { name: /filter drinks by brewery/i });
 
       // Apply a search filter
       fireEvent.change(searchInput, { target: { value: 'Transmission' } });
@@ -273,8 +353,9 @@ describe('EventDetailScreen review deletion', () => {
       expect(clearAllBtn).toHaveAttribute('aria-pressed', 'true');
       expect(clearAllBtn).toHaveTextContent(/Clear All/i);
 
-      // Apply another filter (Type: IPA)
+      // Apply type and brewery filters
       fireEvent.change(typeSelect, { target: { value: 'IPA' } });
+      fireEvent.change(brewerySelect, { target: { value: 'North Brew' } });
 
       // Click Clear All toggle button
       fireEvent.click(clearAllBtn);
@@ -282,6 +363,7 @@ describe('EventDetailScreen review deletion', () => {
       // All filters reset
       expect(searchInput).toHaveValue('');
       expect(typeSelect).toHaveValue('all');
+      expect(brewerySelect).toHaveValue('All Breweries');
       expect(clearAllBtn).toBeDisabled();
       expect(clearAllBtn).toHaveAttribute('aria-pressed', 'false');
 
