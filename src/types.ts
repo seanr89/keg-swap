@@ -30,6 +30,40 @@ export interface BeerReviewDoc extends BeerReview {
   style: string;
 }
 
+/**
+ * Comprehensive export entry capturing beer event, brewery, beer specs, and tasting review details.
+ */
+export interface ReviewExportEntry {
+  // Beer Event
+  eventId: string;
+  eventName: string;
+  eventDate: string;
+  eventAddress: string;
+  eventStatus: string;
+  // Brewery
+  brewery: string;
+  breweryLocation: string;
+  // Beer / Drink
+  drinkId: string;
+  drinkName: string;
+  style: string;
+  type: string;
+  abv: string;
+  caskOrKeg: string;
+  isVegan: boolean | null;
+  isGlutenFree: boolean | null;
+  description: string;
+  // Tasting Review
+  reviewId: string;
+  rating: number;
+  comment: string;
+  tastingTags: string[];
+  servingSize: string;
+  price: string;
+  createdAt: string;
+  imageUrl?: string;
+}
+
 /** How a drink is served; the tuple is shared by the type, the add form and the batch importer. */
 export const SERVING_FORMATS = ['Cask', 'Keg', 'Can', 'Bottle'] as const;
 export type ServingFormat = (typeof SERVING_FORMATS)[number];
