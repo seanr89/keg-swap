@@ -141,6 +141,43 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
   const [selectedFormat, setSelectedFormat] = useState<'all' | ServingFormat>('all');
   const [selectedSort, setSelectedSort] = useState<string>('default');
 
+  const handleClearAllFilters = () => {
+    setDrinkSearchQuery('');
+    setSelectedType('all');
+    setSelectedBrewery('All Breweries');
+    setSelectedStyle('All Styles');
+    setSelectedAbv('all');
+    setSelectedDietary('any');
+    setSelectedFormat('all');
+    setSelectedSort('default');
+    setSelectedShow('all');
+  };
+
+  const activeFiltersCount = React.useMemo(() => {
+    let count = 0;
+    if (drinkSearchQuery.trim().length > 0) count++;
+    if (selectedType !== 'all') count++;
+    if (selectedBrewery !== 'All Breweries') count++;
+    if (selectedStyle !== 'All Styles') count++;
+    if (selectedAbv !== 'all') count++;
+    if (selectedDietary !== 'any') count++;
+    if (selectedFormat !== 'all') count++;
+    if (selectedSort !== 'default') count++;
+    if (selectedShow !== 'all') count++;
+    return count;
+  }, [
+    drinkSearchQuery,
+    selectedType,
+    selectedBrewery,
+    selectedStyle,
+    selectedAbv,
+    selectedDietary,
+    selectedFormat,
+    selectedSort,
+    selectedShow,
+  ]);
+  const hasActiveFilters = activeFiltersCount > 0;
+
   const handleToggleTopFive = async (drink: BeerDrink) => {
     const isRemovingLastTopFive =
       topFiveSet.has(drink.id) &&
@@ -1058,6 +1095,31 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                     </button>
                   ))}
                 </div>
+
+                {/* Clear All Filters Toggle Button */}
+                <button
+                  type="button"
+                  id="clear-all-filters-btn"
+                  data-testid="clear-all-filters-toggle"
+                  className={`btn-clear-filters-toggle ${hasActiveFilters ? 'active' : 'disabled'}`}
+                  aria-label="Clear all filters"
+                  aria-pressed={hasActiveFilters}
+                  disabled={!hasActiveFilters}
+                  onClick={handleClearAllFilters}
+                  title={
+                    hasActiveFilters
+                      ? `Clear all ${activeFiltersCount} active filter${activeFiltersCount > 1 ? 's' : ''}`
+                      : 'No active filters to clear'
+                  }
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                  <span>Clear All</span>
+                  {activeFiltersCount > 0 && (
+                    <span className="filter-count-badge" aria-hidden="true">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -1140,6 +1202,19 @@ export const EventDetailScreen: React.FC<EventDetailScreenProps> = ({
                 <X size={32} />
                 <h4>No drinks match your filters</h4>
                 <p>Try refining your search keyword or selection criteria.</p>
+                {hasActiveFilters && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="btn-secondary"
+                    id="empty-clear-all-filters-btn"
+                    data-testid="empty-clear-all-filters-btn"
+                    style={{ marginTop: '12px' }}
+                  >
+                    <RotateCcw size={15} aria-hidden="true" />
+                    <span>Clear All Filters</span>
+                  </button>
+                )}
               </div>
             )}
           </>

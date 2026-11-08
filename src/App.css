@@ -650,6 +650,62 @@
   font-weight: 600;
 }
 
+/* Clear All Filters Toggle Button */
+.btn-clear-filters-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.btn-clear-filters-toggle:hover:not(:disabled) {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
+}
+
+.btn-clear-filters-toggle.active {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-glow);
+  font-weight: 600;
+}
+
+.btn-clear-filters-toggle:disabled,
+.btn-clear-filters-toggle.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: var(--border-color);
+  color: var(--text-muted);
+  background: var(--bg-input);
+}
+
+.btn-clear-filters-toggle .filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary);
+  color: var(--bg-main);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 6px;
+  min-width: 16px;
+  height: 16px;
+  line-height: 1;
+}
+
 @media (max-width: 768px) {
   .filter-tabs {
     width: 100%;
