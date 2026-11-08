@@ -10,7 +10,7 @@ import { PrivacyPolicyModal } from './components/PrivacyPolicyModal';
 import { UserSearchModal, type FriendModalTab } from './components/UserSearchModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { Beer, Plus, Search, User as UserIcon, ShieldAlert, Loader2 } from 'lucide-react';
+import { Beer, Plus, Search, User as UserIcon, ShieldAlert, Loader2, RotateCcw } from 'lucide-react';
 import { parseLocalDate } from './utils/dateUtils';
 import { extractFriendCodeFromUrl } from './utils/friendCode';
 import { lazyWithRetry } from './utils/lazyWithRetry';
@@ -603,6 +603,29 @@ function App() {
                     </button>
                   ))}
                 </div>
+
+                {/* Clear All Events Filters Toggle Button */}
+                <button
+                  type="button"
+                  id="clear-all-events-filters-btn"
+                  data-testid="clear-all-events-filters-toggle"
+                  className={`btn-clear-filters-toggle ${searchQuery || statusFilter !== 'All' ? 'active' : 'disabled'}`}
+                  aria-label="Clear all filters"
+                  aria-pressed={Boolean(searchQuery || statusFilter !== 'All')}
+                  disabled={!searchQuery && statusFilter === 'All'}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('All');
+                  }}
+                  title={
+                    searchQuery || statusFilter !== 'All'
+                      ? 'Clear all event filters'
+                      : 'No active filters to clear'
+                  }
+                >
+                  <RotateCcw size={14} aria-hidden="true" />
+                  <span>Clear All</span>
+                </button>
               </div>
             </section>
 
