@@ -1,5 +1,5 @@
 import React from 'react';
-import type { BeerEvent, BeerReview, UserProfile } from '../types';
+import type { BeerEvent, BeerDrink, BeerReview, UserProfile, ReviewExportEntry } from '../types';
 import type { User } from 'firebase/auth';
 import { parseLocalDate } from '../utils/dateUtils';
 import { 
@@ -29,11 +29,19 @@ import {
   Copy,
   Check,
   Trash2,
+  FileSpreadsheet,
+  FileCode,
+  CheckCircle2,
 } from 'lucide-react';
 import { StarRating } from './StarRating';
 import { ConfirmDialog } from './ConfirmDialog';
 import { useUserReviews } from '../hooks/useUserReviews';
-import { buildDiaryCsv, downloadTextFile } from '../utils/exportDiary';
+import { 
+  buildReviewCsv, 
+  buildReviewJson, 
+  generateExportFilename, 
+  downloadTextFile, 
+} from '../utils/exportDiary';
 import { deriveFriendCodeFromUid } from '../utils/friendCode';
 import type { FriendModalTab } from './UserSearchModal';
 
@@ -64,6 +72,16 @@ interface UserReviewItem {
   style: string;
   eventName: string;
   eventId: string;
+  breweryLocation?: string;
+  type?: string;
+  abv?: string;
+  caskOrKeg?: string;
+  isVegan?: boolean | null;
+  isGlutenFree?: boolean | null;
+  description?: string;
+  eventDate?: string;
+  eventAddress?: string;
+  eventStatus?: string;
 }
 
 export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
@@ -108,58 +126,148 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
   // Aggregate reviews created by this user (subcollection reviews, plus any still embedded
   // in events that have not been migrated yet)
   const { reviews: storedReviews } = useUserReviews(user.uid);
-  const eventNames = new Map(events.map((event) => [event.id, event.name]));
-  const userReviews: UserReviewItem[] = [];
-  const seenReviewIds = new Set<string>();
 
-  storedReviews.forEach(({ eventId, drinkId, drinkName, brewery, style, ...review }) => {
-    const eventName = eventNames.get(eventId);
-    if (eventName === undefined) return; // event no longer exists
-    seenReviewIds.add(review.id);
-    userReviews.push({ review, drinkId, drinkName, brewery, style, eventName, eventId });
-  });
+  const userReviews: UserReviewItem[] = React.useMemo(() => {
+    const eventsById = new Map(events.map((event) => [event.id, event]));
 
-  events.forEach((event) => {
-    event.drinks?.forEach((drink) => {
-      drink.reviews?.forEach((review) => {
-        // Attribute by userId only; display names are not unique
-        if (review.userId === user.uid && !seenReviewIds.has(review.id)) {
-          userReviews.push({
-            review,
-            drinkId: drink.id,
-            drinkName: drink.name,
-            brewery: drink.brewery,
-            style: drink.style,
-            eventName: event.name,
-            eventId: event.id,
-          });
-        }
+    // Build lookup map for drinks across all events in memory
+    const drinksByEventAndDrinkId = new Map<string, BeerDrink>();
+    events.forEach((event) => {
+      event.drinks?.forEach((drink) => {
+        drinksByEventAndDrinkId.set(`${event.id}:${drink.id}`, drink);
       });
     });
-  });
 
-  // Sort reviews by creation date descending
-  userReviews.sort((a, b) => new Date(b.review.createdAt).getTime() - new Date(a.review.createdAt).getTime());
+    const reviewsList: UserReviewItem[] = [];
+    const seenReviewIds = new Set<string>();
+
+    storedReviews.forEach(({ eventId, drinkId, drinkName, brewery, style, ...review }) => {
+      const event = eventsById.get(eventId);
+      if (!event) return; // event no longer exists
+      seenReviewIds.add(review.id);
+      const matchedDrink = drinksByEventAndDrinkId.get(`${eventId}:${drinkId}`);
+      reviewsList.push({
+        review,
+        drinkId,
+        drinkName: matchedDrink?.name || drinkName,
+        brewery: matchedDrink?.brewery || brewery,
+        style: matchedDrink?.style || style,
+        eventName: event.name,
+        eventId: event.id,
+        breweryLocation: matchedDrink?.location || '',
+        type: matchedDrink?.type || '',
+        abv: matchedDrink?.abv || '',
+        caskOrKeg: matchedDrink?.caskOrKeg || '',
+        isVegan: matchedDrink?.isVegan ?? null,
+        isGlutenFree: matchedDrink?.isGlutenFree ?? null,
+        description: matchedDrink?.description || '',
+        eventDate: event.date || '',
+        eventAddress: event.address || '',
+        eventStatus: event.status || '',
+      });
+    });
+
+    events.forEach((event) => {
+      event.drinks?.forEach((drink) => {
+        drink.reviews?.forEach((review) => {
+          // Attribute by userId only; display names are not unique
+          if (review.userId === user.uid && !seenReviewIds.has(review.id)) {
+            seenReviewIds.add(review.id);
+            reviewsList.push({
+              review,
+              drinkId: drink.id,
+              drinkName: drink.name,
+              brewery: drink.brewery,
+              style: drink.style,
+              eventName: event.name,
+              eventId: event.id,
+              breweryLocation: drink.location || '',
+              type: drink.type || '',
+              abv: drink.abv || '',
+              caskOrKeg: drink.caskOrKeg || '',
+              isVegan: drink.isVegan ?? null,
+              isGlutenFree: drink.isGlutenFree ?? null,
+              description: drink.description || '',
+              eventDate: event.date || '',
+              eventAddress: event.address || '',
+              eventStatus: event.status || '',
+            });
+          }
+        });
+      });
+    });
+
+    // Sort reviews by creation date descending
+    reviewsList.sort((a, b) => new Date(b.review.createdAt).getTime() - new Date(a.review.createdAt).getTime());
+    return reviewsList;
+  }, [events, storedReviews, user.uid]);
+
+  // Export formats and states
+  const [exportFormat, setExportFormat] = React.useState<'csv' | 'json'>('csv');
+  const [exportSuccessMsg, setExportSuccessMsg] = React.useState<string>('');
+
+  const exportEntries: ReviewExportEntry[] = React.useMemo(() => {
+    return userReviews.map((item) => ({
+      eventId: item.eventId,
+      eventName: item.eventName,
+      eventDate: item.eventDate || '',
+      eventAddress: item.eventAddress || '',
+      eventStatus: item.eventStatus || '',
+      brewery: item.brewery,
+      breweryLocation: item.breweryLocation || '',
+      drinkId: item.drinkId,
+      drinkName: item.drinkName,
+      style: item.style,
+      type: item.type || '',
+      abv: item.abv || '',
+      caskOrKeg: item.caskOrKeg || '',
+      isVegan: item.isVegan ?? null,
+      isGlutenFree: item.isGlutenFree ?? null,
+      description: item.description || '',
+      reviewId: item.review.id,
+      rating: item.review.rating,
+      comment: item.review.comment || '',
+      tastingTags: item.review.tags || [],
+      servingSize: item.review.servingSize || '',
+      price: item.review.price || '',
+      createdAt: item.review.createdAt,
+      imageUrl: item.review.imageUrl,
+    }));
+  }, [userReviews]);
+
+  const reviewDateRange = React.useMemo(() => {
+    if (userReviews.length === 0) return 'No reviews yet';
+    const timestamps = userReviews
+      .map((r) => new Date(r.review.createdAt).getTime())
+      .filter((t) => !isNaN(t));
+    if (timestamps.length === 0) return 'No dates available';
+    const minDate = new Date(Math.min(...timestamps));
+    const maxDate = new Date(Math.max(...timestamps));
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+    const minStr = minDate.toLocaleDateString(undefined, options);
+    const maxStr = maxDate.toLocaleDateString(undefined, options);
+    return minStr === maxStr ? minStr : `${minStr} – ${maxStr}`;
+  }, [userReviews]);
+
+  const reviewedEventsCount = React.useMemo(() => {
+    return new Set(userReviews.map((r) => r.eventId)).size;
+  }, [userReviews]);
+
+  const handleExecuteExport = (selectedFormat: 'csv' | 'json' = exportFormat) => {
+    if (exportEntries.length === 0) return;
+    const filename = generateExportFilename(selectedFormat);
+    if (selectedFormat === 'csv') {
+      const csv = buildReviewCsv(exportEntries);
+      downloadTextFile(filename, 'text/csv', csv);
+    } else {
+      const json = buildReviewJson(exportEntries);
+      downloadTextFile(filename, 'application/json', json);
+    }
+    setExportSuccessMsg(`Successfully exported ${exportEntries.length} review${exportEntries.length === 1 ? '' : 's'} to ${filename}`);
+  };
 
   const handleExportDiary = () => {
-    const eventDates = new Map(events.map((event) => [event.id, event.date]));
-    const rows = userReviews.map(({ review, drinkName, brewery, style, eventName, eventId }) => ({
-      beer: drinkName,
-      brewery,
-      style,
-      event: eventName,
-      eventDate: eventDates.get(eventId) ?? '',
-      reviewDate: review.createdAt,
-      rating: review.rating,
-      servingSize: review.servingSize ?? '',
-      price: review.price ?? '',
-      notes: review.comment,
-    }));
-    const today = new Date();
-    const stamp = [today.getFullYear(), today.getMonth() + 1, today.getDate()]
-      .map((part) => String(part).padStart(2, '0'))
-      .join('-');
-    downloadTextFile(`keg-swap-diary-${stamp}.csv`, 'text/csv', buildDiaryCsv(rows));
+    handleExecuteExport(exportFormat);
   };
 
   // Take the last 10 reviews
@@ -767,6 +875,94 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({
                 </button>
               </div>
             )}
+          </div>
+
+          {/* Export Tasting History & Reviews Section */}
+          <div className="profile-feed-section" id="profile-export-section">
+            <div className="feed-header-row">
+              <div>
+                <h3 className="section-title" style={{ margin: 0 }}>Export Tasting History & Reviews</h3>
+                <p className="section-subtitle">
+                  Download your personal tasting diary, ratings, and brewery notes in CSV or JSON format.
+                </p>
+              </div>
+              <span className="feed-count-badge">
+                {totalReviews} {totalReviews === 1 ? 'Review' : 'Reviews'}
+              </span>
+            </div>
+
+            <div className="profile-export-card">
+              <div className="export-summary-grid">
+                <div className="export-summary-item">
+                  <span className="export-summary-label">Total Reviews</span>
+                  <span className="export-summary-value">{totalReviews}</span>
+                </div>
+                <div className="export-summary-item">
+                  <span className="export-summary-label">Events Covered</span>
+                  <span className="export-summary-value">{reviewedEventsCount}</span>
+                </div>
+                <div className="export-summary-item">
+                  <span className="export-summary-label">Date Range</span>
+                  <span className="export-summary-value export-summary-date-range">{reviewDateRange}</span>
+                </div>
+              </div>
+
+              <div className="export-actions-bar">
+                <div className="export-format-group">
+                  <span className="export-format-label">Format:</span>
+                  <div className="filter-tabs" role="group" aria-label="Export file format">
+                    <button
+                      type="button"
+                      className={`filter-tab-btn ${exportFormat === 'csv' ? 'active' : ''}`}
+                      aria-pressed={exportFormat === 'csv'}
+                      onClick={() => setExportFormat('csv')}
+                      id="export-format-csv-btn"
+                    >
+                      <FileSpreadsheet size={14} />
+                      <span>CSV (.csv)</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`filter-tab-btn ${exportFormat === 'json' ? 'active' : ''}`}
+                      aria-pressed={exportFormat === 'json'}
+                      onClick={() => setExportFormat('json')}
+                      id="export-format-json-btn"
+                    >
+                      <FileCode size={14} />
+                      <span>JSON (.json)</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="btn-primary btn-export-download"
+                  id="btn-export-reviews"
+                  disabled={totalReviews === 0}
+                  onClick={() => handleExecuteExport()}
+                  title={
+                    totalReviews === 0
+                      ? 'No reviews logged yet to export'
+                      : `Download all ${totalReviews} reviews as a ${exportFormat.toUpperCase()} file`
+                  }
+                  aria-label={
+                    totalReviews === 0
+                      ? 'No reviews logged yet to export'
+                      : `Export reviews as ${exportFormat.toUpperCase()}`
+                  }
+                >
+                  <Download size={15} />
+                  <span>Export {exportFormat.toUpperCase()}</span>
+                </button>
+              </div>
+
+              {exportSuccessMsg && (
+                <div className="export-status-message" role="status" aria-live="polite">
+                  <CheckCircle2 size={15} className="export-success-icon" />
+                  <span>{exportSuccessMsg}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
